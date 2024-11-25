@@ -1,6 +1,6 @@
 # Ignore textures since they always cause version control problems
 
-textures/
+/engine/textures/
 
 ######################## Below is stuff I pasted from somewhere on the internet
 
