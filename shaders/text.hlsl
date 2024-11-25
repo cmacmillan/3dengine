@@ -1,0 +1,60 @@
+
+cbuffer constants : register(b0)
+{
+    float2 posObject;
+    float2 vecScaleObject;
+    float4 uniformColor;
+};
+
+cbuffer globals : register(b1)
+{
+    float2 posCamera;
+    float2 vecSizeCamera;
+    float time;
+};
+
+struct VS_INPUT
+{
+    float2 pos : POSITION;
+    float2 uv : TEXCOORD;
+};
+
+struct VS_Output {
+    float4 pos : SV_POSITION;
+    float4 color : COLOR;
+    float2 uv : TEX;
+};
+
+Texture2D    mytexture : register(t0);
+SamplerState mysampler : register(s0);
+
+VS_Output vs_main(VS_INPUT vsinput)
+{
+    VS_Output output;
+    output.pos = float4((vecScaleObject * vsinput.pos + posObject - posCamera)/vecSizeCamera, 0.0f, 1.0f);
+    output.color = uniformColor;
+    output.uv = vsinput.uv;
+    return output;
+}
+
+float4 ps_main(VS_Output input) : SV_Target
+{
+    float2 vecPixel = float2(ddx(input.uv.x), ddy(input.uv.y));
+
+    // that's change per pixel, so the next pixel u
+
+    // https://blog.demofox.org/2015/04/23/4-rook-antialiasing-rgss/
+
+    float uv0 = float2(-3.0f / 8.0f, 1.0f / 8.0f);
+    float uv1 = float2(1.0f / 8.0f, 3.0f / 8.0f);
+    float uv2 = float2(3.0f / 8.0f, -1.0f / 8.0f);
+    float uv3 = float2(-1.0f / 8.0f, -3.0f / 8.0f);
+
+    float gAlpha0 = mytexture.Sample(mysampler, input.uv + uv0 * vecPixel).r;
+    float gAlpha1 = mytexture.Sample(mysampler, input.uv + uv1 * vecPixel).r;
+    float gAlpha2 = mytexture.Sample(mysampler, input.uv + uv2 * vecPixel).r;
+    float gAlpha3 = mytexture.Sample(mysampler, input.uv + uv3 * vecPixel).r;
+
+    float gAlpha = (gAlpha0 + gAlpha1 + gAlpha2 + gAlpha3) / 4.0f;
+    return float4(input.color.rgb, input.color.a * gAlpha);
+}

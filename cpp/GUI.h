@@ -1,0 +1,516 @@
+#pragma once
+
+#define TESTING_WORD_SCORES 1
+
+#define ASSET_PATH "C:\\Users\\chase\\Desktop\\Desktop_4\\Scrabble\\GUI\\"
+#define WORDGRAPH_PATH "C:\\Users\\chase\\Desktop\\Desktop_4\\Scrabble\\Scrabble\\"
+
+#define DEBUG_BUILD
+
+#define DX_GRID 15
+#define DY_GRID 15
+
+// Uses some starter code from https://github.com/kevinmoran/BeginnerDirect3D11
+
+#define WIN32_LEAN_AND_MEAN
+#define UNICODE
+#include "util.h"
+#include "move.h"
+#include <windows.h>
+#include <vector>
+#include <string>
+#include <unordered_map>
+#include <d3d11_1.h>
+#pragma comment(lib, "d3d11.lib")
+#include <d3dcompiler.h>
+#pragma comment(lib, "d3dcompiler.lib")
+
+//#include "stb_image.h"
+
+
+struct SScrabbleBoard;
+struct SScrabbleSolver;
+
+struct float2
+{
+	float2() : m_x(0.0f), m_y(0.0f) {}
+	float2(float x, float y) : m_x(x), m_y(y) {}
+	float m_x, m_y;
+	float2 operator/(float g) const;
+	float2 operator*(float g) const;
+	float2 operator/(float2 vec) const;
+	float2 operator*(float2 vec) const;
+	float2 operator+(float2 vec) const;
+	float2 operator-(float2 vec) const;
+};
+
+struct float4
+{
+	float m_x, m_y, m_z, m_w;
+};
+
+#define SORT_TILE_NORMAL 1.0f
+#define SORT_TILE_PICKED 2.0f
+
+#define BOARD_SCALE 100.0f
+#define BOARD_PADDING 30.0f
+#define BOARD_CENTER float2(0.0f, 0.0f)
+
+#define CELL_SIZE (BOARD_SCALE * (1704.0f/2048.0f)/15.0f)
+#define PIECE_SCALE float2(CELL_SIZE - (4.0f/2048.0f)*BOARD_SCALE, CELL_SIZE - (4.0f/2048.0f)*BOARD_SCALE)
+#define PIECE_SCALE_HOVERED (PIECE_SCALE * 1.1f) 
+#define PIECE_SCALE_PICKED (PIECE_SCALE*1.2f)
+
+#define POS_RACK_CENTER float2(0.0f, -(BOARD_SCALE + BOARD_PADDING / 2.0f) / 2.0f)
+#define VEC_RACK_GAP (CELL_SIZE * 1.3f)
+
+// https://learn.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
+
+#define VK_0 0x30
+#define VK_1 0x31
+#define VK_2 0x32
+#define VK_3 0x33
+#define VK_4 0x34
+#define VK_5 0x35
+#define VK_6 0x36
+#define VK_7 0x37
+#define VK_8 0x38
+#define VK_9 0x39
+#define VK_A 0x41
+#define VK_B 0x42
+#define VK_C 0x43
+#define VK_D 0x44
+#define VK_E 0x45
+#define VK_F 0x46
+#define VK_G 0x47
+#define VK_H 0x48
+#define VK_I 0x49
+#define VK_J 0x4A
+#define VK_K 0x4B
+#define VK_L 0x4C
+#define VK_M 0x4D
+#define VK_N 0x4E
+#define VK_O 0x4F
+#define VK_P 0x50
+#define VK_Q 0x51
+#define VK_R 0x52
+#define VK_S 0x53
+#define VK_T 0x54
+#define VK_U 0x55
+#define VK_V 0x56
+#define VK_W 0x57
+#define VK_X 0x58
+#define VK_Y 0x59
+#define VK_Z 0x5A
+
+struct SObject;
+struct SObjectManager
+{
+	void RegisterObj(SObject * pObj);
+	void UnregisterObj(SObject * pObj);
+	std::unordered_map<int, SObject *> m_mpObjhObj;
+	int m_cId = 0;
+};
+extern SObjectManager g_objman;
+
+template <typename T>
+struct SHandle
+{
+	SHandle() : m_id(-1) {}
+	SHandle(int id) : m_id(id) {}
+	int m_id = -1;
+	T * PT() const
+	{
+		auto kv = g_objman.m_mpObjhObj.find(m_id);
+		if (kv == g_objman.m_mpObjhObj.end()) return nullptr;
+		return (T *) kv->second;
+	}
+	T * operator->() const
+	{
+		return PT();
+	}
+	T & operator*() const
+	{
+		T * pT = PT();
+		if (pT == nullptr)
+		{
+			// Deliberately crash
+			*((char *)nullptr) = 0;
+		}
+		return *pT;
+	}
+	bool operator==(const SHandle<T> & hOther) const
+	{
+		return m_id == hOther.m_id;
+	}
+	bool operator==(const void * pV) const
+	{
+		return PT() == pV;
+	}
+	operator bool() const
+	{
+		return PT();
+	}
+};
+
+template <typename T>
+bool operator==(const void * pV, const SHandle<T> & hOther)
+{
+	return pV == hOther.PT();
+}
+
+enum TYPEK
+{
+	TYPEK_Object,
+	TYPEK_Texture,
+	TYPEK_Shader,
+	TYPEK_Material,
+	TYPEK_GameObject,
+	TYPEK_ScrabbleTile,
+	TYPEK_Camera,
+	TYPEK_ScrabbleGrid,
+	TYPEK_Font,
+	TYPEK_Text,
+	TYPEK_Mesh,
+};
+
+struct SObject  // obj
+{
+	SObject();
+	~SObject();
+	TYPEK m_typek = TYPEK_Object;
+	int m_nHandle = -1;
+};
+
+struct SBinaryStream
+{
+	SBinaryStream(unsigned char * pB) : m_pB(pB), m_i(0) {}
+	char CharRead();
+	unsigned char UcharRead();
+	short ShortRead();
+	unsigned short UshortRead();
+	int IntRead();
+	unsigned int UintRead();
+	const char * PChzRead();
+	unsigned char * m_pB;
+	int m_i;
+};
+
+struct SFontInfoBlock
+{
+	SFontInfoBlock() {}
+	SFontInfoBlock(SBinaryStream * pBs);
+	short m_nFontSize;
+	char m_bBitField;
+	unsigned char m_bCharSet;
+	unsigned short m_nStretchH;
+	unsigned char m_bAA;
+	unsigned char m_bPaddingUp;
+	unsigned char m_bPaddingRight;
+	unsigned char m_bPaddingDown;
+	unsigned char m_bPaddingLeft;
+	unsigned char m_bSpacingHoriz;
+	unsigned char m_bSpacingVert;
+	unsigned char m_bOutline;
+};
+
+struct SFontCommonBlock
+{
+	SFontCommonBlock() {}
+	SFontCommonBlock(SBinaryStream * pBs);
+	unsigned short m_nLineHeight;
+	unsigned short m_nBase;
+	unsigned short m_nScaleW;
+	unsigned short m_nScaleH;
+	unsigned short m_nPages;
+	char m_bBitField;
+	unsigned char m_bAlphaChnl;
+	unsigned char m_bRedChnl;
+	unsigned char m_bGreenChnl;
+	unsigned char m_bBlueChnl;
+};
+
+struct SFontChar
+{
+	SFontChar() {}
+	SFontChar(SBinaryStream * pBs);
+	unsigned int m_nId;
+	unsigned short m_nX;
+	unsigned short m_nY;
+	unsigned short m_nWidth;
+	unsigned short m_nHeight;
+	short m_nXOffset;
+	short m_nYOffset;
+	short m_nXAdvance;
+	unsigned char m_nPage;
+	unsigned char m_nChnl;
+};
+
+struct SFontKernPair
+{
+	SFontKernPair() {}
+	SFontKernPair(SBinaryStream * pBs);
+	unsigned int m_nFirst;
+	unsigned int m_nSecond;
+	short m_nAmount;
+};
+
+struct STexture : SObject // texture
+{
+	typedef SObject super;
+	STexture(const char * pChzFilename, bool fIsNormal, bool fGenerateMips);
+	SHandle<STexture> HTexture() { return (SHandle<STexture>) m_nHandle; }
+
+	ID3D11Texture2D * m_pD3dtexture = nullptr;
+	ID3D11ShaderResourceView * m_pD3dsrview = nullptr;
+	ID3D11SamplerState * m_pD3dsamplerstate = nullptr;
+
+	int m_dX;
+	int m_dY;
+};
+typedef SHandle<STexture> STextureHandle;
+
+struct SFont : SObject
+{
+	typedef SObject super;
+	SFont(const char * pChzBitmapfontFile);
+	SHandle<SFont> HFont() { return (SHandle<SFont>) m_nHandle; }
+
+	SFontInfoBlock m_fontib;
+	std::string m_strFontName;
+	SFontCommonBlock m_fontcb;
+	std::vector<SFontChar> m_aryFontchar;
+	std::vector<SFontKernPair> m_aryFontkernpair;
+
+	std::vector<STextureHandle> m_aryhTexture;
+};
+typedef SHandle<SFont> SFontHandle;
+
+void PushQuad(float2 posMin, float2 posMax, float2 uvMin, float2 uvMax, std::vector<float> * pAryVert);
+
+struct SMesh : SObject // mesh
+{
+	typedef SObject super;
+	SMesh();
+	SHandle<SMesh> HMesh() { return (SHandle<SMesh>) m_nHandle; }
+
+	void SetVerts(float * pGVerts, int cVerts, int cStride, int cOffset);
+
+	ID3D11Buffer * m_cbufferVertex = nullptr;
+	UINT m_cVerts = -1;
+	UINT m_cStride = -1;
+	UINT m_cOffset = -1;
+};
+typedef SHandle<SMesh> SMeshHandle;
+
+struct SShader : SObject // shader
+{
+	typedef SObject super;
+	SShader(LPCWSTR lpcwstrFilename);
+	SHandle<SShader> HShader() { return (SHandle<SShader>) m_nHandle; }
+
+	ID3D11VertexShader * m_pD3dvertexshader = nullptr;
+	ID3D11PixelShader * m_pD3dfragshader = nullptr;
+	ID3D11InputLayout * m_pD3dinputlayout = nullptr;
+};
+typedef SHandle<SShader> SShaderHandle;
+
+struct SMaterial : SObject // material
+{
+	typedef SObject super;
+	SMaterial(SShaderHandle hShader);
+	SHandle<SMaterial> HMaterial() { return (SHandle<SMaterial>) m_nHandle; }
+
+	STextureHandle m_hTexture = -1;
+	STextureHandle m_hTexture2 = -1;
+	SShaderHandle m_hShader = -1;
+	float2 m_uvTopleft;
+};
+typedef SHandle<SMaterial> SMaterialHandle;
+
+struct ShaderGlobals
+{
+	float2 m_posCameraCenter;
+	float2 m_vecCameraSize;
+	float m_t;
+
+	float2 m_junk;
+	float m_junk2;
+};
+
+struct SGameObjectRenderConstants
+{
+	float2 m_posCenter;
+	float2 m_vecScale;
+	float4 m_color;
+};
+
+struct SScrabbleTileConstants // stc
+{
+	float2 m_uvTopLeft;
+	float2 m_junkpadding;
+};
+
+struct SGameObject : SObject // go
+{
+	typedef SObject super;
+	SGameObject();
+	SHandle<SGameObject> HGo() { return (SHandle<SGameObject>) m_nHandle; }
+
+	virtual void Update() {}
+
+	// TODO
+	//SHandle<SGameObject> m_hGoParent = -1;
+	//std::vector<SHandle<SGameObject>> m_aryhGoChildren;
+
+	float2 m_pos = { 0.0f, 0.0f };
+	float2 m_vecScale = { 1.0f, 1.0f };
+	float4 m_color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	float m_gSort = 0.0f; // Lower = drawn first
+	SMaterialHandle m_hMaterial = -1;
+	SMeshHandle m_hMesh = -1;
+};
+typedef SHandle<SGameObject> SGameObjectHandle; 
+
+struct SText : SGameObject // text
+{
+	typedef SGameObject super;
+	SText(SFontHandle hFont);
+	SHandle<SText> HText() { return (SHandle<SText>) m_nHandle; }
+
+	void SetText(const std::string & str);
+	void Update() override;
+
+	SFontHandle m_hFont = -1;
+	std::string m_str;
+};
+typedef SHandle<SText> STextHandle;
+
+struct SScrabbleTile : SGameObject // tile
+{
+	typedef SGameObject super;
+	SScrabbleTile();
+	SHandle<SScrabbleTile> HTile() { return (SHandle<SScrabbleTile>) m_nHandle; }
+
+	void Update() override;
+
+	char m_chLetter;
+	int m_iGrid = -1;
+	float2 m_posTarget;
+};
+typedef SHandle<SScrabbleTile> SScrabbleTileHandle;
+
+struct SCamera : SGameObject // camera
+{
+	typedef SGameObject	super;
+	SCamera();
+	SHandle<SCamera> HCamera() { return (SHandle<SCamera>) m_nHandle; }
+
+	void Update() override;
+
+	float2 PosWorldFromCursor(float2 posCursor);
+
+	float2 m_vecExtents = { 0.0f, 0.0f };
+};
+typedef SHandle<SCamera> SCameraHandle;
+
+struct SScrabbleGrid : SGameObject // grid
+{
+	typedef SGameObject super;
+	SScrabbleGrid();
+	SHandle<SScrabbleGrid> HGrid() { return (SHandle<SScrabbleGrid>) m_nHandle; }
+
+	float2 VecIntGridCoordsFromWorld(float2 posWorld);
+	float2 PosLowerLeft();
+
+	SScrabbleTileHandle HTileSpawn(char ch);
+	void AddTileToGrid(SScrabbleTileHandle hTile, int x, int y);
+
+	void Update() override;
+	void CopyGameStateFromPchz(const char * pChzBoardLayout, const char * pChzRack);
+
+	std::vector<SScrabbleTileHandle> m_aryhTileRack;
+
+	SScrabbleTileHandle m_hTileSelected = -1;
+	bool m_fPicked = false;
+	float2 m_vecPickOffset = { 0.0f, 0.0f };
+
+	SScrabbleTileHandle m_ahTileGrid[DX_GRID * DY_GRID];
+};
+typedef SHandle<SScrabbleGrid> SScrabbleGridHandle;
+
+struct SGame // game 
+{
+	SGame();
+
+	void Init(HINSTANCE hInstance);
+	void MainLoop();
+	LRESULT LresultWindowProcedure(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
+	float2 VecWinSize();
+	float2 PosCursorWorld();
+	void VkPressed(int vk);
+	void VkReleased(int vk);
+
+	// Gameplay
+
+	SScrabbleGridHandle m_hGridBoard = -1;
+	SCameraHandle m_hCamera = -1;
+	SMaterialHandle m_hMaterialTile;
+	STextHandle m_hText;
+
+	SScrabbleSolver * m_pSolver;
+
+#if TESTING_WORD_SCORES
+	void SetShowMovescore(int iMovescoreNew);
+
+	int m_iMoveWordscore = -1;
+	std::vector<SMove> m_aryMoveWordscore;
+	std::vector<SScrabbleTileHandle> m_aryhTileWordPreview;
+#endif
+
+	// These get cleared at the end of the frame
+
+	std::vector<SGameObjectHandle> m_aryhGo;
+	std::vector<SScrabbleTileHandle> m_aryhTile;
+
+	// Fonts
+
+	SFontHandle m_hFont;
+
+	// Window
+
+	HWND m_hwnd;
+	bool m_fDidWindowResize = false;
+
+	// Input
+
+	int m_xCursor = 0;
+	int m_yCursor = 0;
+	bool m_mpVkFDown[0xFF];
+	bool m_mpVkFJustPressed[0xFF];
+	bool m_mpVkFJustReleased[0xFF];
+	float m_sScroll = 0.0f;
+
+	// D3D
+
+	SMeshHandle m_hMeshQuad = -1;
+
+	ID3D11Device1 * m_pD3ddevice = nullptr;
+	ID3D11DeviceContext1 * m_pD3ddevicecontext = nullptr;
+	IDXGISwapChain1 * m_pD3dswapchain = nullptr;
+	ID3D11RenderTargetView * m_pD3dframebufferview = nullptr;
+
+	ID3D11Buffer * m_cbufferObject = nullptr;
+	ID3D11Buffer * m_cbufferGlobals = nullptr;
+
+	ID3D11Buffer * m_cbufferScrabbleTile = nullptr;
+
+	// Timing
+
+	float m_dT;
+	float m_dTSyst;
+
+	double m_dTSystDouble = 0.0;
+	LONGLONG m_startPerfCount = 0;
+	LONGLONG m_perfCounterFrequency = 0;
+};
