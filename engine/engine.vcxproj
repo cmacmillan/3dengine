@@ -119,20 +119,27 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="cpp\GUI.cpp" />
+    <ClCompile Include="cpp\engine.cpp" />
     <ClCompile Include="cpp\util.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="cpp\GUI.h" />
-    <ClInclude Include="cpp\move.h" />
+    <ClInclude Include="cpp\engine.h" />
     <ClInclude Include="cpp\stb_image.h" />
     <ClInclude Include="cpp\util.h" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="shaders\lit2d.hlsl" />
-    <FxCompile Include="shaders\scrabbletile.hlsl" />
-    <FxCompile Include="shaders\text.hlsl" />
-    <FxCompile Include="shaders\unlit2d.hlsl" />
+    <FxCompile Include="shaders\lit2d.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="shaders\scrabbletile.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="shaders\text.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="shaders\unlit2d.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </FxCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

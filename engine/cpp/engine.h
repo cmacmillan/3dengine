@@ -1,11 +1,8 @@
 #pragma once
 
-#define TESTING_WORD_SCORES 1
-
-#define ASSET_PATH "C:\\Users\\chase\\Desktop\\Desktop_4\\Scrabble\\GUI\\"
-#define WORDGRAPH_PATH "C:\\Users\\chase\\Desktop\\Desktop_4\\Scrabble\\Scrabble\\"
-
 #define DEBUG_BUILD
+
+#define ASSET_PATH "C:\\Users\\chase\\OneDrive\\Desktop\\3dengine\\engine" // TODO make relative instead of absolute
 
 #define DX_GRID 15
 #define DY_GRID 15
@@ -15,7 +12,6 @@
 #define WIN32_LEAN_AND_MEAN
 #define UNICODE
 #include "util.h"
-#include "move.h"
 #include <windows.h>
 #include <vector>
 #include <string>
@@ -28,8 +24,6 @@
 //#include "stb_image.h"
 
 
-struct SScrabbleBoard;
-struct SScrabbleSolver;
 
 struct float2
 {
@@ -48,21 +42,6 @@ struct float4
 {
 	float m_x, m_y, m_z, m_w;
 };
-
-#define SORT_TILE_NORMAL 1.0f
-#define SORT_TILE_PICKED 2.0f
-
-#define BOARD_SCALE 100.0f
-#define BOARD_PADDING 30.0f
-#define BOARD_CENTER float2(0.0f, 0.0f)
-
-#define CELL_SIZE (BOARD_SCALE * (1704.0f/2048.0f)/15.0f)
-#define PIECE_SCALE float2(CELL_SIZE - (4.0f/2048.0f)*BOARD_SCALE, CELL_SIZE - (4.0f/2048.0f)*BOARD_SCALE)
-#define PIECE_SCALE_HOVERED (PIECE_SCALE * 1.1f) 
-#define PIECE_SCALE_PICKED (PIECE_SCALE*1.2f)
-
-#define POS_RACK_CENTER float2(0.0f, -(BOARD_SCALE + BOARD_PADDING / 2.0f) / 2.0f)
-#define VEC_RACK_GAP (CELL_SIZE * 1.3f)
 
 // https://learn.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
 
@@ -166,9 +145,7 @@ enum TYPEK
 	TYPEK_Shader,
 	TYPEK_Material,
 	TYPEK_GameObject,
-	TYPEK_ScrabbleTile,
 	TYPEK_Camera,
-	TYPEK_ScrabbleGrid,
 	TYPEK_Font,
 	TYPEK_Text,
 	TYPEK_Mesh,
@@ -345,12 +322,6 @@ struct SGameObjectRenderConstants
 	float4 m_color;
 };
 
-struct SScrabbleTileConstants // stc
-{
-	float2 m_uvTopLeft;
-	float2 m_junkpadding;
-};
-
 struct SGameObject : SObject // go
 {
 	typedef SObject super;
@@ -386,20 +357,6 @@ struct SText : SGameObject // text
 };
 typedef SHandle<SText> STextHandle;
 
-struct SScrabbleTile : SGameObject // tile
-{
-	typedef SGameObject super;
-	SScrabbleTile();
-	SHandle<SScrabbleTile> HTile() { return (SHandle<SScrabbleTile>) m_nHandle; }
-
-	void Update() override;
-
-	char m_chLetter;
-	int m_iGrid = -1;
-	float2 m_posTarget;
-};
-typedef SHandle<SScrabbleTile> SScrabbleTileHandle;
-
 struct SCamera : SGameObject // camera
 {
 	typedef SGameObject	super;
@@ -413,31 +370,6 @@ struct SCamera : SGameObject // camera
 	float2 m_vecExtents = { 0.0f, 0.0f };
 };
 typedef SHandle<SCamera> SCameraHandle;
-
-struct SScrabbleGrid : SGameObject // grid
-{
-	typedef SGameObject super;
-	SScrabbleGrid();
-	SHandle<SScrabbleGrid> HGrid() { return (SHandle<SScrabbleGrid>) m_nHandle; }
-
-	float2 VecIntGridCoordsFromWorld(float2 posWorld);
-	float2 PosLowerLeft();
-
-	SScrabbleTileHandle HTileSpawn(char ch);
-	void AddTileToGrid(SScrabbleTileHandle hTile, int x, int y);
-
-	void Update() override;
-	void CopyGameStateFromPchz(const char * pChzBoardLayout, const char * pChzRack);
-
-	std::vector<SScrabbleTileHandle> m_aryhTileRack;
-
-	SScrabbleTileHandle m_hTileSelected = -1;
-	bool m_fPicked = false;
-	float2 m_vecPickOffset = { 0.0f, 0.0f };
-
-	SScrabbleTileHandle m_ahTileGrid[DX_GRID * DY_GRID];
-};
-typedef SHandle<SScrabbleGrid> SScrabbleGridHandle;
 
 struct SGame // game 
 {
@@ -453,25 +385,13 @@ struct SGame // game
 
 	// Gameplay
 
-	SScrabbleGridHandle m_hGridBoard = -1;
 	SCameraHandle m_hCamera = -1;
 	SMaterialHandle m_hMaterialTile;
 	STextHandle m_hText;
 
-	SScrabbleSolver * m_pSolver;
-
-#if TESTING_WORD_SCORES
-	void SetShowMovescore(int iMovescoreNew);
-
-	int m_iMoveWordscore = -1;
-	std::vector<SMove> m_aryMoveWordscore;
-	std::vector<SScrabbleTileHandle> m_aryhTileWordPreview;
-#endif
-
 	// These get cleared at the end of the frame
 
 	std::vector<SGameObjectHandle> m_aryhGo;
-	std::vector<SScrabbleTileHandle> m_aryhTile;
 
 	// Fonts
 
@@ -502,8 +422,6 @@ struct SGame // game
 
 	ID3D11Buffer * m_cbufferObject = nullptr;
 	ID3D11Buffer * m_cbufferGlobals = nullptr;
-
-	ID3D11Buffer * m_cbufferScrabbleTile = nullptr;
 
 	// Timing
 

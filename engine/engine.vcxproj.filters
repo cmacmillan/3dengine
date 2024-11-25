@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="cpp\GUI.cpp">
+    <ClCompile Include="cpp\engine.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="cpp\util.cpp">
@@ -23,10 +23,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="cpp\GUI.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="cpp\move.h">
+    <ClInclude Include="cpp\engine.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="cpp\stb_image.h">

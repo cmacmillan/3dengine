@@ -3,11 +3,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-#include "gui.h"
-#include "scrabblesolver.h"
-#include "boardlayouts.h"
-
-#include "scrabblesolver.h"
+#include "engine.h"
 
 #include <exception>
 
@@ -265,223 +261,18 @@ SGameObject::SGameObject() : super()
 	g_game.m_aryhGo.push_back(HGo());
 }
 
-SScrabbleTile::SScrabbleTile() : super()
-{
-	m_typek = TYPEK_ScrabbleTile;
-
-	g_game.m_aryhTile.push_back(HTile());
-}
-
-void SScrabbleTile::Update()
-{
-	int iRack = IFind(g_game.m_hGridBoard->m_aryhTileRack, HTile());
-
-	if (iRack != -1)
-	{
-		int cRack = g_game.m_hGridBoard->m_aryhTileRack.size();
-		float xOffset = (iRack / float(cRack) - 0.5f) * VEC_RACK_GAP * cRack;
-		m_posTarget = POS_RACK_CENTER + float2(xOffset, 0.0f);
-	}
-
-	m_pos = lerp(m_pos, m_posTarget, 20.0f * g_game.m_dT);
-
-	if (g_game.m_hGridBoard->m_hTileSelected == HTile())
-	{
-		if (g_game.m_hGridBoard->m_fPicked)
-		{
-			m_vecScale = PIECE_SCALE_PICKED;
-		}
-		else
-		{
-			m_vecScale = PIECE_SCALE_HOVERED;
-		}
-
-		m_gSort = SORT_TILE_PICKED;
-	}
-	else
-	{
-		m_vecScale = PIECE_SCALE;
-		m_gSort = SORT_TILE_NORMAL;
-	}
-}
-
 SCamera::SCamera() : super()
 {
 	m_typek = TYPEK_Camera;
 }
 
-SScrabbleGrid::SScrabbleGrid() : super()
-{
-	m_typek = TYPEK_ScrabbleGrid;
-
-	for (int i = 0; i < DIM(m_ahTileGrid); i++)
-	{
-		m_ahTileGrid[i] = -1;
-	}
-}
-
-void SScrabbleGrid::Update()
-{
-#if TESTING_WORD_SCORES
-	if (g_game.m_iMoveWordscore == -1)
-		return;
-
-	int iMoveWordscoreNext = g_game.m_iMoveWordscore;
-	if (g_game.m_sScroll > 0.0f)
-	{
-		iMoveWordscoreNext--;
-		if (iMoveWordscoreNext < 0)
-			iMoveWordscoreNext = g_game.m_aryMoveWordscore.size() - 1;
-	}
-	else if (g_game.m_sScroll < 0.0f)
-	{
-		iMoveWordscoreNext++;
-		if (iMoveWordscoreNext >= g_game.m_aryMoveWordscore.size())
-			iMoveWordscoreNext = 0;
-	}
-	g_game.SetShowMovescore(iMoveWordscoreNext);
-
-#else
-	// Spawn new tiles
-
-	for (int vk = VK_A; vk <= VK_Z; vk++)
-	{
-		if (g_game.m_mpVkFJustPressed[vk])
-		{
-			char ch = 'a' + vk - VK_A;
-			g_game.m_hGridBoard->m_aryhTileRack.push_back(HTileSpawn(ch));
-		}
-	}
-
-	float2 posCursorWorld = g_game.PosCursorWorld();
-	if (m_fPicked)
-	{
-		m_hTileSelected->m_posTarget = posCursorWorld + m_vecPickOffset;
-		if (!g_game.m_mpVkFDown[VK_LBUTTON])
-		{
-			float2 vecIntGrid = VecIntGridCoordsFromWorld(m_hTileSelected->m_posTarget);
-			int x = int(vecIntGrid.m_x);
-			int y = int(vecIntGrid.m_y);
-			if (x >= 0 && y >= 0 && x < DX_GRID && y < DY_GRID)
-			{
-				AddTileToGrid(m_hTileSelected, x, y);
-			}
-			else
-			{
-				m_aryhTileRack.push_back(m_hTileSelected);
-			}
-			m_fPicked = false;
-		}
-	}
-	else
-	{
-		float2 vecScale = PIECE_SCALE;
-		vecScale = vecScale / 2.0f;
-		SScrabbleTileHandle hTileBest = -1;
-		for (SScrabbleTileHandle hTile : g_game.m_aryhTile)
-		{
-			float2 posMin = hTile->m_pos - vecScale;
-			float2 posMax = hTile->m_pos + vecScale;
-			bool fHovered = posCursorWorld.m_x > posMin.m_x && posCursorWorld.m_y > posMin.m_y && posCursorWorld.m_x < posMax.m_x && posCursorWorld.m_y < posMax.m_y;
-			if (fHovered && (!hTileBest || hTileBest->m_gSort<hTile->m_gSort))
-			{
-				hTileBest = hTile;
-			}
-		}
-
-		m_hTileSelected = hTileBest;
-
-		if (g_game.m_mpVkFJustPressed[VK_LBUTTON] && m_hTileSelected)
-		{
-			if (m_hTileSelected->m_iGrid != -1)
-			{
-				m_ahTileGrid[m_hTileSelected->m_iGrid] = -1;
-				m_hTileSelected->m_iGrid = -1;
-			}
-			int iRack = IFind(m_aryhTileRack, m_hTileSelected);
-			if (iRack != -1)
-			{
-				m_aryhTileRack.erase(m_aryhTileRack.begin() + iRack);
-			}
-			m_fPicked = true;
-			m_vecPickOffset = m_hTileSelected->m_pos - posCursorWorld;
-		}
-	}
-#endif
-}
-
-void SScrabbleGrid::CopyGameStateFromPchz(const char * pChzBoardLayout, const char * pChzRack)
-{
-	// TODO clear rack & board
-
-    ASSERT(strlen(pChzBoardLayout) == DX_GRID * DY_GRID);
-    for (int x = 0; x < DX_GRID; x++)
-    {
-        for (int y = 0; y < DY_GRID; y++)
-        {
-            // Reversing y so 0, 0 is the bottom left corner
-            int i = IChFromCoords(x, (DY_GRID - 1) - y);
-            char ch = pChzBoardLayout[i];
-            if (ch != '0')
-			{
-                ch = ToLower(ch);
-				AddTileToGrid(HTileSpawn(ch), x, y);
-			}
-        }
-    }
-
-	int cRack = strlen(pChzRack);
-	for (int iRack = 0; iRack < cRack; iRack++)
-	{
-		m_aryhTileRack.push_back(HTileSpawn(pChzRack[iRack]));
-	}
-}
-
-float2 SScrabbleGrid::PosLowerLeft()
-{
-	return m_pos - float2(1.0f, 1.0f) * CELL_SIZE * DX_GRID / 2.0f;
-}
-
-SScrabbleTileHandle SScrabbleGrid::HTileSpawn(char ch)
-{
-	SScrabbleTile * pTile = new SScrabbleTile();
-	pTile->m_chLetter = ToLower(ch);
-	pTile->m_hMaterial = g_game.m_hMaterialTile;
-	pTile->m_hMesh = g_game.m_hMeshQuad;
-	pTile->m_vecScale = PIECE_SCALE;
-	pTile->m_gSort = SORT_TILE_NORMAL;
-	return pTile->HTile();
-}
-
-void SScrabbleGrid::AddTileToGrid(SScrabbleTileHandle hTile, int x, int y)
-{
-	hTile->m_posTarget = PosLowerLeft() + PIECE_SCALE / 2.0f + float2(x, y) * CELL_SIZE;
-	int iGrid = IChFromCoords(x, y);
-	if (m_ahTileGrid[iGrid])
-	{
-		m_aryhTileRack.push_back(hTile);
-	}
-	else
-	{
-		m_ahTileGrid[iGrid] = hTile;
-		hTile->m_iGrid = iGrid;
-	}
-}
-
-float2 SScrabbleGrid::VecIntGridCoordsFromWorld(float2 posWorld)
-{
-	float2 gridLowerLeft = PosLowerLeft();
-	float2 vecGridOffset = (posWorld - gridLowerLeft)/CELL_SIZE;
-	int x = floor(vecGridOffset.m_x);
-	int y = floor(vecGridOffset.m_y);
-	return float2(x, y);
-}
-
 void SCamera::Update()
 {
-	float2 vecWinSize = g_game.VecWinSize();
-	float gScaleCamera = (BOARD_SCALE + BOARD_PADDING) * 0.5f / min(vecWinSize.m_x, vecWinSize.m_y);
-	m_vecExtents = { gScaleCamera * vecWinSize.m_x, gScaleCamera * vecWinSize.m_y };
+	// TODO
+
+	//float2 vecWinSize = g_game.VecWinSize();
+	//float gScaleCamera = (BOARD_SCALE + BOARD_PADDING) * 0.5f / min(vecWinSize.m_x, vecWinSize.m_y);
+	//m_vecExtents = { gScaleCamera * vecWinSize.m_x, gScaleCamera * vecWinSize.m_y };
 }
 
 float2 SCamera::PosWorldFromCursor(float2 posCursor)
@@ -1021,18 +812,6 @@ void SGame::Init(HINSTANCE hInstance)
 		assert(SUCCEEDED(hResult));
 	}
 
-	{
-		D3D11_BUFFER_DESC descCbufferScrabbleTileConstants = {};
-		CASSERT(sizeof(SScrabbleTileConstants) % 16 == 0);
-		descCbufferScrabbleTileConstants.ByteWidth = sizeof(SScrabbleTileConstants);
-		descCbufferScrabbleTileConstants.Usage = D3D11_USAGE_DYNAMIC;
-		descCbufferScrabbleTileConstants.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-		descCbufferScrabbleTileConstants.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-
-		HRESULT hResult = m_pD3ddevice->CreateBuffer(&descCbufferScrabbleTileConstants, nullptr, &m_cbufferScrabbleTile);
-		assert(SUCCEEDED(hResult));
-	}
-
 	// Timing
 	{
 		LARGE_INTEGER perfCount;
@@ -1042,8 +821,6 @@ void SGame::Init(HINSTANCE hInstance)
 		QueryPerformanceFrequency(&perfFreq);
 		m_perfCounterFrequency = perfFreq.QuadPart;
 	}
-
-	m_pSolver = new SScrabbleSolver("scrabbleword.dat");
 
 	SShaderHandle hShaderUnlit = (new SShader(L"unlit2d.hlsl"))->HShader();
 	SShaderHandle hShaderText = (new SShader(L"text.hlsl"))->HShader();
@@ -1060,27 +837,12 @@ void SGame::Init(HINSTANCE hInstance)
 	//m_hText->m_vecScale = float2(0.2f, 0.2f);
 	m_hText->m_vecScale = float2(0.025f, 0.025f);
 	m_hText->m_gSort = 10.0f;
-	m_hText->m_pos = float2(0.0f, BOARD_SCALE * 0.5f + 6.0f);
+	m_hText->m_pos = float2(0.0f, 0.0f);
 	m_hText->m_color = { 0.0f, 0.0f, 0.0f, 1.0f };
 
 	// Camera 
 
 	m_hCamera = (new SCamera())->HCamera();
-
-	// Board
-
-	m_hGridBoard = (new SScrabbleGrid())->HGrid();
-
-	m_hGridBoard->m_hMaterial = (new SMaterial(hShaderLit))->HMaterial();
-
-	m_hGridBoard->m_hMaterial->m_hTexture = (new STexture("BoardAlbedoWithText.png", false, true))->HTexture();
-	//m_hGridBoard->m_hMaterial->m_hTexture2 = (new STexture("BoardNormalWithoutText_srgb.png", true))->HTexture();
-	m_hGridBoard->m_hMaterial->m_hTexture2 = (new STexture("webboardnormal.png", true, false))->HTexture();
-	m_hGridBoard->m_pos = float2(0.0f, 0.0f);
-	m_hGridBoard->m_vecScale = float2(BOARD_SCALE, BOARD_SCALE);
-	m_hGridBoard->m_hMesh = m_hMeshQuad;
-	//m_hGridBoard->m_vecScale = { .001f, .001f};
-	m_hGridBoard->m_gSort = 0.0f;
 
 	// Piece
 
@@ -1089,18 +851,6 @@ void SGame::Init(HINSTANCE hInstance)
 	m_hMaterialTile = (new SMaterial(hShaderTile))->HMaterial();
 	m_hMaterialTile->m_hTexture = (new STexture("TileAlbedo.png", false, true))->HTexture();
 	m_hMaterialTile->m_hTexture2 = (new STexture("TileNormal.png", true, false))->HTexture();
-
-
-#if TESTING_WORD_SCORES
-	SSolverBoard board(g_pChzBoardTacoOats);
-	SRack rack(g_pChzRackTacoOats);
-	m_hGridBoard->CopyGameStateFromPchz(g_pChzBoardTacoOats, g_pChzRackTacoOats);
-	m_pSolver->FindValidMoves(board, rack, &m_aryMoveWordscore);
-	if (m_aryMoveWordscore.size() > 0)
-	{
-		SetShowMovescore(0);
-	}
-#endif
 }
 
 int SortGameObjectHandles(const void * pVa, const void * pVb)
@@ -1185,7 +935,6 @@ void SGame::MainLoop()
 
 		//////////////////////// GAMEPLAY CODE
 
-		SSolverBoard solverboard = SSolverBoard(m_hGridBoard);
 #if TESTING_WORD_SCORES
 		m_hText->SetText(std::to_string(m_iMoveWordscore));
 #endif
@@ -1232,100 +981,6 @@ void SGame::MainLoop()
 			const SShader & shader = *(material.m_hShader);
 			switch (hGo->m_typek)
 			{
-				case TYPEK_ScrabbleTile:
-					{
-						SScrabbleTile * pTile = static_cast<SScrabbleTile *>(hGo.PT());
-						const STexture & textureAlbedo = *material.m_hTexture;
-						const STexture & textureNormal = *material.m_hTexture2;
-
-						float blendFactor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
-						UINT sampleMask   = 0xffffffff;
-						m_pD3ddevicecontext->OMSetBlendState(nullptr, blendFactor, sampleMask);
-
-						m_pD3ddevicecontext->IASetInputLayout(shader.m_pD3dinputlayout);
-						m_pD3ddevicecontext->VSSetShader(shader.m_pD3dvertexshader, nullptr, 0);
-						m_pD3ddevicecontext->PSSetShader(shader.m_pD3dfragshader, nullptr, 0);
-
-						m_pD3ddevicecontext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-						ID3D11Buffer * aD3dbuffer[] = { m_cbufferObject, m_cbufferGlobals, m_cbufferScrabbleTile };
-						m_pD3ddevicecontext->VSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
-						m_pD3ddevicecontext->PSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
-						m_pD3ddevicecontext->IASetVertexBuffers(0, 1, &m_hMeshQuad->m_cbufferVertex, &m_hMeshQuad->m_cStride, &m_hMeshQuad->m_cOffset);
-
-						{
-							D3D11_MAPPED_SUBRESOURCE mappedSubresource;
-							m_pD3ddevicecontext->Map(m_cbufferObject, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
-							SGameObjectRenderConstants * pGorc = (SGameObjectRenderConstants *) (mappedSubresource.pData);
-							pGorc->m_posCenter = hGo->m_pos;
-							pGorc->m_vecScale = hGo->m_vecScale;
-							pGorc->m_color = hGo->m_color;
-							m_pD3ddevicecontext->Unmap(m_cbufferObject, 0);
-						}
-
-						{
-							// BB could stuff all this constant into a single buffer & just use the subresource index parameter on map/unmap?
-
-							D3D11_MAPPED_SUBRESOURCE mappedSubresource;
-							m_pD3ddevicecontext->Map(m_cbufferScrabbleTile, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
-							SScrabbleTileConstants * pStc = (SScrabbleTileConstants *) (mappedSubresource.pData);
-							int iOffset = pTile->m_chLetter - 'a';
-							const int dX = 8;
-							int y = iOffset / dX;
-							int x = iOffset - y * dX;
-							pStc->m_uvTopLeft = { x / float(dX), y / float(dX) };
-							m_pD3ddevicecontext->Unmap(m_cbufferScrabbleTile, 0);
-						}
-
-						ID3D11ShaderResourceView * aD3dsrview[] = { textureAlbedo.m_pD3dsrview, textureNormal.m_pD3dsrview };
-						m_pD3ddevicecontext->PSSetShaderResources(0, DIM(aD3dsrview), aD3dsrview);
-
-						ID3D11SamplerState * aD3dsamplerstate[] = { textureAlbedo.m_pD3dsamplerstate, textureNormal.m_pD3dsamplerstate };
-						m_pD3ddevicecontext->PSSetSamplers(0, DIM(aD3dsamplerstate), aD3dsamplerstate);
-
-						m_pD3ddevicecontext->Draw(m_hMeshQuad->m_cVerts, 0);
-					}
-					break;
-
-				case TYPEK_ScrabbleGrid:
-					{
-						SScrabbleTile * pTile = static_cast<SScrabbleTile *>(hGo.PT());
-						const STexture & textureAlbedo = *material.m_hTexture;
-						const STexture & textureNormal = *material.m_hTexture2;
-
-						float blendFactor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
-						UINT sampleMask   = 0xffffffff;
-						m_pD3ddevicecontext->OMSetBlendState(nullptr, blendFactor, sampleMask);
-
-						m_pD3ddevicecontext->IASetInputLayout(shader.m_pD3dinputlayout);
-						m_pD3ddevicecontext->VSSetShader(shader.m_pD3dvertexshader, nullptr, 0);
-						m_pD3ddevicecontext->PSSetShader(shader.m_pD3dfragshader, nullptr, 0);
-
-						m_pD3ddevicecontext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-						ID3D11Buffer * aD3dbuffer[] = { m_cbufferObject, m_cbufferGlobals };
-						m_pD3ddevicecontext->VSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
-						m_pD3ddevicecontext->PSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
-						m_pD3ddevicecontext->IASetVertexBuffers(0, 1, &m_hMeshQuad->m_cbufferVertex, &m_hMeshQuad->m_cStride, &m_hMeshQuad->m_cOffset);
-
-						{
-							D3D11_MAPPED_SUBRESOURCE mappedSubresource;
-							m_pD3ddevicecontext->Map(m_cbufferObject, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
-							SGameObjectRenderConstants * pGorc = (SGameObjectRenderConstants *) (mappedSubresource.pData);
-							pGorc->m_posCenter = hGo->m_pos;
-							pGorc->m_vecScale = hGo->m_vecScale;
-							pGorc->m_color = hGo->m_color;
-							m_pD3ddevicecontext->Unmap(m_cbufferObject, 0);
-						}
-
-						ID3D11ShaderResourceView * aD3dsrview[] = { textureAlbedo.m_pD3dsrview, textureNormal.m_pD3dsrview };
-						m_pD3ddevicecontext->PSSetShaderResources(0, DIM(aD3dsrview), aD3dsrview);
-
-						ID3D11SamplerState * aD3dsamplerstate[] = { textureAlbedo.m_pD3dsamplerstate, textureNormal.m_pD3dsamplerstate };
-						m_pD3ddevicecontext->PSSetSamplers(0, DIM(aD3dsamplerstate), aD3dsamplerstate);
-
-						m_pD3ddevicecontext->Draw(m_hMeshQuad->m_cVerts, 0);
-					}
-					break;
-
 				case TYPEK_Text:
 					{
 						const SMesh & mesh = *hGo->m_hMesh;
@@ -1412,14 +1067,6 @@ void SGame::MainLoop()
 		}
 		m_aryhGo = aryhGoNext;
 
-		std::vector<SScrabbleTileHandle> aryhTileNext;
-		for (SScrabbleTileHandle hTile : m_aryhTile)
-		{
-			if (hTile.PT())
-				aryhTileNext.push_back(hTile);
-		}
-		m_aryhTile = aryhTileNext;
-
 		for (int i = 0; i < DIM(m_mpVkFJustPressed); i++)
 		{
 			m_mpVkFJustPressed[i] = false;
@@ -1446,46 +1093,6 @@ void SGame::VkReleased(int vk)
 		m_mpVkFJustReleased[vk] = true;
 	m_mpVkFDown[vk] = false;
 }
-
-#if TESTING_WORD_SCORES
-void SGame::SetShowMovescore(int iMovescoreNew)
-{
-	if (iMovescoreNew == m_iMoveWordscore)
-		return;
-
-	m_iMoveWordscore = iMovescoreNew;
-
-	for (SScrabbleTileHandle hTile : g_game.m_aryhTileWordPreview)
-	{
-		m_hGridBoard->m_ahTileGrid[hTile->m_iGrid] = -1;
-		auto element = std::find(m_hGridBoard->m_aryhTileRack.begin(), m_hGridBoard->m_aryhTileRack.end(), hTile);
-		if (element != m_hGridBoard->m_aryhTileRack.end())
-			m_hGridBoard->m_aryhTileRack.erase(element);
-		delete hTile.PT();
-	}
-	g_game.m_aryhTileWordPreview.clear();
-
-	const SMove & move = g_game.m_aryMoveWordscore[m_iMoveWordscore];
-	int x = move.m_x;
-	int y = move.m_y;
-	for (int i = move.m_iChMic; i < move.m_iChMac; i++)
-	{
-		char ch = move.m_aCh[i];
-		SScrabbleTileHandle hTile = m_hGridBoard->HTileSpawn(ch);
-		hTile->m_gSort = 100.0;
-		m_hGridBoard->AddTileToGrid(hTile, x, y);
-		if (move.m_fIsHorizontal)
-		{
-			x++;
-		}
-		else
-		{
-			y++;
-		}
-		m_aryhTileWordPreview.push_back(hTile);
-	}
-}
-#endif
 
 LRESULT SGame::LresultWindowProcedure(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
