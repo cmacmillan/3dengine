@@ -2,7 +2,7 @@
 
 #define DEBUG_BUILD
 
-#define ASSET_PATH "C:\\Users\\chase\\OneDrive\\Desktop\\3dengine\\engine" // TODO make relative instead of absolute
+#define ASSET_PATH "C:\\Users\\chase\\OneDrive\\Desktop\\3dengine\\engine\\" // TODO make relative instead of absolute
 
 #define DX_GRID 15
 #define DY_GRID 15

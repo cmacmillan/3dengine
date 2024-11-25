@@ -7,21 +7,22 @@
 #include <codecvt>
 #include <string>
 #include <assert.h>
+#include <memory>
+#include <string>
+#include <stdexcept>
 
 #define ASSERT assert
 #define CASSERT(arg) static_assert(arg, "static assert failed!\n");
 #define DIM(a) sizeof(a)/sizeof(a[0])
 
-// some stuff is inlined so the Scrabble (data structure generator project) can use it
-
-inline float min(float g1, float g2)
+inline float GMin(float g1, float g2)
 {
 	if (g1 < g2)
 		return g1;
 	return g2;
 }
 
-inline float max(float g1, float g2)
+inline float GMax(float g1, float g2)
 {
 	if (g1 > g2)
 		return g1;
@@ -41,15 +42,15 @@ int IFind(const std::vector<T> & aryT, const T & t)
 }
 
 template <typename T>
-T lerp(const T & t1, const T & t2, float lerp)
+T Lerp(const T & t1, const T & t2, float lerp)
 {
-	lerp = max(min(lerp, 1.0f), 0.0f);
+	lerp = GMax(GMin(lerp, 1.0f), 0.0f);
 	return (t2 - t1) * lerp + t1;
 }
 
-float maprange(float a1, float a2, float b1, float b2, float g);
+float GMapRange(float a1, float a2, float b1, float b2, float g);
 
-inline char ToLower(char ch)
+inline char ChToLower(char ch)
 {
 	if (ch >= 'A' && ch <= 'Z')
 	{
@@ -58,7 +59,7 @@ inline char ToLower(char ch)
 	return ch;
 }
 
-inline char ToUpper(char ch)
+inline char ChToUpper(char ch)
 {
 	if (ch >= 'a' && ch <= 'z')
 	{
@@ -70,9 +71,22 @@ inline char ToUpper(char ch)
 bool FIsUpper(char ch);
 bool FIsLower(char ch);
 
-std::wstring wstrFromStr(std::string str);
+std::wstring WstrFromStr(std::string str);
 
-std::string strFromWstr(std::wstring wstr);
+std::string StrFromWstr(std::wstring wstr);
+
+template<typename ... Args>
+std::string StrPrintf( const std::string& format, Args ... args )
+{
+	// https://stackoverflow.com/questions/2342162/stdstring-formatting-like-sprintf
+
+    int size_s = std::snprintf( nullptr, 0, format.c_str(), args ... ) + 1; // Extra space for '\0'
+    if( size_s <= 0 ){ throw std::runtime_error( "Error during formatting." ); }
+    auto size = static_cast<size_t>( size_s );
+    std::unique_ptr<char[]> buf( new char[ size ] );
+    std::snprintf( buf.get(), size, format.c_str(), args ... );
+    return std::string( buf.get(), buf.get() + size - 1 ); // We don't want the '\0' inside
+}
 
 template<typename T, size_t C>
 struct SFixArray

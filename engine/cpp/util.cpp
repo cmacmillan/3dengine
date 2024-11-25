@@ -1,9 +1,11 @@
 #include "util.h"
 
-float maprange(float a1, float a2, float b1, float b2, float g)
+#include <cstdarg>
+
+float GMapRange(float a1, float a2, float b1, float b2, float g)
 {
 	float gLerp = (g - a1) / (a2 - a1);
-	return lerp(b1, b2, gLerp);
+	return Lerp(b1, b2, gLerp);
 }
 
 bool FIsUpper(char ch)
@@ -18,13 +20,13 @@ bool FIsLower(char ch)
 
 // https://stackoverflow.com/questions/2573834/c-convert-string-or-char-to-wstring-or-wchar-t
 
-std::wstring wstrFromStr(std::string str)
+std::wstring WstrFromStr(std::string str)
 {
 	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
 	return converter.from_bytes(str);
 }
 
-std::string strFromWstr(std::wstring wstr)
+std::string StrFromWstr(std::wstring wstr)
 {
 	std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
 	return converter.to_bytes(wstr);

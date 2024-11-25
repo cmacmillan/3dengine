@@ -127,7 +127,7 @@ STexture::STexture(const char * pChzFilename, bool fIsNormal, bool fGenerateMips
 
 	g_game.m_pD3ddevice->CreateSamplerState(&samplerDesc, &m_pD3dsamplerstate);
 
-	std::string strPath = std::string(ASSET_PATH) + pChzFilename;
+	std::string strPath = StrPrintf("%s%s", ASSET_PATH, pChzFilename);
 
 	// Load Image
 	int texNumChannels;
@@ -184,7 +184,7 @@ SShader::SShader(LPCWSTR lpcwstrFilename) : super()
 {
 	m_typek = TYPEK_Shader;
 
-	std::wstring wstrPath = wstrFromStr(std::string(ASSET_PATH)) + std::wstring(lpcwstrFilename);
+	std::wstring wstrPath = WstrFromStr(std::string(ASSET_PATH)) + std::wstring(lpcwstrFilename);
 
 	// Create Vertex Shader
 	ID3DBlob * vsBlob = nullptr;
@@ -268,11 +268,9 @@ SCamera::SCamera() : super()
 
 void SCamera::Update()
 {
-	// TODO
-
-	//float2 vecWinSize = g_game.VecWinSize();
-	//float gScaleCamera = (BOARD_SCALE + BOARD_PADDING) * 0.5f / min(vecWinSize.m_x, vecWinSize.m_y);
-	//m_vecExtents = { gScaleCamera * vecWinSize.m_x, gScaleCamera * vecWinSize.m_y };
+	float2 vecWinSize = g_game.VecWinSize();
+	float gScaleCamera = 100.0f * 0.5f / GMin(vecWinSize.m_x, vecWinSize.m_y);
+	m_vecExtents = { gScaleCamera * vecWinSize.m_x, gScaleCamera * vecWinSize.m_y };
 }
 
 float2 SCamera::PosWorldFromCursor(float2 posCursor)
@@ -281,8 +279,8 @@ float2 SCamera::PosWorldFromCursor(float2 posCursor)
 	float2 posTopRight = m_pos + m_vecExtents;
 	float2 vecWinSize = g_game.VecWinSize();
 	return float2(
-		maprange(0.0f, vecWinSize.m_x, posBottomLeft.m_x, posTopRight.m_x, posCursor.m_x),
-		maprange(vecWinSize.m_y, 0.0f, posBottomLeft.m_y, posTopRight.m_y, posCursor.m_y)); // NOTE inverted y
+		GMapRange(0.0f, vecWinSize.m_x, posBottomLeft.m_x, posTopRight.m_x, posCursor.m_x),
+		GMapRange(vecWinSize.m_y, 0.0f, posBottomLeft.m_y, posTopRight.m_y, posCursor.m_y)); // NOTE inverted y
 }
 
 char SBinaryStream::CharRead()
@@ -443,7 +441,7 @@ SFont::SFont(const char * pChzBitmapfontFile) : super()
 	for (int i = 0; i < m_fontcb.m_nPages; i++)
 	{
 		const char * pChzFile = bs.PChzRead();
-		m_aryhTexture.push_back((new STexture(pChzFile, false, false))->HTexture());
+		m_aryhTexture.push_back((new STexture(StrPrintf("fonts\\%s", pChzFile).c_str(), false, false))->HTexture());
 	}
 
 	SFontBlockHeader fontbhChars = SFontBlockHeader(&bs);
@@ -822,13 +820,13 @@ void SGame::Init(HINSTANCE hInstance)
 		m_perfCounterFrequency = perfFreq.QuadPart;
 	}
 
-	SShaderHandle hShaderUnlit = (new SShader(L"unlit2d.hlsl"))->HShader();
-	SShaderHandle hShaderText = (new SShader(L"text.hlsl"))->HShader();
-	SShaderHandle hShaderLit = (new SShader(L"lit2d.hlsl"))->HShader();
+	SShaderHandle hShaderUnlit = (new SShader(L"shaders\\unlit2d.hlsl"))->HShader();
+	SShaderHandle hShaderText = (new SShader(L"shaders\\text.hlsl"))->HShader();
+	SShaderHandle hShaderLit = (new SShader(L"shaders\\lit2d.hlsl"))->HShader();
 
 	// Font 
 
-	m_hFont = (new SFont("candara.fnt"))->HFont();
+	m_hFont = (new SFont("fonts\\candara.fnt"))->HFont();
 
 	m_hText = (new SText(m_hFont))->HText();
 	m_hText->m_hMaterial = (new SMaterial(hShaderText))->HMaterial();
@@ -837,7 +835,7 @@ void SGame::Init(HINSTANCE hInstance)
 	//m_hText->m_vecScale = float2(0.2f, 0.2f);
 	m_hText->m_vecScale = float2(0.025f, 0.025f);
 	m_hText->m_gSort = 10.0f;
-	m_hText->m_pos = float2(0.0f, 0.0f);
+	m_hText->m_pos = float2(.5f, 0.5f);
 	m_hText->m_color = { 0.0f, 0.0f, 0.0f, 1.0f };
 
 	// Camera 
@@ -846,11 +844,11 @@ void SGame::Init(HINSTANCE hInstance)
 
 	// Piece
 
-	SShaderHandle hShaderTile = (new SShader(L"scrabbletile.hlsl"))->HShader();
+	//SShaderHandle hShaderTile = (new SShader(L"scrabbletile.hlsl"))->HShader();
 
-	m_hMaterialTile = (new SMaterial(hShaderTile))->HMaterial();
-	m_hMaterialTile->m_hTexture = (new STexture("TileAlbedo.png", false, true))->HTexture();
-	m_hMaterialTile->m_hTexture2 = (new STexture("TileNormal.png", true, false))->HTexture();
+	//m_hMaterialTile = (new SMaterial(hShaderTile))->HMaterial();
+	//m_hMaterialTile->m_hTexture = (new STexture("TileAlbedo.png", false, true))->HTexture();
+	//m_hMaterialTile->m_hTexture2 = (new STexture("TileNormal.png", true, false))->HTexture();
 }
 
 int SortGameObjectHandles(const void * pVa, const void * pVb)
