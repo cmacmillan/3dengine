@@ -36,7 +36,7 @@
   <ItemGroup>
     <FxCompile Include="shaders\lit2d.hlsl" />
     <FxCompile Include="shaders\scrabbletile.hlsl" />
-    <FxCompile Include="shaders\text.hlsl" />
+    <FxCompile Include="shaders\text2d.hlsl" />
     <FxCompile Include="shaders\unlit2d.hlsl" />
   </ItemGroup>
 </Project>

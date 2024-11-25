@@ -821,7 +821,7 @@ void SGame::Init(HINSTANCE hInstance)
 	}
 
 	SShaderHandle hShaderUnlit = (new SShader(L"shaders\\unlit2d.hlsl"))->HShader();
-	SShaderHandle hShaderText = (new SShader(L"shaders\\text.hlsl"))->HShader();
+	SShaderHandle hShaderText = (new SShader(L"shaders\\text2d.hlsl"))->HShader();
 	SShaderHandle hShaderLit = (new SShader(L"shaders\\lit2d.hlsl"))->HShader();
 
 	// Font 
