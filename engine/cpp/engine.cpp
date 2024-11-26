@@ -100,6 +100,17 @@ SObject::~SObject()
 	g_objman.UnregisterObj(this);
 }
 
+bool SObject::FIsDerivedFrom(TYPEK typek)
+{
+	for (TYPEK typekIter = m_typek; typekIter != TYPEK_Nil; typekIter = TypekSuper(typekIter))
+	{
+		if (typekIter == typek)
+			return true;
+	}
+
+	return false;
+}
+
 STexture::STexture(const char * pChzFilename, bool fIsNormal, bool fGenerateMips) : super()
 {
 	m_typek = TYPEK_Texture;
@@ -247,13 +258,6 @@ SMaterial::SMaterial(SShaderHandle hShader) : super()
 	m_typek = TYPEK_Material;
 
 	m_hShader = hShader;
-}
-
-SGameObject::SGameObject() : super()
-{
-	m_typek = TYPEK_GameObject;
-
-	g_game.m_aryhGo.push_back(HGo());
 }
 
 /*
@@ -448,7 +452,7 @@ SFont::SFont(const char * pChzBitmapfontFile) : super()
 	delete [] pB;
 }
 
-SText::SText(SFontHandle hFont)
+SText::SText(SFontHandle hFont, SNodeHandle hNodeParent) : super(hNodeParent)
 {
 	m_typek = TYPEK_Text;
 
@@ -506,6 +510,89 @@ void SText::SetText(const std::string & str)
 	m_hMesh->SetVerts(aryVerts.data(), cVerts, cStride, 0);
 }
 
+SNode::SNode(SHandle<SNode> hNodeParent) :
+	super()
+{
+	SetParent(hNodeParent);
+
+	m_typek = TYPEK_Node;
+}
+
+void SNode::SetParent(SHandle<SNode> hNodeParent)
+{
+	if (m_hNodeParent == hNodeParent)
+		return;
+
+	// Leave previous node
+
+	if (m_hNodeParent != -1)
+	{
+		if (m_hNodeSiblingPrev != -1 && m_hNodeSiblingNext != -1)
+		{
+			// Have previous and next sibling
+
+			m_hNodeSiblingPrev->m_hNodeSiblingNext = m_hNodeSiblingNext;
+			m_hNodeSiblingNext->m_hNodeSiblingPrev = m_hNodeSiblingPrev;
+			m_hNodeSiblingPrev = -1;
+			m_hNodeSiblingNext = -1;
+		}
+		else if (m_hNodeSiblingPrev != -1 && m_hNodeSiblingNext == -1)
+		{
+			// Have previous sibling only (we were the last sibling)
+
+			m_hNodeParent->m_hNodeChildLast = m_hNodeSiblingPrev;
+			m_hNodeSiblingPrev->m_hNodeSiblingNext = -1;
+			m_hNodeSiblingPrev = -1;
+		}
+		else if (m_hNodeSiblingPrev == -1 && m_hNodeSiblingNext != -1)
+		{
+			// Have next sibiling only (we were the first sibling)
+
+			m_hNodeParent->m_hNodeChildFirst = m_hNodeSiblingNext;
+			m_hNodeSiblingNext->m_hNodeSiblingPrev = -1;
+			m_hNodeSiblingNext = -1;
+		}
+		else
+		{
+			// Have no siblings
+
+			m_hNodeParent->m_hNodeChildFirst = -1;
+			m_hNodeParent->m_hNodeChildLast = -1;
+		}
+	}
+
+	m_hNodeParent = hNodeParent;
+
+	// Enter new node
+
+	if (m_hNodeParent != -1)
+	{
+		// Append
+
+		// BB should probably eventually support setting specific index
+
+		if (m_hNodeParent->m_hNodeChildLast != -1)
+		{
+			ASSERT(m_hNodeParent->m_hNodeChildFirst != -1);
+
+			m_hNodeParent->m_hNodeChildLast->m_hNodeSiblingNext = HNode();
+			m_hNodeSiblingPrev = m_hNodeParent->m_hNodeChildLast;
+			m_hNodeParent->m_hNodeChildLast = HNode();
+		}
+		else
+		{
+			m_hNodeParent->m_hNodeChildFirst = HNode();
+			m_hNodeParent->m_hNodeChildLast = HNode();
+		}
+	}
+}
+
+SUiNode::SUiNode(SNodeHandle hNodeParent) : super(hNodeParent)
+{
+	m_typek = TYPEK_UiNode;
+}
+
+/*
 int blah = 0;
 float delta = 0;
 void SText::Update()
@@ -522,7 +609,7 @@ void SText::Update()
 		SetText((const char *)aCh);
 	}
 }
-
+*/
 
 float2 operator*(float g, const float2& vec) {
 	return vec * g;
@@ -622,6 +709,8 @@ void SMesh::SetVerts(float * pGVerts, int cVerts, int cStride, int cOffset)
 void SGame::Init(HINSTANCE hInstance)
 {
 	AuditFixArray();
+
+	m_hNodeRoot = (new SNode(-1))->HNode();
 
 	// Open a window
 	{
@@ -822,7 +911,7 @@ void SGame::Init(HINSTANCE hInstance)
 
 	m_hFont = (new SFont("fonts\\candara.fnt"))->HFont();
 
-	m_hText = (new SText(m_hFont))->HText();
+	m_hText = (new SText(m_hFont, m_hNodeRoot))->HText();
 	m_hText->m_hMaterial = (new SMaterial(hShaderText))->HMaterial();
 	m_hText->m_hMaterial->m_hTexture = m_hText->m_hFont->m_aryhTexture[0];
 	m_hText->SetText("Score: joy");
@@ -841,13 +930,13 @@ void SGame::Init(HINSTANCE hInstance)
 	//m_hMaterialTile->m_hTexture2 = (new STexture("TileNormal.png", true, false))->HTexture();
 }
 
-int SortGameObjectHandles(const void * pVa, const void * pVb)
+int SortUinodeRenderOrder(const void * pVa, const void * pVb)
 {
-	SGameObjectHandle hGoA = *(SGameObjectHandle*) pVa;
-	SGameObjectHandle hGoB = *(SGameObjectHandle*) pVb;
-	if (hGoA->m_gSort == hGoB->m_gSort)
+	SUiNodeHandle hUinodeA = *(SUiNodeHandle*) pVa;
+	SUiNodeHandle hUinodeB = *(SUiNodeHandle*) pVb;
+	if (hUinodeA->m_gSort == hUinodeB->m_gSort)
 		return 0;
-	else if (hGoA->m_gSort < hGoB->m_gSort)
+	else if (hUinodeA->m_gSort < hUinodeB->m_gSort)
 		return -1;
 	else
 		return 1;
@@ -925,16 +1014,65 @@ void SGame::MainLoop()
 			DestroyWindow(m_hwnd);
 
 		////////// GAMEPLAY CODE (JANK)
+	
+		//m_hText->m_vecScale = GSin(m_dTSyst) * float2(1.0f, 1.0f);
 
 		///////////////////////////////
 
-		// Sort
+		// Run update functions on all nodes
 
-		// BB Copying so newly spawned objects won't try to update. However we probably do want them to update & render the frame they spawn. Think through more
+		// NOTE objects spawned by update will not update or render until the next frame
 
-		std::vector<SGameObjectHandle> aryhGoCopy = m_aryhGo;
+		struct SVisitNode
+		{
+			SNodeHandle m_hNode;
+			bool m_fVisited;
+		};
 
-		std::qsort(aryhGoCopy.data(), aryhGoCopy.size(), sizeof(SGameObjectHandle), SortGameObjectHandles);
+		std::vector<SNodeHandle> aryhNode;
+		std::vector<SVisitNode> aryhNodeStack;
+		aryhNodeStack.push_back({ m_hNodeRoot, false });
+		while (aryhNodeStack.size() > 0)
+		{
+			SVisitNode visitnode = aryhNodeStack[aryhNodeStack.size() - 1];
+			aryhNodeStack.pop_back();
+
+			if (visitnode.m_fVisited)
+			{
+				if (visitnode.m_hNode->m_hNodeSiblingNext != -1)
+				{
+					aryhNodeStack.push_back({ visitnode.m_hNode->m_hNodeSiblingNext, false });
+				}
+			}
+			else
+			{
+				aryhNode.push_back(visitnode.m_hNode);
+
+				aryhNodeStack.push_back({ visitnode.m_hNode, true});
+				if (visitnode.m_hNode->m_hNodeChildFirst != -1)
+				{
+					aryhNodeStack.push_back({ visitnode.m_hNode->m_hNodeChildFirst, false });
+				}
+			}
+		}
+
+		std::vector<SUiNodeHandle> aryhUinodeToRender;
+
+		for (SNodeHandle hNode : aryhNode)
+		{
+			if (hNode != -1)
+			{
+				hNode->Update();
+				if (hNode->FIsDerivedFrom(TYPEK_UiNode))
+				{
+					aryhUinodeToRender.push_back(SUiNodeHandle(hNode.m_id));
+				}
+			}
+		}
+
+		// Sort UI nodes
+
+		std::qsort(aryhUinodeToRender.data(), aryhUinodeToRender.size(), sizeof(SUiNodeHandle), SortUinodeRenderOrder);
 
 		{
 			D3D11_MAPPED_SUBRESOURCE mappedSubresourceGlobals;
@@ -950,23 +1088,27 @@ void SGame::MainLoop()
 		m_pD3ddevicecontext->RSSetViewports(1, &viewport);
 		m_pD3ddevicecontext->OMSetRenderTargets(1, &m_pD3dframebufferview, nullptr);
 
-
-		for (SGameObjectHandle hGo : aryhGoCopy)
+		for (SUiNodeHandle hUinode : aryhUinodeToRender)
 		{
-			if (!hGo.PT())
+			if (!hUinode.PT())
 				continue;
 
-			// BB gross to tie update order to render order
-			hGo->Update();
-			if (hGo->m_hMaterial == nullptr)
+			if (hUinode->m_typek == TYPEK_Text)
+			{
+				SText * pText = (SText *)(hUinode.PT());
+				int i = 0;
+			}
+
+			if (hUinode->m_hMaterial == nullptr)
 				continue;
-			const SMaterial & material = *hGo->m_hMaterial;
+
+			const SMaterial & material = *hUinode->m_hMaterial;
 			const SShader & shader = *(material.m_hShader);
-			switch (hGo->m_typek)
+			switch (hUinode->m_typek)
 			{
 				case TYPEK_Text:
 					{
-						const SMesh & mesh = *hGo->m_hMesh;
+						const SMesh & mesh = *hUinode->m_hMesh;
 						const STexture & texture = *material.m_hTexture;
 
 						m_pD3ddevicecontext->IASetInputLayout(shader.m_pD3dinputlayout);
@@ -987,9 +1129,9 @@ void SGame::MainLoop()
 						D3D11_MAPPED_SUBRESOURCE mappedSubresource;
 						m_pD3ddevicecontext->Map(m_cbufferObject, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
 						SGameObjectRenderConstants * pGorc = (SGameObjectRenderConstants *) (mappedSubresource.pData);
-						pGorc->m_posCenter = hGo->m_pos;
-						pGorc->m_vecScale = hGo->m_vecScale;
-						pGorc->m_color = hGo->m_color;
+						pGorc->m_posCenter = hUinode->m_pos;
+						pGorc->m_vecScale = hUinode->m_vecScale;
+						pGorc->m_color = hUinode->m_color;
 						m_pD3ddevicecontext->Unmap(m_cbufferObject, 0);
 
 						ID3D11ShaderResourceView * aD3dsrview[] = { texture.m_pD3dsrview };
@@ -1003,7 +1145,7 @@ void SGame::MainLoop()
 					break;
 				default:
 					{
-						const SMesh & mesh = *hGo->m_hMesh;
+						const SMesh & mesh = *hUinode->m_hMesh;
 						const STexture & texture = *material.m_hTexture;
 
 						float blendFactor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
@@ -1023,9 +1165,9 @@ void SGame::MainLoop()
 						D3D11_MAPPED_SUBRESOURCE mappedSubresource;
 						m_pD3ddevicecontext->Map(m_cbufferObject, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
 						SGameObjectRenderConstants * pGorc = (SGameObjectRenderConstants *) (mappedSubresource.pData);
-						pGorc->m_posCenter = hGo->m_pos;
-						pGorc->m_vecScale = hGo->m_vecScale;
-						pGorc->m_color = hGo->m_color;
+						pGorc->m_posCenter = hUinode->m_pos;
+						pGorc->m_vecScale = hUinode->m_vecScale;
+						pGorc->m_color = hUinode->m_color;
 						m_pD3ddevicecontext->Unmap(m_cbufferObject, 0);
 
 						ID3D11ShaderResourceView * aD3dsrview[] = { texture.m_pD3dsrview };
@@ -1039,16 +1181,6 @@ void SGame::MainLoop()
 					break;
 			}
 		}
-
-		// BB Do something nicer here?
-
-		std::vector<SGameObjectHandle> aryhGoNext;
-		for (SGameObjectHandle hGo : m_aryhGo)
-		{
-			if (hGo.PT())
-				aryhGoNext.push_back(hGo);
-		}
-		m_aryhGo = aryhGoNext;
 
 		for (int i = 0; i < DIM(m_mpVkFJustPressed); i++)
 		{

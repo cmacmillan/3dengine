@@ -129,9 +129,9 @@ struct SHandle
 	{
 		return PT() == pV;
 	}
-	operator bool() const
+	bool operator==(int id) const
 	{
-		return PT();
+		return m_id == id;
 	}
 };
 
@@ -141,22 +141,53 @@ bool operator==(const void * pV, const SHandle<T> & hOther)
 	return pV == hOther.PT();
 }
 
+template <typename T>
+bool operator==(const int id, const SHandle<T> & hOther)
+{
+	return id == hOther.m_id;
+}
+
 enum TYPEK
 {
 	TYPEK_Object,
-	TYPEK_Texture,
-	TYPEK_Shader,
-	TYPEK_Material,
-	TYPEK_GameObject,
-	TYPEK_Font,
-	TYPEK_Text,
-	TYPEK_Mesh,
+		TYPEK_Texture,
+		TYPEK_Shader,
+		TYPEK_Material,
+		TYPEK_Node,
+			TYPEK_UiNode,
+				TYPEK_Text,
+		TYPEK_Font,
+		TYPEK_Mesh,
+
+	TYPEK_Nil = -1,
 };
+
+// BB could be faster and non-recursive
+
+TYPEK TypekSuper(TYPEK typek)
+{
+	switch (typek)
+	{
+		case TYPEK_Object:	return TYPEK_Nil;
+			case TYPEK_Texture:		return TYPEK_Object;
+			case TYPEK_Shader:		return TYPEK_Object;
+			case TYPEK_Material:	return TYPEK_Object;
+			case TYPEK_Node:		return TYPEK_Object;
+				case TYPEK_UiNode:		return TYPEK_Node;
+					case TYPEK_Text:		return TYPEK_UiNode;
+			case TYPEK_Font:		return TYPEK_Object;
+			case TYPEK_Mesh:		return TYPEK_Object;
+
+			default:
+				return TYPEK_Nil;
+	}
+}
 
 struct SObject  // obj
 {
 	SObject();
 	~SObject();
+	bool FIsDerivedFrom(TYPEK typek);
 	TYPEK m_typek = TYPEK_Object;
 	int m_nHandle = -1;
 };
@@ -324,35 +355,52 @@ struct SGameObjectRenderConstants
 	float4 m_color;
 };
 
-struct SGameObject : SObject // go
+struct SNode : SObject // node
 {
 	typedef SObject super;
-	SGameObject();
-	SHandle<SGameObject> HGo() { return (SHandle<SGameObject>) m_nHandle; }
+	SHandle<SNode> HNode() { return (SHandle<SNode>) m_nHandle; }
+
+	SNode(SHandle<SNode> hNodeParent);
+	void SetParent(SHandle<SNode> hNodeParent);
 
 	virtual void Update() {}
 
-	// TODO
-	//SHandle<SGameObject> m_hGoParent = -1;
-	//std::vector<SHandle<SGameObject>> m_aryhGoChildren;
+	SHandle<SNode> m_hNodeParent = -1;
+
+	SHandle<SNode> m_hNodeSiblingPrev = -1;
+	SHandle<SNode> m_hNodeSiblingNext = -1;
+
+	SHandle<SNode> m_hNodeChildFirst = -1;
+	SHandle<SNode> m_hNodeChildLast = -1;
+
+};
+typedef SHandle<SNode> SNodeHandle; 
+
+struct SUiNode : SNode // uinode
+{
+	typedef SNode super;
+	SHandle<SUiNode> HUinode() { return (SHandle<SUiNode>) m_nHandle; }
+
+	SUiNode(SNodeHandle hNodeParent);
 
 	float2 m_pos = { 0.0f, 0.0f };
 	float2 m_vecScale = { 1.0f, 1.0f };
+
 	float4 m_color = { 1.0f, 1.0f, 1.0f, 1.0f };
 	float m_gSort = 0.0f; // Lower = drawn first
 	SMaterialHandle m_hMaterial = -1;
 	SMeshHandle m_hMesh = -1;
 };
-typedef SHandle<SGameObject> SGameObjectHandle; 
+typedef SHandle<SUiNode> SUiNodeHandle;
 
-struct SText : SGameObject // text
+struct SText : SUiNode // text
 {
-	typedef SGameObject super;
-	SText(SFontHandle hFont);
+	typedef SUiNode super;
 	SHandle<SText> HText() { return (SHandle<SText>) m_nHandle; }
 
+	SText(SFontHandle hFont, SNodeHandle hNodeParent);
+
 	void SetText(const std::string & str);
-	void Update() override;
 
 	SFontHandle m_hFont = -1;
 	std::string m_str;
@@ -370,14 +418,12 @@ struct SGame // game
 	void VkPressed(int vk);
 	void VkReleased(int vk);
 
+	SNodeHandle	m_hNodeRoot = -1;
+
 	// Gameplay
 
 	SMaterialHandle m_hMaterialTile;
 	STextHandle m_hText;
-
-	// These get cleared at the end of the frame
-
-	std::vector<SGameObjectHandle> m_aryhGo;
 
 	// Fonts
 
