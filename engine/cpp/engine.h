@@ -21,30 +21,9 @@
 #include <d3dcompiler.h>
 #pragma comment(lib, "d3dcompiler.lib")
 
+#include "vector.h"
+
 //#include "stb_image.h"
-
-
-
-struct float2
-{
-	float2() : m_x(0.0f), m_y(0.0f) {}
-	float2(float x, float y) : m_x(x), m_y(y) {}
-	float m_x, m_y;
-	float2 operator/(float g) const;
-	float2 operator*(float g) const;
-	float2 operator/(float2 vec) const;
-	float2 operator*(float2 vec) const;
-	float2 operator+(float2 vec) const;
-	float2 operator-(float2 vec) const;
-};
-
-float2 operator*(float g, const float2 & vec);
-float2 operator/(float g, const float2 & vec);
-
-struct float4
-{
-	float m_x, m_y, m_z, m_w;
-};
 
 // https://learn.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
 
@@ -149,6 +128,8 @@ bool operator==(const int id, const SHandle<T> & hOther)
 
 enum TYPEK
 {
+	// When adding new elements to this, make sure to add them to TypekSuper too
+
 	TYPEK_Object,
 		TYPEK_Texture,
 		TYPEK_Shader,
@@ -156,6 +137,9 @@ enum TYPEK
 		TYPEK_Node,
 			TYPEK_UiNode,
 				TYPEK_Text,
+			TYPEK_3dNode,
+				TYPEK_3dDrawNode,
+				TYPEK_3dCamera,
 		TYPEK_Font,
 		TYPEK_Mesh,
 
@@ -175,11 +159,17 @@ TYPEK TypekSuper(TYPEK typek)
 			case TYPEK_Node:		return TYPEK_Object;
 				case TYPEK_UiNode:		return TYPEK_Node;
 					case TYPEK_Text:		return TYPEK_UiNode;
+				case TYPEK_3dNode:		return TYPEK_Node;
+					case TYPEK_3dDrawNode:	return TYPEK_3dNode;
+					case TYPEK_3dCamera:	return TYPEK_3dNode;
 			case TYPEK_Font:		return TYPEK_Object;
 			case TYPEK_Mesh:		return TYPEK_Object;
 
 			default:
-				return TYPEK_Nil;
+				{
+					ASSERT(false);
+					return TYPEK_Nil;
+				}
 	}
 }
 
@@ -340,19 +330,10 @@ typedef SHandle<SMaterial> SMaterialHandle;
 
 struct ShaderGlobals
 {
-	//float2 m_posCameraCenter;
-	//float2 m_vecCameraSize;
 	float m_t;
 	float2 m_vecWinSize;
 
 	float m_padding;
-};
-
-struct SGameObjectRenderConstants
-{
-	float2 m_posCenter;
-	float2 m_vecScale;
-	float4 m_color;
 };
 
 struct SNode : SObject // node
@@ -376,12 +357,20 @@ struct SNode : SObject // node
 };
 typedef SHandle<SNode> SNodeHandle; 
 
+struct SUiNodeRenderConstants
+{
+	float2 m_posCenter;
+	float2 m_vecScale;
+	float4 m_color;
+};
+
 struct SUiNode : SNode // uinode
 {
 	typedef SNode super;
 	SHandle<SUiNode> HUinode() { return (SHandle<SUiNode>) m_nHandle; }
 
 	SUiNode(SNodeHandle hNodeParent);
+	void GetRenderConstants(SUiNodeRenderConstants * pUinoderc);
 
 	float2 m_pos = { 0.0f, 0.0f };
 	float2 m_vecScale = { 1.0f, 1.0f };

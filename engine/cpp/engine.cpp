@@ -47,36 +47,6 @@ SGame::SGame()
 	}
 }
 
-float2 float2::operator/(float g) const
-{
-	return float2(m_x / g, m_y / g);
-}
-
-float2 float2::operator*(float g) const
-{
-	return float2(m_x * g, m_y * g);
-}
-
-float2 float2::operator/(float2 vec) const
-{
-	return float2(m_x / vec.m_x, m_y / vec.m_y);
-}
-
-float2 float2::operator*(float2 vec) const
-{
-	return float2(m_x * vec.m_x, m_y * vec.m_y);
-}
-
-float2 float2::operator+(float2 vec) const
-{
-	return float2(m_x + vec.m_x, m_y + vec.m_y);
-}
-
-float2 float2::operator-(float2 vec) const
-{
-	return float2(m_x - vec.m_x, m_y - vec.m_y);
-}
-
 void SObjectManager::RegisterObj(SObject * pObj)
 {
 	int id = m_cId;
@@ -592,6 +562,13 @@ SUiNode::SUiNode(SNodeHandle hNodeParent) : super(hNodeParent)
 	m_typek = TYPEK_UiNode;
 }
 
+void SUiNode::GetRenderConstants(SUiNodeRenderConstants * pUinoderc)
+{
+	pUinoderc->m_posCenter = m_pos;
+	pUinoderc->m_vecScale = m_vecScale;
+	pUinoderc->m_color = m_color;
+}
+
 /*
 int blah = 0;
 float delta = 0;
@@ -610,15 +587,6 @@ void SText::Update()
 	}
 }
 */
-
-float2 operator*(float g, const float2& vec) {
-	return vec * g;
-}
-
-float2 operator/(float g, const float2 & vec)
-{
-	return float2(g / vec.m_x,  g / vec.m_y);
-}
 
 void PushQuad(float2 posMin, float2 posMax, float2 uvMin, float2 uvMax, std::vector<float> * pAryVert)
 {
@@ -872,8 +840,8 @@ void SGame::Init(HINSTANCE hInstance)
 
 	{
 		D3D11_BUFFER_DESC descCbufferObject = {};
-		CASSERT(sizeof(SGameObjectRenderConstants) % 16 == 0);
-		descCbufferObject.ByteWidth = sizeof(SGameObjectRenderConstants);
+		CASSERT(sizeof(SUiNodeRenderConstants) % 16 == 0);
+		descCbufferObject.ByteWidth = sizeof(SUiNodeRenderConstants);
 		descCbufferObject.Usage = D3D11_USAGE_DYNAMIC;
 		descCbufferObject.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 		descCbufferObject.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
@@ -1067,6 +1035,10 @@ void SGame::MainLoop()
 				{
 					aryhUinodeToRender.push_back(SUiNodeHandle(hNode.m_id));
 				}
+				else if (hNode->FIsDerivedFrom(TYPEK_3dDrawNode))
+				{
+					ASSERT(false); // TODO
+				}
 			}
 		}
 
@@ -1092,12 +1064,6 @@ void SGame::MainLoop()
 		{
 			if (!hUinode.PT())
 				continue;
-
-			if (hUinode->m_typek == TYPEK_Text)
-			{
-				SText * pText = (SText *)(hUinode.PT());
-				int i = 0;
-			}
 
 			if (hUinode->m_hMaterial == nullptr)
 				continue;
@@ -1128,10 +1094,8 @@ void SGame::MainLoop()
 
 						D3D11_MAPPED_SUBRESOURCE mappedSubresource;
 						m_pD3ddevicecontext->Map(m_cbufferObject, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
-						SGameObjectRenderConstants * pGorc = (SGameObjectRenderConstants *) (mappedSubresource.pData);
-						pGorc->m_posCenter = hUinode->m_pos;
-						pGorc->m_vecScale = hUinode->m_vecScale;
-						pGorc->m_color = hUinode->m_color;
+						SUiNodeRenderConstants * pUinoderc = (SUiNodeRenderConstants *) (mappedSubresource.pData);
+						hUinode->GetRenderConstants(pUinoderc);
 						m_pD3ddevicecontext->Unmap(m_cbufferObject, 0);
 
 						ID3D11ShaderResourceView * aD3dsrview[] = { texture.m_pD3dsrview };
@@ -1164,10 +1128,8 @@ void SGame::MainLoop()
 
 						D3D11_MAPPED_SUBRESOURCE mappedSubresource;
 						m_pD3ddevicecontext->Map(m_cbufferObject, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
-						SGameObjectRenderConstants * pGorc = (SGameObjectRenderConstants *) (mappedSubresource.pData);
-						pGorc->m_posCenter = hUinode->m_pos;
-						pGorc->m_vecScale = hUinode->m_vecScale;
-						pGorc->m_color = hUinode->m_color;
+						SUiNodeRenderConstants * pUinoderc = (SUiNodeRenderConstants *) (mappedSubresource.pData);
+						hUinode->GetRenderConstants(pUinoderc);
 						m_pD3ddevicecontext->Unmap(m_cbufferObject, 0);
 
 						ID3D11ShaderResourceView * aD3dsrview[] = { texture.m_pD3dsrview };
