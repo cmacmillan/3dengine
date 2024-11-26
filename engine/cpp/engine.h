@@ -38,6 +38,9 @@ struct float2
 	float2 operator-(float2 vec) const;
 };
 
+float2 operator*(float g, const float2 & vec);
+float2 operator/(float g, const float2 & vec);
+
 struct float4
 {
 	float m_x, m_y, m_z, m_w;
@@ -145,7 +148,6 @@ enum TYPEK
 	TYPEK_Shader,
 	TYPEK_Material,
 	TYPEK_GameObject,
-	TYPEK_Camera,
 	TYPEK_Font,
 	TYPEK_Text,
 	TYPEK_Mesh,
@@ -307,12 +309,12 @@ typedef SHandle<SMaterial> SMaterialHandle;
 
 struct ShaderGlobals
 {
-	float2 m_posCameraCenter;
-	float2 m_vecCameraSize;
+	//float2 m_posCameraCenter;
+	//float2 m_vecCameraSize;
 	float m_t;
+	float2 m_vecWinSize;
 
-	float2 m_junk;
-	float m_junk2;
+	float m_padding;
 };
 
 struct SGameObjectRenderConstants
@@ -357,20 +359,6 @@ struct SText : SGameObject // text
 };
 typedef SHandle<SText> STextHandle;
 
-struct SCamera : SGameObject // camera
-{
-	typedef SGameObject	super;
-	SCamera();
-	SHandle<SCamera> HCamera() { return (SHandle<SCamera>) m_nHandle; }
-
-	void Update() override;
-
-	float2 PosWorldFromCursor(float2 posCursor);
-
-	float2 m_vecExtents = { 0.0f, 0.0f };
-};
-typedef SHandle<SCamera> SCameraHandle;
-
 struct SGame // game 
 {
 	SGame();
@@ -379,13 +367,11 @@ struct SGame // game
 	void MainLoop();
 	LRESULT LresultWindowProcedure(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
 	float2 VecWinSize();
-	float2 PosCursorWorld();
 	void VkPressed(int vk);
 	void VkReleased(int vk);
 
 	// Gameplay
 
-	SCameraHandle m_hCamera = -1;
 	SMaterialHandle m_hMaterialTile;
 	STextHandle m_hText;
 

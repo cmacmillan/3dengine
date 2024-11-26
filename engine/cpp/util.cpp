@@ -8,6 +8,11 @@ float GMapRange(float a1, float a2, float b1, float b2, float g)
 	return Lerp(b1, b2, gLerp);
 }
 
+float GSin(float g)
+{
+	return std::sin(g);
+}
+
 bool FIsUpper(char ch)
 {
 	return 'A' <= ch && ch <= 'Z';

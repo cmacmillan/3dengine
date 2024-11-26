@@ -7,10 +7,9 @@ cbuffer constants : register(b0)
 
 cbuffer globals : register(b1)
 {
-    float2 posCamera;
-    float2 vecSizeCamera;
     float time;
-    float3 junk;
+    float2 vecWinSize;
+    float padding;
 };
 
 struct VS_INPUT
@@ -34,7 +33,7 @@ SamplerState samplerstateNormal : register(s1);
 VS_Output vs_main(VS_INPUT vsinput)
 {
     VS_Output output;
-    output.pos = float4((vecScaleObject * vsinput.pos + posObject - posCamera)/vecSizeCamera, 0.0f, 1.0f);
+    output.pos = float4((vecScaleObject * vsinput.pos + posObject) / vecWinSize - 1.0f, 0.0f, 1.0f);
     output.color = uniformColor;
     output.uv = vsinput.uv;
     return output;

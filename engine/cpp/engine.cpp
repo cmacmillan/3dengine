@@ -37,11 +37,6 @@ float2 SGame::VecWinSize()
 	return float2(dxWindow, dyWindow);
 }
 
-float2 SGame::PosCursorWorld()
-{
-	return m_hCamera->PosWorldFromCursor({ float(m_xCursor), float(m_yCursor) });
-}
-
 SGame::SGame()
 {
 	for (int i = 0; i < DIM(m_mpVkFDown); i++)
@@ -261,18 +256,7 @@ SGameObject::SGameObject() : super()
 	g_game.m_aryhGo.push_back(HGo());
 }
 
-SCamera::SCamera() : super()
-{
-	m_typek = TYPEK_Camera;
-}
-
-void SCamera::Update()
-{
-	float2 vecWinSize = g_game.VecWinSize();
-	float gScaleCamera = 100.0f * 0.5f / GMin(vecWinSize.m_x, vecWinSize.m_y);
-	m_vecExtents = { gScaleCamera * vecWinSize.m_x, gScaleCamera * vecWinSize.m_y };
-}
-
+/*
 float2 SCamera::PosWorldFromCursor(float2 posCursor)
 {
 	float2 posBottomLeft = m_pos - m_vecExtents;
@@ -282,6 +266,7 @@ float2 SCamera::PosWorldFromCursor(float2 posCursor)
 		GMapRange(0.0f, vecWinSize.m_x, posBottomLeft.m_x, posTopRight.m_x, posCursor.m_x),
 		GMapRange(vecWinSize.m_y, 0.0f, posBottomLeft.m_y, posTopRight.m_y, posCursor.m_y)); // NOTE inverted y
 }
+*/
 
 char SBinaryStream::CharRead()
 {
@@ -404,12 +389,12 @@ SFont::SFont(const char * pChzBitmapfontFile) : super()
 	std::string strPath = std::string(ASSET_PATH) + pChzBitmapfontFile;
 
     HANDLE hFile = CreateFileA(strPath.c_str(),
-                       GENERIC_READ,		   // open for reading
-                       0,                      // do not share
-                       NULL,                   // default security
-                       OPEN_EXISTING,		   // open existing only
-                       FILE_ATTRIBUTE_NORMAL,  // normal file
-                       NULL);                  // no attr. template
+							   GENERIC_READ,		   // open for reading
+							   0,                      // do not share
+							   NULL,                   // default security
+							   OPEN_EXISTING,		   // open existing only
+							   FILE_ATTRIBUTE_NORMAL,  // normal file
+							   NULL);                  // no attr. template
 
     if (hFile == INVALID_HANDLE_VALUE) 
     { 
@@ -500,19 +485,19 @@ void SText::SetText(const std::string & str)
 
 		ASSERT(pFontchar);
 
+		// See https://www.angelcode.com/products/bmfont/doc/render_text.html
+		//  The idea here is the "base" line is the 0 coordinate for y
+
 		float2 vecDivisor = float2(pTexture->m_dX, pTexture->m_dY);
 		float2 vecExtents = float2(pFontchar->m_nWidth, pFontchar->m_nHeight);
 		float2 uvMin = float2(pFontchar->m_nX / float(pTexture->m_dX), pFontchar->m_nY / float(pTexture->m_dY));
 		float2 uvMax = uvMin + vecExtents / vecDivisor;
-		//float2 posMin = float2(x, 0.0f) - float2(pFontchar->m_nXOffset, pFontchar->m_nYOffset);
-		float2 posMin = float2(x, -pFontchar->m_nYOffset-vecExtents.m_y);//+ float2(0.0f, pFontchar->m_nYOffset);
-		float2 posMax = float2(x + vecExtents.m_x, -pFontchar->m_nYOffset);
-		//float2 posMax = posMin + vecExtents;
+		float2 posMax = float2(x + vecExtents.m_x, pFont->m_fontcb.m_nBase - pFontchar->m_nYOffset);
+		float2 posMin = float2(x, posMax.m_y - vecExtents.m_y);
 		PushQuad(posMin, posMax, uvMin, uvMax, &aryVerts);
 
 		// TODO support kerning
-		// TODO use nXAdvance?
-		x += vecExtents.m_x;
+		x += pFontchar->m_nXAdvance;
 	}
 
 
@@ -536,6 +521,16 @@ void SText::Update()
 		aCh[0] = 'a' + blah;
 		SetText((const char *)aCh);
 	}
+}
+
+
+float2 operator*(float g, const float2& vec) {
+	return vec * g;
+}
+
+float2 operator/(float g, const float2 & vec)
+{
+	return float2(g / vec.m_x,  g / vec.m_y);
 }
 
 void PushQuad(float2 posMin, float2 posMax, float2 uvMin, float2 uvMax, std::vector<float> * pAryVert)
@@ -799,17 +794,16 @@ void SGame::Init(HINSTANCE hInstance)
 	}
 
 	{
-		D3D11_BUFFER_DESC descCbufferCamera = {};
+		D3D11_BUFFER_DESC descCbufferGlobals = {};
 		CASSERT(sizeof(ShaderGlobals) % 16 == 0);
-		descCbufferCamera.ByteWidth = sizeof(ShaderGlobals);
-		descCbufferCamera.Usage = D3D11_USAGE_DYNAMIC;
-		descCbufferCamera.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-		descCbufferCamera.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		descCbufferGlobals.ByteWidth = sizeof(ShaderGlobals);
+		descCbufferGlobals.Usage = D3D11_USAGE_DYNAMIC;
+		descCbufferGlobals.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+		descCbufferGlobals.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 
-		HRESULT hResult = m_pD3ddevice->CreateBuffer(&descCbufferCamera, nullptr, &m_cbufferGlobals);
+		HRESULT hResult = m_pD3ddevice->CreateBuffer(&descCbufferGlobals, nullptr, &m_cbufferGlobals);
 		assert(SUCCEEDED(hResult));
 	}
-
 	// Timing
 	{
 		LARGE_INTEGER perfCount;
@@ -831,16 +825,12 @@ void SGame::Init(HINSTANCE hInstance)
 	m_hText = (new SText(m_hFont))->HText();
 	m_hText->m_hMaterial = (new SMaterial(hShaderText))->HMaterial();
 	m_hText->m_hMaterial->m_hTexture = m_hText->m_hFont->m_aryhTexture[0];
-	m_hText->SetText("Score:");
+	m_hText->SetText("Score: joy");
 	//m_hText->m_vecScale = float2(0.2f, 0.2f);
-	m_hText->m_vecScale = float2(0.025f, 0.025f);
+	m_hText->m_vecScale = float2(1.0f, 1.0f);
 	m_hText->m_gSort = 10.0f;
-	m_hText->m_pos = float2(.5f, 0.5f);
+	m_hText->m_pos = float2(0.0f, 0.0f);
 	m_hText->m_color = { 0.0f, 0.0f, 0.0f, 1.0f };
-
-	// Camera 
-
-	m_hCamera = (new SCamera())->HCamera();
 
 	// Piece
 
@@ -920,7 +910,7 @@ void SGame::MainLoop()
 			assert(SUCCEEDED(res));
 
 			res = m_pD3ddevice->CreateRenderTargetView(d3d11FrameBuffer, NULL,
-				&m_pD3dframebufferview);
+														&m_pD3dframebufferview);
 			assert(SUCCEEDED(res));
 			d3d11FrameBuffer->Release();
 
@@ -931,16 +921,12 @@ void SGame::MainLoop()
 
 		D3D11_VIEWPORT viewport = { 0.0f, 0.0f, vecWinSize.m_x, vecWinSize.m_y, 0.0f, 1.0f };
 
-		//////////////////////// GAMEPLAY CODE
-
-#if TESTING_WORD_SCORES
-		m_hText->SetText(std::to_string(m_iMoveWordscore));
-#endif
-
 		if (m_mpVkFDown[VK_ESCAPE])
 			DestroyWindow(m_hwnd);
 
-		////////////////////////
+		////////// GAMEPLAY CODE (JANK)
+
+		///////////////////////////////
 
 		// Sort
 
@@ -951,12 +937,11 @@ void SGame::MainLoop()
 		std::qsort(aryhGoCopy.data(), aryhGoCopy.size(), sizeof(SGameObjectHandle), SortGameObjectHandles);
 
 		{
-			D3D11_MAPPED_SUBRESOURCE mappedSubresourceCamera;
-			m_pD3ddevicecontext->Map(m_cbufferGlobals, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresourceCamera);
-			ShaderGlobals * pShaderglobals = (ShaderGlobals *) (mappedSubresourceCamera.pData);
-			pShaderglobals->m_posCameraCenter = m_hCamera->m_pos;
-			pShaderglobals->m_vecCameraSize = m_hCamera->m_vecExtents;
+			D3D11_MAPPED_SUBRESOURCE mappedSubresourceGlobals;
+			m_pD3ddevicecontext->Map(m_cbufferGlobals, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresourceGlobals);
+			ShaderGlobals * pShaderglobals = (ShaderGlobals *) (mappedSubresourceGlobals.pData);
 			pShaderglobals->m_t = m_dTSyst;
+			pShaderglobals->m_vecWinSize = vecWinSize;
 			m_pD3ddevicecontext->Unmap(m_cbufferGlobals, 0);
 		}
 

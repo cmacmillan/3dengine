@@ -68,6 +68,8 @@ inline char ChToUpper(char ch)
 	return ch;
 }
 
+float GSin(float g);
+
 bool FIsUpper(char ch);
 bool FIsLower(char ch);
 

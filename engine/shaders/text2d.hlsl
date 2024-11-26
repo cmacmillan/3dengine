@@ -8,9 +8,9 @@ cbuffer constants : register(b0)
 
 cbuffer globals : register(b1)
 {
-    float2 posCamera;
-    float2 vecSizeCamera;
     float time;
+    float2 vecWinSize;
+    float padding;
 };
 
 struct VS_INPUT
@@ -31,7 +31,7 @@ SamplerState mysampler : register(s0);
 VS_Output vs_main(VS_INPUT vsinput)
 {
     VS_Output output;
-    output.pos = float4((vecScaleObject * vsinput.pos + posObject - posCamera)/vecSizeCamera, 0.0f, 1.0f);
+    output.pos = float4((vecScaleObject * vsinput.pos + posObject) / vecWinSize - 1.0f, 0.0f, 1.0f);
     output.color = uniformColor;
     output.uv = vsinput.uv;
     return output;
@@ -56,5 +56,6 @@ float4 ps_main(VS_Output input) : SV_Target
     float gAlpha3 = mytexture.Sample(mysampler, input.uv + uv3 * vecPixel).r;
 
     float gAlpha = (gAlpha0 + gAlpha1 + gAlpha2 + gAlpha3) / 4.0f;
+    //gAlpha = 1.0f;
     return float4(input.color.rgb, input.color.a * gAlpha);
 }
