@@ -31,9 +31,32 @@ struct float4
 
 float4 operator*(float g, const float4 & vec);
 float4 operator/(float g, const float4 & vec);
+float GDot(const float4 & vec0, const float4 & vec1);
 
-struct Transform
+bool FIsNear(const float4 & vec0, const float4 & vec1);
+
+// Row major, so vectors are horizontal
+//  so multiplication goes left to right, like at work
+
+// 4x4 matrix
+
+struct Mat
 {
+	Mat();
+	Mat(float4 r0, float4 r1, float4 r2, float4 r3) 
+	{ 
+		m_aVec[0] = r0; 
+		m_aVec[1] = r1;
+		m_aVec[2] = r2; 
+		m_aVec[3] = r3; 
+	}
 	float4 m_aVec[4];
+	Mat operator*(const Mat & mat) const;
+	Mat MatTranspose() const;
 };
 
+float4 operator*(const float4 & vec, const Mat & mat);
+
+bool FIsNear(const Mat & mat0, const Mat & mat1);
+
+void AuditVectors();

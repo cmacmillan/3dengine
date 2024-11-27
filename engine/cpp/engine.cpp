@@ -70,6 +70,8 @@ SObject::~SObject()
 	g_objman.UnregisterObj(this);
 }
 
+// BB could be faster and non-recursive
+
 bool SObject::FIsDerivedFrom(TYPEK typek)
 {
 	for (TYPEK typekIter = m_typek; typekIter != TYPEK_Nil; typekIter = TypekSuper(typekIter))
@@ -677,6 +679,7 @@ void SMesh::SetVerts(float * pGVerts, int cVerts, int cStride, int cOffset)
 void SGame::Init(HINSTANCE hInstance)
 {
 	AuditFixArray();
+	AuditVectors();
 
 	m_hNodeRoot = (new SNode(-1))->HNode();
 

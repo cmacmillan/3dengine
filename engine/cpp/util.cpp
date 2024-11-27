@@ -13,6 +13,22 @@ float GSin(float g)
 	return std::sin(g);
 }
 
+float GAbs(float g)
+{
+	if (g < 0.0f)
+		return -g;
+
+	return g;
+}
+
+bool FIsNear(float a, float b)
+{
+	const float s_gEpsilon = .00001f;
+	if (GAbs(a - b) < s_gEpsilon)
+		return true;
+	return false;
+}
+
 bool FIsUpper(char ch)
 {
 	return 'A' <= ch && ch <= 'Z';

@@ -128,7 +128,7 @@ bool operator==(const int id, const SHandle<T> & hOther)
 
 enum TYPEK
 {
-	// When adding new elements to this, make sure to add them to TypekSuper too
+	// NOTE When adding new elements to this, make sure to add them to TypekSuper too
 
 	TYPEK_Object,
 		TYPEK_Texture,
@@ -145,8 +145,6 @@ enum TYPEK
 
 	TYPEK_Nil = -1,
 };
-
-// BB could be faster and non-recursive
 
 TYPEK TypekSuper(TYPEK typek)
 {

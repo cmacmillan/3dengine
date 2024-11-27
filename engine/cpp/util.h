@@ -69,6 +69,9 @@ inline char ChToUpper(char ch)
 }
 
 float GSin(float g);
+float GAbs(float g);
+
+bool FIsNear(float a, float b);
 
 bool FIsUpper(char ch);
 bool FIsLower(char ch);
