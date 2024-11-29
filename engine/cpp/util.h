@@ -14,6 +14,7 @@
 #define ASSERT assert
 #define CASSERT(arg) static_assert(arg, "static assert failed!\n");
 #define DIM(a) sizeof(a)/sizeof(a[0])
+#define PI 3.141592653589793f
 
 inline float GMin(float g1, float g2)
 {
@@ -69,6 +70,7 @@ inline char ChToUpper(char ch)
 }
 
 float GSin(float g);
+float GCos(float g);
 float GAbs(float g);
 
 bool FIsNear(float a, float b);

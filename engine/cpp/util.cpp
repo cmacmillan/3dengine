@@ -13,6 +13,11 @@ float GSin(float g)
 	return std::sin(g);
 }
 
+float GCos(float g)
+{
+	return std::cos(g);
+}
+
 float GAbs(float g)
 {
 	if (g < 0.0f)
