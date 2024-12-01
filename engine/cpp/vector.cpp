@@ -96,14 +96,6 @@ float GDot(const float4 & vec0, const float4 & vec1)
 	return vec0.m_x * vec1.m_x + vec0.m_y * vec1.m_y + vec0.m_z * vec1.m_z + vec0.m_w * vec1.m_w;
 }
 
-bool FIsNear(const float4 & vec0, const float4 & vec1)
-{
-	return	FIsNear(vec0.m_x, vec1.m_x) &&
-			FIsNear(vec0.m_y, vec1.m_y) &&
-			FIsNear(vec0.m_z, vec1.m_z) &&
-			FIsNear(vec0.m_w, vec1.m_w);
-}
-
 // Vector
 
 Vector VecUnitX() { return Vector(1, 0, 0); }
@@ -124,11 +116,6 @@ Vector operator/(float g, const Vector & vec)
 float GDot(const Vector & vec0, const Vector & vec1)
 {
 	return GDot(vec0.m_vec, vec1.m_vec);
-}
-
-bool FIsNear(const Vector & vec0, const Vector & vec1)
-{
-	return FIsNear(vec0.m_vec, vec1.m_vec);
 }
 
 Vector::Vector(const float4 & vec) : 
@@ -173,6 +160,14 @@ Vector Vector::operator-() const
 	return -m_vec;
 }
 
+Vector VecComponentwiseMultiply(const Vector & vec1, const Vector & vec2)
+{
+	return Vector(
+				vec1.X() * vec2.X(),
+				vec1.Y() * vec2.Y(),
+				vec1.Z() * vec2.Z());
+}
+
 // Point
 
 Point PosZero() { return Point(0, 0, 0); }
@@ -204,9 +199,12 @@ Vector Point::operator-(const Point & pos) const
 	return m_vec - pos.m_vec;
 }
 
-bool FIsNear(const Point & pos0, const Point & pos1)
+Point PosComponentwiseMultiply(const Point & pos, const Vector & vec)
 {
-	return FIsNear(pos0.m_vec, pos1.m_vec);
+	return Point(
+				pos.X() * vec.X(),
+				pos.Y() * vec.Y(),
+				pos.Z() * vec.Z());
 }
 
 // Mat
@@ -256,6 +254,24 @@ Point operator*(const Point & pos, const Mat & mat)
 	return pos.m_vec * mat;
 }
 
+bool FIsNear(const float4 & vec0, const float4 & vec1)
+{
+	return	FIsNear(vec0.m_x, vec1.m_x) &&
+			FIsNear(vec0.m_y, vec1.m_y) &&
+			FIsNear(vec0.m_z, vec1.m_z) &&
+			FIsNear(vec0.m_w, vec1.m_w);
+}
+
+bool FIsNear(const Vector & vec0, const Vector & vec1)
+{
+	return FIsNear(vec0.m_vec, vec1.m_vec);
+}
+
+bool FIsNear(const Point & pos0, const Point & pos1)
+{
+	return FIsNear(pos0.m_vec, pos1.m_vec);
+}
+
 bool FIsNear(const Mat & mat0, const Mat & mat1)
 {
 	for (int i = 0; i < 4; i++)
@@ -265,6 +281,21 @@ bool FIsNear(const Mat & mat0, const Mat & mat1)
 	}
 
 	return true;
+}
+
+bool FIsNear(const Quat & quat1, const Quat & quat2)
+{
+	return FIsNear(quat1.m_a, quat2.m_a) &&
+			FIsNear(quat1.m_b, quat2.m_b) &&
+			FIsNear(quat1.m_c, quat2.m_c) &&
+			FIsNear(quat1.m_d, quat2.m_d);
+}
+
+bool FIsNear(const Transform & x1, const Transform & x2)
+{
+	return FIsNear(x1.m_pos, x2.m_pos) &&
+			FIsNear(x1.m_quat, x2.m_quat) &&
+			FIsNear(x1.m_vecScale, x2.m_vecScale);
 }
 
 Mat Mat::operator*(const Mat & mat) const
@@ -305,6 +336,11 @@ Quat Quat::operator*(const Quat & quat) const
 				m_a * quat.m_d + m_b * quat.m_c - m_c * quat.m_b + m_d * quat.m_a);
 }
 
+Quat Quat::Inverse() const
+{
+	return Quat(m_a, -m_b, -m_c, -m_d);
+}
+
 Quat QuatAxisAngle(const Vector & normal, float radAngle)
 {
 	// Constructs a quat such that when a vec is rotated using the rotate function the appropriate axis angle will have been applied
@@ -316,15 +352,11 @@ Quat QuatAxisAngle(const Vector & normal, float radAngle)
 
 float4 Rotate(const float4 & vec, const Quat & quat)
 {
-	// Construct a copy with sign-flopped i,j,k
-
-	Quat quatInv = Quat(quat.m_a, -quat.m_b, -quat.m_c, -quat.m_d);
-
 	// Convert input point into a quat
 
 	Quat quatPoint = Quat(0.0f, vec.m_x, vec.m_y, vec.m_z);
 
-	Quat quatResult = quat * quatPoint * quatInv;
+	Quat quatResult = quat * quatPoint * quat.Inverse();
 
 	return float4(quatResult.m_b, quatResult.m_c, quatResult.m_d, vec.m_w);
 }
@@ -337,6 +369,32 @@ Vector Rotate(const Vector & vec, const Quat & quat)
 Point Rotate(const Point & pos, const Quat & quat)
 {
 	return Rotate(pos.m_vec, quat);
+}
+
+Transform Transform::Inverse() const
+{
+	Transform x;
+	//x.m_pos = -m_pos;
+
+	// TODO
+
+	return x;
+}
+
+Transform Transform::operator*(const Transform & x) const
+{
+	// s = s1r1s2
+	// r = r1r2
+	// t = t1s2r2t2
+	
+	Transform xResult;
+
+	Vector vecScaleRotated = 
+	xResult.m_vecScale = VecComponentwiseMultiply(Rotate(m_vecScale, m_quat), x.m_vecScale);
+	xResult.m_quat = x.m_quat * m_quat; // Note the inversion
+	xResult.m_pos = Rotate(PosComponentwiseMultiply(m_pos, x.m_vecScale), x.m_quat) + x.m_pos;
+
+	return xResult;
 }
 
 void AuditVectors()
@@ -435,4 +493,25 @@ void AuditVectors()
 	Point posRotateResult = Rotate(posRotate, QuatAxisAngle(Vector(1, 0, 0), PI / 2.0f));
 
 	ASSERT(FIsNear(posRotateResult, posRotateResultExpected));
+
+	Transform xA;
+	xA.m_pos = Point(0, 0, 10);
+	xA.m_vecScale = Vector(1, 2, 3);
+	xA.m_quat = QuatAxisAngle(Vector(1,0,0), PI / 2.0f);
+
+	Transform xB;
+	xB.m_pos = Point(0, 10, 0);
+	xB.m_vecScale = Vector(3, 2, 1);
+	xB.m_quat = QuatAxisAngle(Vector(1,0,0), PI / 2.0f);
+
+	Transform xMulResultExpected;
+	xMulResultExpected.m_pos = xA.m_pos + Rotate(PosComponentwiseMultiply(xB.m_pos, xA.m_vecScale), xA.m_quat);
+	xMulResultExpected.m_vecScale = Vector(3, -2, 6);
+	xMulResultExpected.m_quat = QuatAxisAngle(Vector(1,0,0), PI);
+
+	Transform xMulResult = xB * xA;
+
+	ASSERT(FIsNear(xMulResult, xMulResultExpected));
+
+	// TODO test inversion
 }
