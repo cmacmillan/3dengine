@@ -18,17 +18,45 @@ float2 operator/(float g, const float2 & vec);
 
 struct float4
 {
-	float4() : m_x(0.0f), m_y(0.0f), m_z(0.0f), m_w(0.0f) {}
-	float4(const float4 & vec) : m_x(vec.m_x), m_y(vec.m_y), m_z(vec.m_z), m_w(vec.m_w) { }
-	float4(float x, float y, float z, float w) : m_x(x), m_y(y), m_z(z), m_w(w) {}
-	float m_x, m_y, m_z, m_w;
-	float4 operator/(float g) const;
-	float4 operator*(float g) const;
-	float4 operator/(float4 vec) const;
-	float4 operator*(float4 vec) const;
-	float4 operator+(float4 vec) const;
-	float4 operator-(float4 vec) const;
-	float4 operator-() const;
+				float4() : 
+					m_x(0.0f), 
+					m_y(0.0f), 
+					m_z(0.0f), 
+					m_w(0.0f) 
+					{}
+
+				float4(const float4 & vec) : 
+					m_x(vec.m_x), 
+					m_y(vec.m_y), 
+					m_z(vec.m_z), 
+					m_w(vec.m_w) 
+					{}
+
+				float4(float x, float y, float z, float w) : 
+					m_x(x), 
+					m_y(y), 
+					m_z(z), 
+					m_w(w) 
+					{}
+
+	float4		operator/(float g) const;
+	float4		operator*(float g) const;
+	float4		operator/(float4 vec) const;
+	float4		operator*(float4 vec) const;
+	float4		operator+(float4 vec) const;
+	float4		operator-(float4 vec) const;
+	float4		operator-() const;
+	float &		operator[](int i);
+
+	float4 &	operator*=(float g);
+	float4 &	operator/=(float g);
+	float4 &	operator+=(const float4 & vec);
+	float4 &	operator-=(const float4 & vec);
+
+	float m_x;
+	float m_y; 
+	float m_z;
+	float m_w;
 };
 
 float4 operator*(float g, const float4 & vec);
@@ -45,6 +73,8 @@ struct Vector
 	Vector(const float4 & vec);
 	Vector(const Point & pos);
 	Vector(float x, float y, float z) : m_vec(x, y, z, 0.0f) {}
+	float	SLength();
+	Vector	VecNormalized();
 	float	X() const { return m_vec.m_x; }
 	float	Y() const { return m_vec.m_y; }
 	float	Z() const { return m_vec.m_z; }
@@ -57,10 +87,6 @@ struct Vector
 	Vector operator-() const;
 };
 
-Vector VecUnitX();
-Vector VecUnitY();
-Vector VecUnitZ();
-Vector VecZero();
 Vector VecComponentwiseMultiply(const Vector & vec1, const Vector & vec2);
 
 Vector operator*(float g, const Vector & vec);
@@ -88,6 +114,9 @@ Point PosZero();
 bool FIsNear(const Point & pos0, const Point & pos1);
 Point PosComponentwiseMultiply(const Point & pos, const Vector & vec);
 
+float SLength(const Vector & vec);
+Vector VecNormalize(const Vector & vec);
+
 // Row major, so vectors are horizontal
 //  so multiplication goes left to right, like at work
 
@@ -106,11 +135,15 @@ struct Mat
 	float4 m_aVec[4];
 	Mat operator*(const Mat & mat) const;
 	Mat MatTranspose() const;
+	Mat MatInverse() const;
 };
 
-Mat MatTranslate(Point pos);
-Mat MatTranslate(Vector vec);
-Mat MatScale(Vector vec);
+extern Mat g_matIdentity;
+extern Vector g_vecXAxis;
+extern Vector g_vecYAxis;
+extern Vector g_vecZAxis;
+extern Vector g_vecZero;
+
 //Mat MatLookAt(Vector normalForward, Vector normalUp);
 
 float4 operator*(const float4 & vec, const Mat & mat);
@@ -139,23 +172,29 @@ Quat QuatAxisAngle(const Vector & normal, float radAngle);
 
 bool FIsNear(const Quat & quat1, const Quat & quat2);
 
-float4 Rotate(const float4 & vec, const Quat & quat);
-Vector Rotate(const Vector & vec, const Quat & quat);
-Point Rotate(const Point & pos, const Quat & quat);
+float4 VecRotate(const float4 & vec, const Quat & quat);
+Vector VecRotate(const Vector & vec, const Quat & quat);
+Point PosRotate(const Point & pos, const Quat & quat);
+Vector VecNormalize(const Vector & vec);
 
-struct Transform // tag = x
+Mat MatTranslate(Point pos);
+Mat MatTranslate(Vector vec);
+Mat MatScale(Vector vec);
+Mat MatRotate(Quat quat);
+Mat MatInverse(const Mat & mat);
+
+struct Transform // tag = transform
 {
 	Transform() : m_pos(), m_quat(), m_vecScale() {}
 
-	Transform Inverse() const;
-
-	Transform operator*(const Transform & x) const;
+	struct Mat		Mat() const;
+	struct Mat		MatInverse() const;
 
 	Point	m_pos;
 	Quat	m_quat;
 	Vector	m_vecScale;
 };
 
-bool FIsNear(const Transform & x1, const Transform & x2);
+bool FIsNear(const Transform & transform1, const Transform & transform2);
 
 void AuditVectors();

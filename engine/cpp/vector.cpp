@@ -91,6 +91,48 @@ float4 operator/(float g, const float4 & vec)
 	return float4(g / vec.m_x,  g / vec.m_y, g / vec.m_z, g / vec.m_w);
 }
 
+float & float4::operator[](int i)
+{
+	switch (i)
+	{
+		case 0:
+			return m_x;
+		case 1:
+			return m_y;
+		case 2:
+			return m_z;
+		case 3:
+			return m_w;
+		default:
+			ASSERT(false);
+			return m_x;
+	}
+}
+
+float4 & float4::operator*=(float g)
+{
+	*this = *this * g;
+	return *this;
+}
+
+float4 & float4::operator/=(float g)
+{
+	*this = *this / g;
+	return *this;
+}
+
+float4 & float4::operator+=(const float4 & vec)
+{
+	*this = *this + vec;
+	return *this;
+}
+
+float4 & float4::operator-=(const float4 & vec)
+{
+	*this = *this - vec;
+	return *this;
+}
+
 float GDot(const float4 & vec0, const float4 & vec1)
 {
 	return vec0.m_x * vec1.m_x + vec0.m_y * vec1.m_y + vec0.m_z * vec1.m_z + vec0.m_w * vec1.m_w;
@@ -209,6 +251,12 @@ Point PosComponentwiseMultiply(const Point & pos, const Vector & vec)
 
 // Mat
 
+Mat g_matIdentity = Mat(float4(1, 0, 0, 0), float4(0, 1, 0, 0), float4(0, 0, 1, 0), float4(0, 0, 0, 1));
+Vector g_vecXAxis = Vector(1.0f, 0.0f, 0.0f);
+Vector g_vecYAxis = Vector(0.0f, 1.0f, 0.0f);
+Vector g_vecZAxis = Vector(0.0f, 0.0f, 1.0f);
+Vector g_vecZero = Vector(0.0f, 0.0f, 0.0f);
+
 Mat::Mat()
 {
 	memset(this, 0, sizeof(Mat));
@@ -216,20 +264,29 @@ Mat::Mat()
 
 Mat MatTranslate(Point pos)
 {
-	return Mat(VecUnitX().m_vec, VecUnitY().m_vec, VecUnitZ().m_vec, pos.m_vec);
+	return Mat(g_vecXAxis.m_vec, g_vecYAxis.m_vec, g_vecZAxis.m_vec, pos.m_vec);
 }
 
 Mat MatTranslate(Vector vec)
 {
-	return Mat(VecUnitX().m_vec, VecUnitY().m_vec, VecUnitZ().m_vec, Point(vec).m_vec);
+	return Mat(g_vecXAxis.m_vec, g_vecYAxis.m_vec, g_vecZAxis.m_vec, Point(vec).m_vec);
 }
 
 Mat MatScale(Vector vec)
 {
 	return Mat(
-			vec.m_vec.m_x * VecUnitX().m_vec, 
-			vec.m_vec.m_y * VecUnitY().m_vec, 
-			vec.m_vec.m_z * VecUnitZ().m_vec, 
+			vec.m_vec.m_x * g_vecXAxis.m_vec, 
+			vec.m_vec.m_y * g_vecYAxis.m_vec, 
+			vec.m_vec.m_z * g_vecZAxis.m_vec, 
+			float4(0, 0, 0, 1));
+}
+
+Mat MatRotate(Quat quat)
+{
+	return Mat(
+			VecRotate(g_vecXAxis, quat).m_vec,
+			VecRotate(g_vecYAxis, quat).m_vec,
+			VecRotate(g_vecZAxis, quat).m_vec,
 			float4(0, 0, 0, 1));
 }
 
@@ -249,9 +306,133 @@ Vector operator*(const Vector & vec, const Mat & mat)
 	return vec.m_vec * mat;
 }
 
+float SLength(const Vector & vec)
+{
+	return GSqrt(vec.X() * vec.X() + vec.Y() * vec.Y() + vec.Z() * vec.Z());
+}
+
+Vector VecNormalize(const Vector & vec)
+{
+	return vec / SLength(vec);
+}
+
+float Vector::SLength()
+{
+	return ::SLength(*this);
+}
+
+Vector Vector::VecNormalized()
+{
+	return VecNormalize(*this);
+}
+
 Point operator*(const Point & pos, const Mat & mat)
 {
 	return pos.m_vec * mat;
+}
+
+Mat MatInverse(const Mat & mat)
+{
+	return mat.MatInverse();
+}
+
+Mat Mat::MatInverse() const
+{
+	// https://numerical.recipes/book.html "Gauss-Jordan elimination"
+
+	Mat matInverse = g_matIdentity;
+	Mat matCopy = *this;
+
+	int mpIRowCurrentIRowOriginal[] = { 0, 1, 2, 3 };
+
+	// Take the largest value in the first row, swap it into position zero, divide that row by that value
+	//  combine with other rows to zero out that column
+
+	// The idea here is we have AY = 1, where Y is A^-1
+	//  We can manipulate this equation to end up with something like 1 * Y' = 1' aka Y' = 1'
+	//  Y' because we may have reordered the rows of Y
+	//  1' because we may have combined rows of A to eliminate terms
+	//  We can then unshuffle Y' & 1' to figure out what Y is
+
+	for (int iDiag = 0; iDiag < 4; iDiag++)
+	{
+		float gBest = 0.0f;
+		int iBest = -1;
+		for (int iCol = iDiag; iCol < 4; iCol++)
+		{
+			float gCur = GAbs(matCopy.m_aVec[iDiag][iCol]);
+			if (gCur > gBest)
+			{
+				gBest = gCur;
+				iBest = iCol;
+			}
+		}
+
+		if (iBest == -1)
+		{
+			// Degenerate matrix
+			
+			ASSERT(false);
+
+			return g_matIdentity;
+		}
+
+		if (iDiag != iBest)
+		{
+			// Swap the columns of matCopy
+
+			Swap(matCopy.m_aVec[0][iDiag], matCopy.m_aVec[0][iBest]);
+			Swap(matCopy.m_aVec[1][iDiag], matCopy.m_aVec[1][iBest]);
+			Swap(matCopy.m_aVec[2][iDiag], matCopy.m_aVec[2][iBest]);
+			Swap(matCopy.m_aVec[3][iDiag], matCopy.m_aVec[3][iBest]);
+
+			// Mark the rows of matInverse as having been swapped
+
+			Swap(mpIRowCurrentIRowOriginal[iDiag], mpIRowCurrentIRowOriginal[iBest]);
+		}
+
+		// iDiag now contains the largest element, which is also nonzero
+
+		float gDiag = matCopy.m_aVec[iDiag][iDiag];
+
+		matCopy.m_aVec[iDiag] /= gDiag;
+		matInverse.m_aVec[iDiag] /= gDiag;
+
+		// Kill off the other rows
+
+		for (int iRow = 0; iRow < 4; iRow++)
+		{
+			if (iRow == iDiag)
+				continue;
+
+			float gFactor = matCopy.m_aVec[iRow][iDiag];
+			matCopy.m_aVec[iRow] -= gFactor * matCopy.m_aVec[iDiag];
+			matInverse.m_aVec[iRow] -= gFactor * matInverse.m_aVec[iDiag];
+		}
+	}
+
+	ASSERT(FIsNear(matCopy, g_matIdentity));
+
+	// Swap the rows
+
+	bool mpIRowFSwapHandled[] = { false, false, false, false };
+
+	for (int iRow = 0; iRow < 4; iRow++)
+	{
+		if (mpIRowFSwapHandled[iRow] || mpIRowCurrentIRowOriginal[iRow] == iRow)
+			continue;
+		
+		int iRowOther = mpIRowCurrentIRowOriginal[iRow];
+
+		Swap(matInverse.m_aVec[iRow], matInverse.m_aVec[iRowOther]);
+
+		mpIRowFSwapHandled[iRow] = true;
+		mpIRowFSwapHandled[iRowOther] = true;
+	}
+
+	//Swap(matInverse.m_aVec
+
+	return matInverse;
 }
 
 bool FIsNear(const float4 & vec0, const float4 & vec1)
@@ -291,11 +472,11 @@ bool FIsNear(const Quat & quat1, const Quat & quat2)
 			FIsNear(quat1.m_d, quat2.m_d);
 }
 
-bool FIsNear(const Transform & x1, const Transform & x2)
+bool FIsNear(const Transform & transform1, const Transform & transform2)
 {
-	return FIsNear(x1.m_pos, x2.m_pos) &&
-			FIsNear(x1.m_quat, x2.m_quat) &&
-			FIsNear(x1.m_vecScale, x2.m_vecScale);
+	return FIsNear(transform1.m_pos, transform2.m_pos) &&
+			FIsNear(transform1.m_quat, transform2.m_quat) &&
+			FIsNear(transform1.m_vecScale, transform2.m_vecScale);
 }
 
 Mat Mat::operator*(const Mat & mat) const
@@ -343,6 +524,8 @@ Quat Quat::Inverse() const
 
 Quat QuatAxisAngle(const Vector & normal, float radAngle)
 {
+	ASSERT(FIsNear(SLength(normal), 1.0f));
+
 	// Constructs a quat such that when a vec is rotated using the rotate function the appropriate axis angle will have been applied
 
 	float4 vec = normal.m_vec * GSin(radAngle * .5f);
@@ -350,7 +533,7 @@ Quat QuatAxisAngle(const Vector & normal, float radAngle)
 	return Quat(GCos(radAngle * .5), vec.m_x, vec.m_y, vec.m_z);
 }
 
-float4 Rotate(const float4 & vec, const Quat & quat)
+float4 VecRotate(const float4 & vec, const Quat & quat)
 {
 	// Convert input point into a quat
 
@@ -361,40 +544,28 @@ float4 Rotate(const float4 & vec, const Quat & quat)
 	return float4(quatResult.m_b, quatResult.m_c, quatResult.m_d, vec.m_w);
 }
 
-Vector Rotate(const Vector & vec, const Quat & quat)
+Vector VecRotate(const Vector & vec, const Quat & quat)
 {
-	return Rotate(vec.m_vec, quat);
+	return VecRotate(vec.m_vec, quat);
 }
 
-Point Rotate(const Point & pos, const Quat & quat)
+Point PosRotate(const Point & pos, const Quat & quat)
 {
-	return Rotate(pos.m_vec, quat);
+	return VecRotate(pos.m_vec, quat);
 }
 
-Transform Transform::Inverse() const
+struct Mat Transform::Mat() const
 {
-	Transform x;
-	//x.m_pos = -m_pos;
+	// BB this could almost surely be faster
 
-	// TODO
-
-	return x;
+	return MatScale(m_vecScale) * MatRotate(m_quat) * MatTranslate(m_pos);
 }
 
-Transform Transform::operator*(const Transform & x) const
+struct Mat	Transform::MatInverse() const
 {
-	// s = s1r1s2
-	// r = r1r2
-	// t = t1s2r2t2
-	
-	Transform xResult;
+	// BB this could for sure be done faster
 
-	Vector vecScaleRotated = 
-	xResult.m_vecScale = VecComponentwiseMultiply(Rotate(m_vecScale, m_quat), x.m_vecScale);
-	xResult.m_quat = x.m_quat * m_quat; // Note the inversion
-	xResult.m_pos = Rotate(PosComponentwiseMultiply(m_pos, x.m_vecScale), x.m_quat) + x.m_pos;
-
-	return xResult;
+	return Mat().MatInverse();
 }
 
 void AuditVectors()
@@ -490,28 +661,21 @@ void AuditVectors()
 
 	Point posRotate = Point(0, -1, 0);
 	Point posRotateResultExpected = Point(0, 0, -1);
-	Point posRotateResult = Rotate(posRotate, QuatAxisAngle(Vector(1, 0, 0), PI / 2.0f));
+	Point posRotateResult = PosRotate(posRotate, QuatAxisAngle(Vector(1, 0, 0), PI / 2.0f));
 
 	ASSERT(FIsNear(posRotateResult, posRotateResultExpected));
 
-	Transform xA;
-	xA.m_pos = Point(0, 0, 10);
-	xA.m_vecScale = Vector(1, 2, 3);
-	xA.m_quat = QuatAxisAngle(Vector(1,0,0), PI / 2.0f);
+	Transform transformA;
+	transformA.m_pos = Point(0, 0, 10);
+	transformA.m_vecScale = Vector(1, 2, 3);
+	transformA.m_quat = QuatAxisAngle(Vector(1,0,0), PI / 2.0f);
 
-	Transform xB;
-	xB.m_pos = Point(0, 10, 0);
-	xB.m_vecScale = Vector(3, 2, 1);
-	xB.m_quat = QuatAxisAngle(Vector(1,0,0), PI / 2.0f);
+	ASSERT(FIsNear(transformA.MatInverse(), transformA.Mat().MatInverse()));
+	ASSERT(FIsNear(transformA.Mat() * transformA.MatInverse(), g_matIdentity));
 
-	Transform xMulResultExpected;
-	xMulResultExpected.m_pos = xA.m_pos + Rotate(PosComponentwiseMultiply(xB.m_pos, xA.m_vecScale), xA.m_quat);
-	xMulResultExpected.m_vecScale = Vector(3, -2, 6);
-	xMulResultExpected.m_quat = QuatAxisAngle(Vector(1,0,0), PI);
+	Vector vecTest = Vector(5, -2, -1);
+	Quat quatTest = QuatAxisAngle(VecNormalize(Vector(1, 2, 3)), PI / 5.0f);
+	ASSERT(FIsNear(VecRotate(vecTest, quatTest), vecTest * MatRotate(quatTest)));
 
-	Transform xMulResult = xB * xA;
-
-	ASSERT(FIsNear(xMulResult, xMulResultExpected));
-
-	// TODO test inversion
+	ASSERT(FIsNear(MatRotate(quatTest) * MatInverse(MatRotate(quatTest)), g_matIdentity));
 }

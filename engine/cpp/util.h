@@ -72,6 +72,7 @@ inline char ChToUpper(char ch)
 float GSin(float g);
 float GCos(float g);
 float GAbs(float g);
+float GSqrt(float g);
 
 bool FIsNear(float a, float b);
 
@@ -93,6 +94,14 @@ std::string StrPrintf( const std::string& format, Args ... args )
     std::unique_ptr<char[]> buf( new char[ size ] );
     std::snprintf( buf.get(), size, format.c_str(), args ... );
     return std::string( buf.get(), buf.get() + size - 1 ); // We don't want the '\0' inside
+}
+
+template <typename T>
+void Swap(T & t1, T & t2)
+{
+	T tTemp = t1;
+	t1 = t2;
+	t2 = tTemp;
 }
 
 template<typename T, size_t C>

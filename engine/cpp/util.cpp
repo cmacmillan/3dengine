@@ -26,6 +26,11 @@ float GAbs(float g)
 	return g;
 }
 
+float GSqrt(float g)
+{
+	return sqrtf(g);
+}
+
 bool FIsNear(float a, float b)
 {
 	const float s_gEpsilon = .00001f;
