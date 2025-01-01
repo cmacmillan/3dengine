@@ -137,9 +137,9 @@ enum TYPEK
 		TYPEK_Node,
 			TYPEK_UiNode,
 				TYPEK_Text,
-			TYPEK_3dNode,
-				TYPEK_3dDrawNode,
-				TYPEK_3dCamera,
+			TYPEK_Node3D,
+				TYPEK_DrawNode3D,
+				TYPEK_Camera3D,
 		TYPEK_Font,
 		TYPEK_Mesh,
 
@@ -157,9 +157,9 @@ TYPEK TypekSuper(TYPEK typek)
 			case TYPEK_Node:		return TYPEK_Object;
 				case TYPEK_UiNode:		return TYPEK_Node;
 					case TYPEK_Text:		return TYPEK_UiNode;
-				case TYPEK_3dNode:		return TYPEK_Node;
-					case TYPEK_3dDrawNode:	return TYPEK_3dNode;
-					case TYPEK_3dCamera:	return TYPEK_3dNode;
+				case TYPEK_Node3D:		return TYPEK_Node;
+					case TYPEK_DrawNode3D:	return TYPEK_Node3D;
+					case TYPEK_Camera3D:	return TYPEK_Node3D;
 			case TYPEK_Font:		return TYPEK_Object;
 			case TYPEK_Mesh:		return TYPEK_Object;
 
@@ -355,6 +355,47 @@ struct SNode : SObject // node
 };
 typedef SHandle<SNode> SNodeHandle; 
 
+struct SNode3D : SNode // node3D
+{
+	typedef SNode super;
+	SHandle<SNode3D> HNode3D() { return (SHandle<SNode3D>) m_nHandle; }
+
+	SNode3D(SHandle<SNode> hNodeParent);
+
+	Transform m_transformLocal;
+};
+typedef SHandle<SNode3D> SNode3DHandle;
+
+struct SCamera3D : SNode3D // camera3D
+{
+	typedef SNode3D super;
+	SHandle<SCamera3D> HCamera3D() { return (SHandle<SCamera3D>) m_nHandle; }
+
+	SCamera3D(SHandle<SNode> hNodeParent, float radFovHorizontal, float xNearClip, float xFarClip);
+
+	float m_radFovHorizontal = -1;
+	float m_xNearClip = -1;
+	float m_xFarClip = -1;
+};
+typedef SHandle<SCamera3D> SCamera3DHandle;
+
+struct SDrawNodeRenderConstants
+{
+	Mat m_matMVP;
+};
+
+struct SDrawNode3D : SNode3D // drawnode3D
+{
+	typedef SNode3D super;
+	SHandle<SDrawNode3D> HDrawnode3D() { return (SHandle<SDrawNode3D>) m_nHandle; }
+
+	SDrawNode3D(SHandle<SNode> hNodeParent);
+
+	SMaterialHandle m_hMaterial = -1;
+	SMeshHandle m_hMesh = -1;
+};
+typedef SHandle<SDrawNode3D> SDrawNode3DHandle;
+
 struct SUiNodeRenderConstants
 {
 	float2 m_posCenter;
@@ -412,6 +453,9 @@ struct SGame // game
 	SMaterialHandle m_hMaterialTile;
 	STextHandle m_hText;
 
+	SCamera3DHandle m_hCamera3D;
+	SDrawNode3DHandle m_hPlaneTest;
+
 	// Fonts
 
 	SFontHandle m_hFont;
@@ -438,8 +482,14 @@ struct SGame // game
 	ID3D11DeviceContext1 * m_pD3ddevicecontext = nullptr;
 	IDXGISwapChain1 * m_pD3dswapchain = nullptr;
 	ID3D11RenderTargetView * m_pD3dframebufferview = nullptr;
+	ID3D11DepthStencilView * m_pD3ddepthstencilview = nullptr;
 
-	ID3D11Buffer * m_cbufferObject = nullptr;
+	ID3D11BlendState1 * m_pD3dblendstatenoblend = nullptr;
+	ID3D11RasterizerState * m_pD3drasterizerstate = nullptr;
+	ID3D11DepthStencilState * m_pD3ddepthstencilstate = nullptr;
+
+	ID3D11Buffer * m_cbufferUiNode = nullptr;
+	ID3D11Buffer * m_cbufferDrawnode3D = nullptr;
 	ID3D11Buffer * m_cbufferGlobals = nullptr;
 
 	// Timing

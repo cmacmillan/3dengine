@@ -561,11 +561,32 @@ struct Mat Transform::Mat() const
 	return MatScale(m_vecScale) * MatRotate(m_quat) * MatTranslate(m_pos);
 }
 
-struct Mat	Transform::MatInverse() const
+struct Mat Transform::MatInverse() const
 {
-	// BB this could for sure be done faster
+	// BB this could almost surely be faster
 
 	return Mat().MatInverse();
+}
+
+Mat MatPerspective(float radFovHorizontal, float rAspectWidthOverHeight, float xNearClip, float xFarClip)
+{
+	// Derived in https://www.wolframcloud.com/env/chasemacmillan/3DPerspectiveProjection.nb
+
+	// Produces a mat which transforms from right handed x forward, z up (y left)
+	//  to right handed z forward, y up (x right)
+
+	// NOTE (chasem) Because of the perspective divide, you can actually scale this matrix up by any scalar and get identical results	
+
+	// NOTE (chasem) Some of the structure of this comes from the fact that we're coming from x=foward space, so there's kinda a swizzle matrix here
+
+	float gCotan = 1.0f / GTan(radFovHorizontal/2.0f);
+	float gDXClip = 1.0f / (xFarClip - xNearClip);
+
+	return Mat(
+		float4(0.0f, 0.0f, xFarClip * gDXClip, 1.0f),
+		float4(-gCotan, 0.0f, 0.0f, 0.0f),
+		float4(0.0f, rAspectWidthOverHeight * gCotan, 0.0f, 0.0f),
+		float4(0.0f, 0.0f, -xFarClip * xNearClip * gDXClip, 0.0f));
 }
 
 void AuditVectors()

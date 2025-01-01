@@ -71,8 +71,12 @@ inline char ChToUpper(char ch)
 
 float GSin(float g);
 float GCos(float g);
+float GTan(float g);
 float GAbs(float g);
 float GSqrt(float g);
+
+float RadFromDeg(float deg);
+float DegFromRad(float rad);
 
 bool FIsNear(float a, float b);
 

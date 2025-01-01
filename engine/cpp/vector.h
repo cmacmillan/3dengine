@@ -183,9 +183,11 @@ Mat MatScale(Vector vec);
 Mat MatRotate(Quat quat);
 Mat MatInverse(const Mat & mat);
 
+Mat MatPerspective(float radFovHorizontal, float rAspectWidthOverHeight, float dXNearClip, float dXFarClip);
+
 struct Transform // tag = transform
 {
-	Transform() : m_pos(), m_quat(), m_vecScale() {}
+	Transform() : m_pos(Point(0.0f, 0.0f, 0.0f)), m_quat(Quat(0.0f, 0.0f, 0.0f, 1.0f)), m_vecScale(Vector(1.0f, 1.0f, 1.0f)) {}
 
 	struct Mat		Mat() const;
 	struct Mat		MatInverse() const;

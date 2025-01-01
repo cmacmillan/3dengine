@@ -559,6 +559,28 @@ void SNode::SetParent(SHandle<SNode> hNodeParent)
 	}
 }
 
+SNode3D::SNode3D(SHandle<SNode> hNodeParent) :
+	super(hNodeParent),
+	m_transformLocal()
+{
+	m_typek = TYPEK_Node3D;
+}
+
+SCamera3D::SCamera3D(SHandle<SNode> hNodeParent, float radFovHorizontal, float xNearClip, float xFarClip) :
+	super(hNodeParent),
+	m_radFovHorizontal(radFovHorizontal),
+	m_xNearClip(xNearClip),
+	m_xFarClip(xFarClip)
+{
+	m_typek = TYPEK_Camera3D;
+}
+
+SDrawNode3D::SDrawNode3D(SHandle<SNode> hNodeParent) :
+	super(hNodeParent)
+{
+	m_typek = TYPEK_DrawNode3D;
+}
+
 SUiNode::SUiNode(SNodeHandle hNodeParent) : super(hNodeParent)
 {
 	m_typek = TYPEK_UiNode;
@@ -570,6 +592,8 @@ void SUiNode::GetRenderConstants(SUiNodeRenderConstants * pUinoderc)
 	pUinoderc->m_vecScale = m_vecScale;
 	pUinoderc->m_color = m_color;
 }
+
+// BB This Text Update is good to induce the text memory issue, revisit
 
 /*
 int blah = 0;
@@ -708,7 +732,7 @@ void SGame::Init(HINSTANCE hInstance)
 
 		m_hwnd = CreateWindowExW(WS_EX_OVERLAPPEDWINDOW,
 			winClass.lpszClassName,
-			L"Scrabble",
+			L"Engine",
 			WS_OVERLAPPEDWINDOW | WS_VISIBLE,
 			CW_USEDEFAULT, CW_USEDEFAULT,
 			initialWidth,
@@ -818,6 +842,7 @@ void SGame::Init(HINSTANCE hInstance)
 
 	// Create Framebuffer Render Target
 	{
+#if OLD
 		ID3D11Texture2D * d3d11FrameBuffer;
 		HRESULT hResult = m_pD3dswapchain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void **) &d3d11FrameBuffer);
 		assert(SUCCEEDED(hResult));
@@ -825,6 +850,33 @@ void SGame::Init(HINSTANCE hInstance)
 		hResult = m_pD3ddevice->CreateRenderTargetView(d3d11FrameBuffer, 0, &m_pD3dframebufferview);
 		assert(SUCCEEDED(hResult));
 		d3d11FrameBuffer->Release();
+#endif
+
+		////////////////////////
+
+		// BB overlap/duplication with resize code
+
+		ID3D11Texture2D * d3d11FrameBuffer;
+		HRESULT hResult = m_pD3dswapchain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void **) &d3d11FrameBuffer);
+		assert(SUCCEEDED(hResult));
+
+		hResult = m_pD3ddevice->CreateRenderTargetView(d3d11FrameBuffer, nullptr, &m_pD3dframebufferview);
+		assert(SUCCEEDED(hResult));
+
+		D3D11_TEXTURE2D_DESC depthBufferDesc;
+		d3d11FrameBuffer->GetDesc(&depthBufferDesc);
+
+		d3d11FrameBuffer->Release();
+
+		depthBufferDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+		depthBufferDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+
+		ID3D11Texture2D* depthBuffer;
+		m_pD3ddevice->CreateTexture2D(&depthBufferDesc, nullptr, &depthBuffer);
+
+		m_pD3ddevice->CreateDepthStencilView(depthBuffer, nullptr, &m_pD3ddepthstencilview);
+
+		depthBuffer->Release();
 	}
 
 	// Create quad mesh
@@ -842,14 +894,26 @@ void SGame::Init(HINSTANCE hInstance)
 	}
 
 	{
-		D3D11_BUFFER_DESC descCbufferObject = {};
+		D3D11_BUFFER_DESC descCbufferUiNode = {};
 		CASSERT(sizeof(SUiNodeRenderConstants) % 16 == 0);
-		descCbufferObject.ByteWidth = sizeof(SUiNodeRenderConstants);
-		descCbufferObject.Usage = D3D11_USAGE_DYNAMIC;
-		descCbufferObject.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-		descCbufferObject.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		descCbufferUiNode.ByteWidth = sizeof(SUiNodeRenderConstants);
+		descCbufferUiNode.Usage = D3D11_USAGE_DYNAMIC;
+		descCbufferUiNode.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+		descCbufferUiNode.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 
-		HRESULT hResult = m_pD3ddevice->CreateBuffer(&descCbufferObject, nullptr, &m_cbufferObject);
+		HRESULT hResult = m_pD3ddevice->CreateBuffer(&descCbufferUiNode, nullptr, &m_cbufferUiNode);
+		assert(SUCCEEDED(hResult));
+	}
+
+	{
+		D3D11_BUFFER_DESC descCbufferDrawnode3D = {};
+		CASSERT(sizeof(SDrawNodeRenderConstants) % 16 == 0);
+		descCbufferDrawnode3D.ByteWidth = sizeof(SDrawNodeRenderConstants);
+		descCbufferDrawnode3D.Usage = D3D11_USAGE_DYNAMIC;
+		descCbufferDrawnode3D.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+		descCbufferDrawnode3D.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
+		HRESULT hResult = m_pD3ddevice->CreateBuffer(&descCbufferDrawnode3D, nullptr, &m_cbufferDrawnode3D);
 		assert(SUCCEEDED(hResult));
 	}
 
@@ -864,6 +928,44 @@ void SGame::Init(HINSTANCE hInstance)
 		HRESULT hResult = m_pD3ddevice->CreateBuffer(&descCbufferGlobals, nullptr, &m_cbufferGlobals);
 		assert(SUCCEEDED(hResult));
 	}
+
+	{
+		D3D11_RASTERIZER_DESC rasterizerDesc = {};
+		rasterizerDesc.FillMode = D3D11_FILL_SOLID;
+		rasterizerDesc.CullMode = D3D11_CULL_BACK;
+		rasterizerDesc.FrontCounterClockwise = TRUE;
+
+		m_pD3ddevice->CreateRasterizerState(&rasterizerDesc, &m_pD3drasterizerstate);
+	}
+
+	{
+		D3D11_DEPTH_STENCIL_DESC depthStencilDesc = {};
+		depthStencilDesc.DepthEnable = TRUE;
+		depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+		depthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS;
+
+		m_pD3ddevice->CreateDepthStencilState(&depthStencilDesc, &m_pD3ddepthstencilstate);
+	}
+
+	{
+		D3D11_BLEND_DESC1 BlendState;
+		ZeroMemory(&BlendState, sizeof(D3D11_BLEND_DESC1));
+		D3D11_RENDER_TARGET_BLEND_DESC1 * pD3drtbd = &BlendState.RenderTarget[0];
+		pD3drtbd->BlendEnable = TRUE;
+		pD3drtbd->SrcBlend = D3D11_BLEND_SRC_ALPHA;
+		pD3drtbd->DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+		pD3drtbd->BlendOp = D3D11_BLEND_OP_ADD;
+		pD3drtbd->RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+		pD3drtbd->BlendOpAlpha = D3D11_BLEND_OP_ADD;
+		pD3drtbd->SrcBlendAlpha = D3D11_BLEND_SRC_ALPHA;
+		pD3drtbd->DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
+
+		pD3drtbd->LogicOpEnable = FALSE;
+		pD3drtbd->LogicOp = D3D11_LOGIC_OP_CLEAR;
+
+		m_pD3ddevice->CreateBlendState1(&BlendState, &m_pD3dblendstatenoblend);
+	}
+
 	// Timing
 	{
 		LARGE_INTEGER perfCount;
@@ -878,6 +980,8 @@ void SGame::Init(HINSTANCE hInstance)
 	SShaderHandle hShaderText = (new SShader(L"shaders\\text2d.hlsl"))->HShader();
 	SShaderHandle hShaderLit = (new SShader(L"shaders\\lit2d.hlsl"))->HShader();
 
+	SShaderHandle hShader3D = (new SShader(L"shaders\\lit2d.hlsl"))->HShader();
+
 	// Font 
 
 	m_hFont = (new SFont("fonts\\candara.fnt"))->HFont();
@@ -886,19 +990,18 @@ void SGame::Init(HINSTANCE hInstance)
 	m_hText->m_hMaterial = (new SMaterial(hShaderText))->HMaterial();
 	m_hText->m_hMaterial->m_hTexture = m_hText->m_hFont->m_aryhTexture[0];
 	m_hText->SetText("Score: joy");
-	//m_hText->m_vecScale = float2(0.2f, 0.2f);
 	m_hText->m_vecScale = float2(1.0f, 1.0f);
 	m_hText->m_gSort = 10.0f;
 	m_hText->m_pos = float2(0.0f, 0.0f);
 	m_hText->m_color = { 0.0f, 0.0f, 0.0f, 1.0f };
 
-	// Piece
+	// Camera
 
-	//SShaderHandle hShaderTile = (new SShader(L"scrabbletile.hlsl"))->HShader();
+	m_hCamera3D = (new SCamera3D(m_hNodeRoot, RadFromDeg(90.0f), 0.1, 100.0f))->HCamera3D();
 
-	//m_hMaterialTile = (new SMaterial(hShaderTile))->HMaterial();
-	//m_hMaterialTile->m_hTexture = (new STexture("TileAlbedo.png", false, true))->HTexture();
-	//m_hMaterialTile->m_hTexture2 = (new STexture("TileNormal.png", true, false))->HTexture();
+	m_hPlaneTest = (new SDrawNode3D(m_hNodeRoot))->HDrawnode3D();
+	m_hPlaneTest->m_hMaterial = (new SMaterial(hShader3D))->HMaterial();
+	m_hPlaneTest->m_hMesh = m_hMeshQuad;
 }
 
 int SortUinodeRenderOrder(const void * pVa, const void * pVb)
@@ -915,24 +1018,6 @@ int SortUinodeRenderOrder(const void * pVa, const void * pVb)
 
 void SGame::MainLoop()
 {
-	ID3D11BlendState1* g_pBlendStateNoBlend = NULL;
-	D3D11_BLEND_DESC1 BlendState;
-	ZeroMemory(&BlendState, sizeof(D3D11_BLEND_DESC1));
-	D3D11_RENDER_TARGET_BLEND_DESC1 * pD3drtbd = &BlendState.RenderTarget[0];
-	pD3drtbd->BlendEnable = TRUE;
-	pD3drtbd->SrcBlend = D3D11_BLEND_SRC_ALPHA;
-	pD3drtbd->DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
-	pD3drtbd->BlendOp = D3D11_BLEND_OP_ADD;
-	pD3drtbd->RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-	pD3drtbd->BlendOpAlpha = D3D11_BLEND_OP_ADD;
-	pD3drtbd->SrcBlendAlpha = D3D11_BLEND_SRC_ALPHA;
-	pD3drtbd->DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
-
-	pD3drtbd->LogicOpEnable = FALSE;
-	pD3drtbd->LogicOp = D3D11_LOGIC_OP_CLEAR;
-
-	m_pD3ddevice->CreateBlendState1(&BlendState, &g_pBlendStateNoBlend);
-
 	bool isRunning = true;
 	while (isRunning)
 	{
@@ -961,6 +1046,7 @@ void SGame::MainLoop()
 		{
 			m_pD3ddevicecontext->OMSetRenderTargets(0, 0, 0);
 			m_pD3dframebufferview->Release();
+			m_pD3ddepthstencilview->Release();
 
 			HRESULT res = m_pD3dswapchain->ResizeBuffers(0, 0, 0, DXGI_FORMAT_UNKNOWN, 0);
 			assert(SUCCEEDED(res));
@@ -969,10 +1055,23 @@ void SGame::MainLoop()
 			res = m_pD3dswapchain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void **) &d3d11FrameBuffer);
 			assert(SUCCEEDED(res));
 
-			res = m_pD3ddevice->CreateRenderTargetView(d3d11FrameBuffer, NULL,
-														&m_pD3dframebufferview);
+			res = m_pD3ddevice->CreateRenderTargetView(d3d11FrameBuffer, nullptr, &m_pD3dframebufferview);
 			assert(SUCCEEDED(res));
+
+			D3D11_TEXTURE2D_DESC depthBufferDesc;
+			d3d11FrameBuffer->GetDesc(&depthBufferDesc);
+
 			d3d11FrameBuffer->Release();
+
+			depthBufferDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+			depthBufferDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+
+			ID3D11Texture2D* depthBuffer;
+			m_pD3ddevice->CreateTexture2D(&depthBufferDesc, nullptr, &depthBuffer);
+
+			m_pD3ddevice->CreateDepthStencilView(depthBuffer, nullptr, &m_pD3ddepthstencilview);
+
+			depthBuffer->Release();
 
 			m_fDidWindowResize = false;
 		}
@@ -1028,6 +1127,11 @@ void SGame::MainLoop()
 		}
 
 		std::vector<SUiNodeHandle> aryhUinodeToRender;
+		std::vector<SDrawNode3DHandle> aryhDrawnode3DToRender;
+
+		// BB I think eventually we'd want render all draw nodes once per camera
+
+		SCamera3DHandle hCamera3D = -1;
 
 		for (SNodeHandle hNode : aryhNode)
 		{
@@ -1038,9 +1142,14 @@ void SGame::MainLoop()
 				{
 					aryhUinodeToRender.push_back(SUiNodeHandle(hNode.m_id));
 				}
-				else if (hNode->FIsDerivedFrom(TYPEK_3dDrawNode))
+				else if (hNode->FIsDerivedFrom(TYPEK_Camera3D))
 				{
-					ASSERT(false); // TODO
+					ASSERT(hCamera3D == -1);
+					hCamera3D = SCamera3DHandle(hNode.m_id);
+				}
+				else if (hNode->FIsDerivedFrom(TYPEK_DrawNode3D))
+				{
+					aryhDrawnode3DToRender.push_back(SDrawNode3DHandle(hNode.m_id));
 				}
 			}
 		}
@@ -1048,6 +1157,14 @@ void SGame::MainLoop()
 		// Sort UI nodes
 
 		std::qsort(aryhUinodeToRender.data(), aryhUinodeToRender.size(), sizeof(SUiNodeHandle), SortUinodeRenderOrder);
+
+		// Start rendering stuff
+
+		FLOAT backgroundColor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+		m_pD3ddevicecontext->ClearRenderTargetView(m_pD3dframebufferview, backgroundColor);
+		m_pD3ddevicecontext->RSSetViewports(1, &viewport);
+		m_pD3ddevicecontext->OMSetRenderTargets(1, &m_pD3dframebufferview, nullptr);
+		m_pD3ddevicecontext->ClearDepthStencilView(m_pD3ddepthstencilview, D3D11_CLEAR_DEPTH, 1.0f, 0);
 
 		{
 			D3D11_MAPPED_SUBRESOURCE mappedSubresourceGlobals;
@@ -1058,10 +1175,55 @@ void SGame::MainLoop()
 			m_pD3ddevicecontext->Unmap(m_cbufferGlobals, 0);
 		}
 
-		FLOAT backgroundColor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
-		m_pD3ddevicecontext->ClearRenderTargetView(m_pD3dframebufferview, backgroundColor);
-		m_pD3ddevicecontext->RSSetViewports(1, &viewport);
-		m_pD3ddevicecontext->OMSetRenderTargets(1, &m_pD3dframebufferview, nullptr);
+		// Draw 3d nodes
+
+		{
+			m_pD3ddevicecontext->RSSetState(m_pD3drasterizerstate);
+			m_pD3ddevicecontext->OMSetDepthStencilState(m_pD3ddepthstencilstate, 0);
+
+			m_pD3ddevicecontext->OMSetRenderTargets(1, &m_pD3dframebufferview, m_pD3ddepthstencilview);
+
+			for (SDrawNode3DHandle hDrawnode3D : aryhDrawnode3DToRender)
+			{
+				if (!hDrawnode3D.PT())
+					continue;
+
+				if (hDrawnode3D->m_hMaterial == nullptr)
+					continue;
+
+				const SMaterial & material = *hDrawnode3D->m_hMaterial;
+				const SShader & shader = *(material.m_hShader);
+				ASSERT(hDrawnode3D->m_typek == TYPEK_DrawNode3D);
+
+				const SMesh & mesh = *hDrawnode3D->m_hMesh;
+
+				m_pD3ddevicecontext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+				m_pD3ddevicecontext->IASetInputLayout(shader.m_pD3dinputlayout);
+
+				m_pD3ddevicecontext->VSSetShader(shader.m_pD3dvertexshader, nullptr, 0);
+				m_pD3ddevicecontext->PSSetShader(shader.m_pD3dfragshader, nullptr, 0);
+
+				ID3D11Buffer * aD3dbuffer[] = { m_cbufferDrawnode3D, m_cbufferGlobals };
+				m_pD3ddevicecontext->VSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
+				m_pD3ddevicecontext->PSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
+				m_pD3ddevicecontext->IASetVertexBuffers(0, 1, &mesh.m_cbufferVertex, &mesh.m_cStride, &mesh.m_cOffset);
+
+				D3D11_MAPPED_SUBRESOURCE mappedSubresource;
+				m_pD3ddevicecontext->Map(m_cbufferDrawnode3D, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
+				SDrawNodeRenderConstants * pDrawnode3Drc = (SDrawNodeRenderConstants *) (mappedSubresource.pData);
+				pDrawnode3Drc->m_matMVP = hDrawnode3D->m_transformLocal.Mat() * hCamera3D->m_transformLocal.Mat().MatInverse() * MatPerspective(hCamera3D->m_radFovHorizontal, vecWinSize.m_x / vecWinSize.m_y, hCamera3D->m_xNearClip, hCamera3D->m_xFarClip); // TODO don't constantly recompute
+				m_pD3ddevicecontext->Unmap(m_cbufferDrawnode3D, 0);
+
+				m_pD3ddevicecontext->IASetVertexBuffers(0, 1, &mesh.m_cbufferVertex, &mesh.m_cStride, &mesh.m_cOffset);
+				//m_pD3ddevicecontext->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R16_UINT, 0);
+
+				m_pD3ddevicecontext->Draw(mesh.m_cVerts, 0);
+				//m_pD3ddevicecontext->DrawIndexed(numIndices, 0, 0);
+			}
+		}
+
+#if 0
+		// Draw ui nodes
 
 		for (SUiNodeHandle hUinode : aryhUinodeToRender)
 		{
@@ -1087,19 +1249,19 @@ void SGame::MainLoop()
 						//float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 						float blendFactor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 						UINT sampleMask   = 0xffffffff;
-						m_pD3ddevicecontext->OMSetBlendState(g_pBlendStateNoBlend, blendFactor, sampleMask);
+						m_pD3ddevicecontext->OMSetBlendState(m_pD3dblendstatenoblend, blendFactor, sampleMask);
 
 						m_pD3ddevicecontext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-						ID3D11Buffer * aD3dbuffer[] = { m_cbufferObject, m_cbufferGlobals };
+						ID3D11Buffer * aD3dbuffer[] = { m_cbufferUiNode, m_cbufferGlobals };
 						m_pD3ddevicecontext->VSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
 						m_pD3ddevicecontext->PSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
 						m_pD3ddevicecontext->IASetVertexBuffers(0, 1, &mesh.m_cbufferVertex, &mesh.m_cStride, &mesh.m_cOffset);
 
 						D3D11_MAPPED_SUBRESOURCE mappedSubresource;
-						m_pD3ddevicecontext->Map(m_cbufferObject, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
+						m_pD3ddevicecontext->Map(m_cbufferUiNode, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
 						SUiNodeRenderConstants * pUinoderc = (SUiNodeRenderConstants *) (mappedSubresource.pData);
 						hUinode->GetRenderConstants(pUinoderc);
-						m_pD3ddevicecontext->Unmap(m_cbufferObject, 0);
+						m_pD3ddevicecontext->Unmap(m_cbufferUiNode, 0);
 
 						ID3D11ShaderResourceView * aD3dsrview[] = { texture.m_pD3dsrview };
 						m_pD3ddevicecontext->PSSetShaderResources(0, DIM(aD3dsrview), aD3dsrview);
@@ -1124,16 +1286,16 @@ void SGame::MainLoop()
 						m_pD3ddevicecontext->PSSetShader(shader.m_pD3dfragshader, nullptr, 0);
 
 						m_pD3ddevicecontext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-						ID3D11Buffer * aD3dbuffer[] = { m_cbufferObject, m_cbufferGlobals };
+						ID3D11Buffer * aD3dbuffer[] = { m_cbufferUiNode, m_cbufferGlobals };
 						m_pD3ddevicecontext->VSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
 						m_pD3ddevicecontext->PSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
 						m_pD3ddevicecontext->IASetVertexBuffers(0, 1, &mesh.m_cbufferVertex, &mesh.m_cStride, &mesh.m_cOffset);
 
 						D3D11_MAPPED_SUBRESOURCE mappedSubresource;
-						m_pD3ddevicecontext->Map(m_cbufferObject, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
+						m_pD3ddevicecontext->Map(m_cbufferUiNode, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
 						SUiNodeRenderConstants * pUinoderc = (SUiNodeRenderConstants *) (mappedSubresource.pData);
 						hUinode->GetRenderConstants(pUinoderc);
-						m_pD3ddevicecontext->Unmap(m_cbufferObject, 0);
+						m_pD3ddevicecontext->Unmap(m_cbufferUiNode, 0);
 
 						ID3D11ShaderResourceView * aD3dsrview[] = { texture.m_pD3dsrview };
 						m_pD3ddevicecontext->PSSetShaderResources(0, DIM(aD3dsrview), aD3dsrview);
@@ -1146,6 +1308,7 @@ void SGame::MainLoop()
 					break;
 			}
 		}
+#endif
 
 		for (int i = 0; i < DIM(m_mpVkFJustPressed); i++)
 		{

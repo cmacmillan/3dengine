@@ -18,6 +18,11 @@ float GCos(float g)
 	return std::cos(g);
 }
 
+float GTan(float g)
+{
+	return std::tan(g);
+}
+
 float GAbs(float g)
 {
 	if (g < 0.0f)
@@ -29,6 +34,16 @@ float GAbs(float g)
 float GSqrt(float g)
 {
 	return sqrtf(g);
+}
+
+float RadFromDeg(float deg)
+{
+	return deg * PI / 180.0f;
+}
+
+float DegFromRad(float rad)
+{
+	return rad * 180.0f / PI;
 }
 
 bool FIsNear(float a, float b)
