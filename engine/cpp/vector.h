@@ -187,7 +187,7 @@ Mat MatPerspective(float radFovHorizontal, float rAspectWidthOverHeight, float d
 
 struct Transform // tag = transform
 {
-	Transform() : m_pos(Point(0.0f, 0.0f, 0.0f)), m_quat(Quat(0.0f, 0.0f, 0.0f, 1.0f)), m_vecScale(Vector(1.0f, 1.0f, 1.0f)) {}
+	Transform() : m_pos(Point(0.0f, 0.0f, 0.0f)), m_quat(Quat(1.0f, 0.0f, 0.0f, 0.0f)), m_vecScale(Vector(1.0f, 1.0f, 1.0f)) {}
 
 	struct Mat		Mat() const;
 	struct Mat		MatInverse() const;

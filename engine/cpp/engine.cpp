@@ -158,7 +158,7 @@ STexture::STexture(const char * pChzFilename, bool fIsNormal, bool fGenerateMips
 	free(aBTexture);
 }
 
-SShader::SShader(LPCWSTR lpcwstrFilename) : super()
+SShader::SShader(LPCWSTR lpcwstrFilename, bool fIs3D) : super()
 {
 	m_typek = TYPEK_Shader;
 
@@ -212,6 +212,19 @@ SShader::SShader(LPCWSTR lpcwstrFilename) : super()
 	}
 
 	// Create Input Layout
+	if (fIs3D)
+	{
+		D3D11_INPUT_ELEMENT_DESC inputElementDesc[] =
+		{
+			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+			{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+		};
+
+		HRESULT hResult = g_game.m_pD3ddevice->CreateInputLayout(inputElementDesc, ARRAYSIZE(inputElementDesc), vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), &m_pD3dinputlayout);
+		assert(SUCCEEDED(hResult));
+		vsBlob->Release();
+	}
+	else
 	{
 		D3D11_INPUT_ELEMENT_DESC inputElementDesc[] =
 		{
@@ -470,7 +483,7 @@ void SText::SetText(const std::string & str)
 		float2 uvMax = uvMin + vecExtents / vecDivisor;
 		float2 posMax = float2(x + vecExtents.m_x, pFont->m_fontcb.m_nBase - pFontchar->m_nYOffset);
 		float2 posMin = float2(x, posMax.m_y - vecExtents.m_y);
-		PushQuad(posMin, posMax, uvMin, uvMax, &aryVerts);
+		PushQuad2D(posMin, posMax, uvMin, uvMax, &aryVerts);
 
 		// TODO support kerning
 		x += pFontchar->m_nXAdvance;
@@ -614,7 +627,7 @@ void SText::Update()
 }
 */
 
-void PushQuad(float2 posMin, float2 posMax, float2 uvMin, float2 uvMax, std::vector<float> * pAryVert)
+void PushQuad2D(float2 posMin, float2 posMax, float2 uvMin, float2 uvMax, std::vector<float> * pAryVert)
 {
 	int iQuadStart = pAryVert->size();
 
@@ -664,6 +677,34 @@ void PushQuad(float2 posMin, float2 posMax, float2 uvMin, float2 uvMax, std::vec
 		(*pAryVert)[iQuadStart + 22] = uvMax.m_x;
 		(*pAryVert)[iQuadStart + 23] = uvMax.m_y;
 	}
+}
+
+void PushVert(Point pos, float2 uv, std::vector<float> * pAryVert, int * pI)
+{
+	(*pAryVert)[(*pI)++] = pos.X();
+	(*pAryVert)[(*pI)++] = pos.Y();
+	(*pAryVert)[(*pI)++] = pos.Z();
+	(*pAryVert)[(*pI)++] = uv.m_x;
+	(*pAryVert)[(*pI)++] = uv.m_y;
+}
+
+void PushQuad3DDebug(std::vector<float> * pAryVert)
+{
+	int iQuadStart = pAryVert->size();
+
+	Point posLowerLeft = Point(0.0f, -1.0f, -1.0f);
+	Point posLowerRight = Point(0.0f, 1.0f, -1.0f);
+	Point posUpperLeft = Point(0.0f, -1.0f, 1.0f);
+	Point posUpperRight = Point(0.0f, 1.0f, 1.0f);
+
+	pAryVert->resize(pAryVert->size() + 6 * 5);
+
+	PushVert(posUpperRight, float2(1.0f, 1.0f), pAryVert, &iQuadStart);
+	PushVert(posLowerLeft, float2(0.0f, 0.0f), pAryVert, &iQuadStart);
+	PushVert(posLowerRight, float2(1.0f, 0.0f), pAryVert, &iQuadStart);
+	PushVert(posLowerLeft, float2(0.0f, 0.0f), pAryVert, &iQuadStart);
+	PushVert(posUpperRight, float2(1.0f, 1.0f), pAryVert, &iQuadStart);
+	PushVert(posUpperLeft, float2(0.0f, 1.0f), pAryVert, &iQuadStart);
 }
 
 SMesh::SMesh()
@@ -886,10 +927,16 @@ void SGame::Init(HINSTANCE hInstance)
 
 		std::vector<float> aryVert;
 
-		PushQuad(float2(-0.5f, -0.5f), float2(0.5f, 0.5f), float2(0.0f, 0.0f), float2(1.0f, 1.0f), &aryVert);
+		// TODO CHANGEME
 
-		int cStride = 4 * sizeof(float);
-		int cVerts = aryVert.size() / 4;
+		PushQuad3DDebug(&aryVert);
+		int cStride = 5 * sizeof(float);
+		int cVerts = aryVert.size() / 5;
+
+		//PushQuad2D(float2(-0.5f, -0.5f), float2(0.5f, 0.5f), float2(0.0f, 0.0f), float2(1.0f, 1.0f), &aryVert);
+		//int cStride = 4 * sizeof(float);
+		//int cVerts = aryVert.size() / 4;
+
 		m_hMeshQuad->SetVerts(aryVert.data(), cVerts, cStride, 0);
 	}
 
@@ -932,7 +979,8 @@ void SGame::Init(HINSTANCE hInstance)
 	{
 		D3D11_RASTERIZER_DESC rasterizerDesc = {};
 		rasterizerDesc.FillMode = D3D11_FILL_SOLID;
-		rasterizerDesc.CullMode = D3D11_CULL_BACK;
+		//rasterizerDesc.CullMode = D3D11_CULL_BACK;
+		rasterizerDesc.CullMode = D3D11_CULL_NONE;
 		rasterizerDesc.FrontCounterClockwise = TRUE;
 
 		m_pD3ddevice->CreateRasterizerState(&rasterizerDesc, &m_pD3drasterizerstate);
@@ -976,11 +1024,11 @@ void SGame::Init(HINSTANCE hInstance)
 		m_perfCounterFrequency = perfFreq.QuadPart;
 	}
 
-	SShaderHandle hShaderUnlit = (new SShader(L"shaders\\unlit2d.hlsl"))->HShader();
-	SShaderHandle hShaderText = (new SShader(L"shaders\\text2d.hlsl"))->HShader();
-	SShaderHandle hShaderLit = (new SShader(L"shaders\\lit2d.hlsl"))->HShader();
+	SShaderHandle hShaderUnlit = (new SShader(L"shaders\\unlit2d.hlsl", false))->HShader();
+	SShaderHandle hShaderText = (new SShader(L"shaders\\text2d.hlsl", false))->HShader();
+	SShaderHandle hShaderLit = (new SShader(L"shaders\\lit2d.hlsl", false))->HShader();
 
-	SShaderHandle hShader3D = (new SShader(L"shaders\\lit2d.hlsl"))->HShader();
+	SShaderHandle hShader3D = (new SShader(L"shaders\\unlit3d.hlsl", true))->HShader();
 
 	// Font 
 
@@ -1001,6 +1049,7 @@ void SGame::Init(HINSTANCE hInstance)
 
 	m_hPlaneTest = (new SDrawNode3D(m_hNodeRoot))->HDrawnode3D();
 	m_hPlaneTest->m_hMaterial = (new SMaterial(hShader3D))->HMaterial();
+	m_hPlaneTest->m_transformLocal.m_pos = Point(10.0f, 0.0f, 0.0f);
 	m_hPlaneTest->m_hMesh = m_hMeshQuad;
 }
 
@@ -1085,6 +1134,10 @@ void SGame::MainLoop()
 
 		////////// GAMEPLAY CODE (JANK)
 	
+		//m_hPlaneTest->m_transformLocal.m_quat = QuatAxisAngle(g_vecZAxis, m_dT*10.0f) * m_hPlaneTest->m_transformLocal.m_quat;
+		m_hPlaneTest->m_transformLocal.m_quat = QuatAxisAngle(g_vecZAxis, m_dT) * m_hPlaneTest->m_transformLocal.m_quat;
+		//m_hPlaneTest->m_transformLocal.m_quat = QuatAxisAngle(g_vecZAxis, *m_dT) * m_hPlaneTest->m_transformLocal.m_quat;
+
 		//m_hText->m_vecScale = GSin(m_dTSyst) * float2(1.0f, 1.0f);
 
 		///////////////////////////////
@@ -1183,6 +1236,8 @@ void SGame::MainLoop()
 
 			m_pD3ddevicecontext->OMSetRenderTargets(1, &m_pD3dframebufferview, m_pD3ddepthstencilview);
 
+			SCamera3D * pCamera3D = hCamera3D.PT();
+
 			for (SDrawNode3DHandle hDrawnode3D : aryhDrawnode3DToRender)
 			{
 				if (!hDrawnode3D.PT())
@@ -1190,6 +1245,8 @@ void SGame::MainLoop()
 
 				if (hDrawnode3D->m_hMaterial == nullptr)
 					continue;
+
+				SDrawNode3D * pDrawnode3D = hDrawnode3D.PT();
 
 				const SMaterial & material = *hDrawnode3D->m_hMaterial;
 				const SShader & shader = *(material.m_hShader);
@@ -1211,7 +1268,19 @@ void SGame::MainLoop()
 				D3D11_MAPPED_SUBRESOURCE mappedSubresource;
 				m_pD3ddevicecontext->Map(m_cbufferDrawnode3D, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
 				SDrawNodeRenderConstants * pDrawnode3Drc = (SDrawNodeRenderConstants *) (mappedSubresource.pData);
-				pDrawnode3Drc->m_matMVP = hDrawnode3D->m_transformLocal.Mat() * hCamera3D->m_transformLocal.Mat().MatInverse() * MatPerspective(hCamera3D->m_radFovHorizontal, vecWinSize.m_x / vecWinSize.m_y, hCamera3D->m_xNearClip, hCamera3D->m_xFarClip); // TODO don't constantly recompute
+
+				// TODO don't constantly recompute
+
+				Mat matModel = hDrawnode3D->m_transformLocal.Mat();
+				Mat matCamera = hCamera3D->m_transformLocal.Mat().MatInverse();
+				Mat matPerspective = MatPerspective(hCamera3D->m_radFovHorizontal, vecWinSize.m_x / vecWinSize.m_y, hCamera3D->m_xNearClip, hCamera3D->m_xFarClip);
+				ASSERT(sizeof(Mat) == sizeof(float) * 16);
+				//pDrawnode3Drc->m_matMVP = matModel * matCamera * matPerspective;
+				pDrawnode3Drc->m_matMVP = matModel * matCamera * matPerspective;
+
+				//Point posTest = Point(1.0f,0.0f,0.0f) * pDrawnode3Drc->m_matMVP;
+				//posTest.m_vec /= posTest.m_vec.m_w;
+
 				m_pD3ddevicecontext->Unmap(m_cbufferDrawnode3D, 0);
 
 				m_pD3ddevicecontext->IASetVertexBuffers(0, 1, &mesh.m_cbufferVertex, &mesh.m_cStride, &mesh.m_cOffset);

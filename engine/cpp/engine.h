@@ -284,7 +284,8 @@ struct SFont : SObject
 };
 typedef SHandle<SFont> SFontHandle;
 
-void PushQuad(float2 posMin, float2 posMax, float2 uvMin, float2 uvMax, std::vector<float> * pAryVert);
+void PushQuad2D(float2 posMin, float2 posMax, float2 uvMin, float2 uvMax, std::vector<float> * pAryVert);
+void PushQuad3DDebug(std::vector<float> * pAryVert);
 
 struct SMesh : SObject // mesh
 {
@@ -304,7 +305,7 @@ typedef SHandle<SMesh> SMeshHandle;
 struct SShader : SObject // shader
 {
 	typedef SObject super;
-	SShader(LPCWSTR lpcwstrFilename);
+	SShader(LPCWSTR lpcwstrFilename, bool fIs3D);
 	SHandle<SShader> HShader() { return (SHandle<SShader>) m_nHandle; }
 
 	ID3D11VertexShader * m_pD3dvertexshader = nullptr;

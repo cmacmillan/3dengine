@@ -163,7 +163,6 @@ float GDot(const Vector & vec0, const Vector & vec1)
 Vector::Vector(const float4 & vec) : 
 	m_vec(vec) 
 { 
-	ASSERT(vec.m_w == 0.0f); 
 }
 
 Vector::Vector(const Point & pos)
@@ -217,7 +216,6 @@ Point PosZero() { return Point(0, 0, 0); }
 Point::Point(const float4 & vec) :
 	m_vec(vec)
 {
-	ASSERT(vec.m_w == 1.0f);
 }
 
 Point::Point(const Vector & vec)
@@ -579,7 +577,7 @@ Mat MatPerspective(float radFovHorizontal, float rAspectWidthOverHeight, float x
 
 	// NOTE (chasem) Some of the structure of this comes from the fact that we're coming from x=foward space, so there's kinda a swizzle matrix here
 
-	float gCotan = 1.0f / GTan(radFovHorizontal/2.0f);
+	float gCotan = 1.0f / GTan(radFovHorizontal / 2.0f);
 	float gDXClip = 1.0f / (xFarClip - xNearClip);
 
 	return Mat(

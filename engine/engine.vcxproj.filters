@@ -44,5 +44,6 @@
     <FxCompile Include="shaders\scrabbletile.hlsl" />
     <FxCompile Include="shaders\text2d.hlsl" />
     <FxCompile Include="shaders\unlit2d.hlsl" />
+    <FxCompile Include="shaders\unlit3d.hlsl" />
   </ItemGroup>
 </Project>
