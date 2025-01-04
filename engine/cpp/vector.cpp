@@ -587,6 +587,20 @@ Mat MatPerspective(float radFovHorizontal, float rAspectWidthOverHeight, float x
 		float4(0.0f, 0.0f, -xFarClip * xNearClip * gDXClip, 0.0f));
 }
 
+Mat Mat::operator*(float g) const
+{
+	return Mat(
+		m_aVec[0]*g, 
+		m_aVec[1]*g, 
+		m_aVec[2]*g, 
+		m_aVec[3]*g);
+}
+
+Mat operator*(float g, const Mat & mat)
+{
+	return mat * g;
+}
+
 void AuditVectors()
 {
 	Mat matA = Mat(

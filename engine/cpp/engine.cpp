@@ -1275,11 +1275,7 @@ void SGame::MainLoop()
 				Mat matCamera = hCamera3D->m_transformLocal.Mat().MatInverse();
 				Mat matPerspective = MatPerspective(hCamera3D->m_radFovHorizontal, vecWinSize.m_x / vecWinSize.m_y, hCamera3D->m_xNearClip, hCamera3D->m_xFarClip);
 				ASSERT(sizeof(Mat) == sizeof(float) * 16);
-				//pDrawnode3Drc->m_matMVP = matModel * matCamera * matPerspective;
 				pDrawnode3Drc->m_matMVP = matModel * matCamera * matPerspective;
-
-				//Point posTest = Point(1.0f,0.0f,0.0f) * pDrawnode3Drc->m_matMVP;
-				//posTest.m_vec /= posTest.m_vec.m_w;
 
 				m_pD3ddevicecontext->Unmap(m_cbufferDrawnode3D, 0);
 

@@ -134,6 +134,7 @@ struct Mat
 	}
 	float4 m_aVec[4];
 	Mat operator*(const Mat & mat) const;
+	Mat operator*(float g) const;
 	Mat MatTranspose() const;
 	Mat MatInverse() const;
 };
@@ -145,6 +146,8 @@ extern Vector g_vecZAxis;
 extern Vector g_vecZero;
 
 //Mat MatLookAt(Vector normalForward, Vector normalUp);
+
+Mat operator*(float g, const Mat & mat);
 
 float4 operator*(const float4 & vec, const Mat & mat);
 Vector operator*(const Vector & vec, const Mat & mat);
