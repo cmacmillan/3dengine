@@ -333,8 +333,8 @@ struct SVertData2D
 };
 CASSERT(sizeof(SVertData2D) == 16);
 
-void PushQuad2D(float2 posMin, float2 posMax, float2 uvMin, float2 uvMax, std::vector<SVertData2D> * paryVertdata);
-void PushQuad3DDebug(std::vector<float> * pAryVert);
+void PushQuad2D(float2 posMin, float2 posMax, float2 uvMin, float2 uvMax, std::vector<SVertData2D> * paryVertdata, std::vector<unsigned short> * paryIIndex);
+void PushQuad3D(std::vector<float> * pAryVert, std::vector<unsigned short> * paryIIndex);
 
 // BB add a meshk enum and prevent meshes from switching types
 
@@ -346,9 +346,10 @@ struct SMesh : SObject // mesh
 
 	void SetVerts3D(SVertData3D * aVertdata, int cVerts);
 	void SetVerts2D(SVertData2D * aVertdata, int cVerts);
+	void SetIndicies(unsigned short * aiIndex, int cIndex);
 
-	SCBufferSlice m_sliceIndex;
-	SCBufferSlice m_sliceVertex;
+	SCBufferSlice m_sliceIndex = { };
+	SCBufferSlice m_sliceVertex = { };
 };
 typedef SHandle<SMesh> SMeshHandle;
 

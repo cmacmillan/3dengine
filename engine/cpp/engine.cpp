@@ -118,6 +118,7 @@ void SCBufferAllocator::ReleaseSlice(const SCBufferSlice & slice)
 	for (SCBufferAllocatorNode * pCbanode = m_pCbanodeStart; pCbanode; pCbanode = pCbanode->m_pCbanodeNext)
 	{
 		ASSERT(pCbanode->m_slice.m_ibStart != slice.m_ibStart);
+		ASSERT(pCbanode->m_slice.m_ibStart + pCbanode->m_slice.m_cb <= slice.m_ibStart || slice.m_ibStart + slice.m_cb <= pCbanode->m_slice.m_ibStart);
 
 		// if the current node is larger than use, we go before it
 
@@ -629,19 +630,31 @@ SText::SText(SFontHandle hFont, SNodeHandle hNodeParent) : super(hNodeParent)
 
 void SText::Update()
 {
-	int i0 = int(g_game.m_dTSyst * 13.0f) % 26;
-	int i1 = int(g_game.m_dTSyst * 17.0f) % 26;
-	int i2 = int(g_game.m_dTSyst * 19.0f) % 26;
-	int i3 = int(g_game.m_dTSyst * 121.0f) % 26;
-	int i4 = int(g_game.m_dTSyst * 123.0f) % 26;
-	SetText(
-		StrPrintf(
-			"%c%c%c%c%c", 
-			char(i0 + 'a'), 
-			char(i1 + 'a'),
-			char(i2 + 'a'),
-			char(i3 + 'a'),
-			char(i4 + 'a')));
+	int i0 = (m_nHandle + int((g_game.m_dTSyst + m_nHandle*17) * 13.0f)) % 26;
+	int i1 = int(m_nHandle+ g_game.m_dTSyst * 17.0f) % 26;
+	int i2 = int(m_nHandle + g_game.m_dTSyst * 19.0f) % 26;
+	int i3 = int(m_nHandle + g_game.m_dTSyst * 121.0f) % 26;
+	int i4 = int(m_nHandle + g_game.m_dTSyst * 123.0f) % 26;
+	if (int(m_nHandle + (g_game.m_dTSyst + m_nHandle*13) * 20) % 2 == 0)
+	{
+		SetText(
+			StrPrintf(
+				"%c%c%c%c%c",
+				char(i0 + 'a'),
+				char(i1 + 'a'),
+				char(i2 + 'a'),
+				char(i3 + 'a'),
+				char(i4 + 'a')));
+	}
+	else
+	{
+		SetText(
+			StrPrintf(
+				"%c%c%c",
+				char(i0 + 'a'),
+				char(i1 + 'a'),
+				char(i2 + 'a')));
+	}
 }
 
 
@@ -656,6 +669,7 @@ void SText::SetText(const std::string & str)
 	char charPrev = '\0';
 
 	std::vector<SVertData2D> aryVertdata;
+	std::vector<unsigned short> aryIIndex;
 	
 	float x = 0;
 	for (char charCur : str)
@@ -682,13 +696,14 @@ void SText::SetText(const std::string & str)
 		float2 uvMax = uvMin + vecExtents / vecDivisor;
 		float2 posMax = float2(x + vecExtents.m_x, pFont->m_fontcb.m_nBase - pFontchar->m_nYOffset);
 		float2 posMin = float2(x, posMax.m_y - vecExtents.m_y);
-		PushQuad2D(posMin, posMax, uvMin, uvMax, &aryVertdata);
+		PushQuad2D(posMin, posMax, uvMin, uvMax, &aryVertdata, &aryIIndex);
 
 		// TODO support kerning
 		x += pFontchar->m_nXAdvance;
 	}
 
 	m_hMesh->SetVerts2D(aryVertdata.data(), aryVertdata.size());
+	m_hMesh->SetIndicies(aryIIndex.data(), aryIIndex.size());
 }
 
 SNode::SNode(SHandle<SNode> hNodeParent) :
@@ -802,21 +817,22 @@ void SUiNode::GetRenderConstants(SUiNodeRenderConstants * pUinoderc)
 	pUinoderc->m_color = m_color;
 }
 
-void PushQuad2D(float2 posMin, float2 posMax, float2 uvMin, float2 uvMax, std::vector<SVertData2D> * paryVertdata)
+void PushQuad2D(float2 posMin, float2 posMax, float2 uvMin, float2 uvMax, std::vector<SVertData2D> * paryVertdata, std::vector<unsigned short> * paryIIndex)
 {
-	int iQuadStart = paryVertdata->size();
+	int iVertexStart = paryVertdata->size();
+	paryIIndex->push_back(iVertexStart);
+	paryIIndex->push_back(iVertexStart+1);
+	paryIIndex->push_back(iVertexStart+2);
+	paryIIndex->push_back(iVertexStart+3);
+	paryIIndex->push_back(iVertexStart+4);
+	paryIIndex->push_back(iVertexStart+5);
 
-	// BB not reusing verts?
-	//  Where is our index buffer lol
-
-	paryVertdata->resize(paryVertdata->size() + 6);
-
-	(*paryVertdata)[iQuadStart++] = { {posMin.m_x, posMax.m_y}, {uvMin.m_x, uvMin.m_y} };
-	(*paryVertdata)[iQuadStart++] = { {posMax.m_x, posMin.m_y}, {uvMax.m_x, uvMax.m_y} };
-	(*paryVertdata)[iQuadStart++] = { {posMin.m_x,posMin.m_y},{uvMin.m_x,uvMax.m_y} };
-	(*paryVertdata)[iQuadStart++] = { {posMin.m_x, posMax.m_y}, {uvMin.m_x, uvMin.m_y} };
-	(*paryVertdata)[iQuadStart++] = { {posMax.m_x, posMax.m_y}, {uvMax.m_x, uvMin.m_y} };
-	(*paryVertdata)[iQuadStart++] = { {posMax.m_x, posMin.m_y}, {uvMax.m_x, uvMax.m_y} };
+	paryVertdata->push_back({ {posMin.m_x, posMax.m_y}, {uvMin.m_x, uvMin.m_y} });
+	paryVertdata->push_back({ {posMax.m_x, posMin.m_y}, {uvMax.m_x, uvMax.m_y} });
+	paryVertdata->push_back({ {posMin.m_x,posMin.m_y},{uvMin.m_x,uvMax.m_y} });
+	paryVertdata->push_back({ {posMin.m_x, posMax.m_y}, {uvMin.m_x, uvMin.m_y} });
+	paryVertdata->push_back({ {posMax.m_x, posMax.m_y}, {uvMax.m_x, uvMin.m_y} });
+	paryVertdata->push_back({ {posMax.m_x, posMin.m_y}, {uvMax.m_x, uvMax.m_y} });
 }
 
 void PushVert(Point pos, float2 uv, std::vector<SVertData3D> * paryVertdata, int * pI)
@@ -826,29 +842,37 @@ void PushVert(Point pos, float2 uv, std::vector<SVertData3D> * paryVertdata, int
 	vertdata->m_uv = uv;
 }
 
-void PushQuad3DDebug(std::vector<SVertData3D> * paryVertdata)
+void PushQuad3D(std::vector<SVertData3D> * paryVertdata, std::vector<unsigned short> * paryIIndex)
 {
-	int iQuadStart = paryVertdata->size();
+	int iVertexStart = paryVertdata->size();
+	paryIIndex->push_back(iVertexStart);
+	paryIIndex->push_back(iVertexStart+1);
+	paryIIndex->push_back(iVertexStart+2);
+	paryIIndex->push_back(iVertexStart+3);
+	paryIIndex->push_back(iVertexStart+4);
+	paryIIndex->push_back(iVertexStart+5);
 
 	Point posLowerLeft = Point(0.0f, -1.0f, -1.0f);
 	Point posLowerRight = Point(0.0f, 1.0f, -1.0f);
 	Point posUpperLeft = Point(0.0f, -1.0f, 1.0f);
 	Point posUpperRight = Point(0.0f, 1.0f, 1.0f);
 
-	paryVertdata->resize(paryVertdata->size() + 6);
-
-	(*paryVertdata)[iQuadStart++] = { posUpperRight, float2(1.0f, 1.0f) };
-	(*paryVertdata)[iQuadStart++] = { posLowerLeft, float2(0.0f, 0.0f) };
-	(*paryVertdata)[iQuadStart++] = { posLowerRight, float2(1.0f, 0.0f) };
-	(*paryVertdata)[iQuadStart++] = { posLowerLeft, float2(0.0f, 0.0f) };
-	(*paryVertdata)[iQuadStart++] = { posUpperRight, float2(1.0f, 1.0f) };
-	(*paryVertdata)[iQuadStart++] = { posUpperLeft, float2(0.0f, 1.0f) };
+	paryVertdata->push_back({ posUpperRight, float2(1.0f, 1.0f) });
+	paryVertdata->push_back({ posLowerLeft, float2(0.0f, 0.0f) });
+	paryVertdata->push_back({ posLowerRight, float2(1.0f, 0.0f) });
+	paryVertdata->push_back({ posLowerLeft, float2(0.0f, 0.0f) });
+	paryVertdata->push_back({ posUpperRight, float2(1.0f, 1.0f) });
+	paryVertdata->push_back({ posUpperLeft, float2(0.0f, 1.0f) });
 }
 
 SMesh::SMesh()
 {
 	m_typek = TYPEK_Mesh;
 }
+
+// BB SetVerts3D/SetVerts2D/SetIndicies duplicate code
+
+// BB D3D11_MAP_WRITE_DISCARD is clearing the old contents of our buffer
 
 void SMesh::SetVerts3D(SVertData3D * aVertdata, int cVerts)
 {
@@ -888,6 +912,27 @@ void SMesh::SetVerts2D(SVertData2D * aVertdata, int cVerts)
 	g_game.m_pD3ddevicecontext->Map(g_game.m_cbaVertex2D.m_cbuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresourceVerts);
 	memcpy((char *)mappedSubresourceVerts.pData + m_sliceVertex.m_ibStart, aVertdata, cVerts * sizeof(SVertData2D));
 	g_game.m_pD3ddevicecontext->Unmap(g_game.m_cbaVertex2D.m_cbuffer, 0);
+}
+
+void SMesh::SetIndicies(unsigned short * aiIndex, int cIndex)
+{
+	// BB shouldn't immediately release this slice, should wait until we're 100% sure the gpu is done with it
+
+	if (m_sliceIndex.m_ibStart != -1)
+	{
+		g_game.m_cbaIndex.ReleaseSlice(m_sliceIndex);
+	}
+
+	m_sliceIndex = g_game.m_cbaIndex.SliceClaim(cIndex * sizeof(unsigned short));
+
+	// BB/NOTE How would a deferred renderer handle this? If we need to update a constant buffer while the gpu theoretically might be still using it?
+	//  Would we need some kind of queue?
+
+	D3D11_MAPPED_SUBRESOURCE mappedSubresourceIndicies;
+	g_game.m_pD3ddevicecontext->Map(g_game.m_cbaIndex.m_cbuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresourceIndicies);
+	unsigned short * pShort = (unsigned short *) mappedSubresourceIndicies.pData;
+	memcpy((char *)mappedSubresourceIndicies.pData + m_sliceIndex.m_ibStart, aiIndex, cIndex * sizeof(unsigned short));
+	g_game.m_pD3ddevicecontext->Unmap(g_game.m_cbaIndex.m_cbuffer, 0);
 }
 
 void SGame::Init(HINSTANCE hInstance)
@@ -1095,6 +1140,18 @@ void SGame::Init(HINSTANCE hInstance)
 	}
 
 	{
+		const int cIndexMax = 100000;
+
+		D3D11_BUFFER_DESC indexBufferDesc = {};
+		indexBufferDesc.ByteWidth = cIndexMax * sizeof(unsigned short);
+		indexBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+		indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+		indexBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
+		m_cbaIndex = SCBufferAllocator(indexBufferDesc, sizeof(unsigned short));
+	}
+
+	{
 		D3D11_BUFFER_DESC descCbufferUiNode = {};
 		CASSERT(sizeof(SUiNodeRenderConstants) % 16 == 0);
 		descCbufferUiNode.ByteWidth = sizeof(SUiNodeRenderConstants);
@@ -1184,10 +1241,12 @@ void SGame::Init(HINSTANCE hInstance)
 		m_hMeshQuad = (new SMesh())->HMesh();
 
 		std::vector<SVertData3D> aryVertdata;
+		std::vector<unsigned short> aryIIndex;
 
-		PushQuad3DDebug(&aryVertdata);
+		PushQuad3D(&aryVertdata, &aryIIndex);
 
 		m_hMeshQuad->SetVerts3D(aryVertdata.data(), aryVertdata.size());
+		m_hMeshQuad->SetIndicies(aryIIndex.data(), aryIIndex.size());
 	}
 
 	SShaderHandle hShaderUnlit = (new SShader(L"shaders\\unlit2d.hlsl", false))->HShader();
@@ -1227,6 +1286,11 @@ void SGame::Init(HINSTANCE hInstance)
 	m_hPlaneTest->m_hMaterial = (new SMaterial(hShader3D))->HMaterial();
 	m_hPlaneTest->m_transformLocal.m_pos = Point(10.0f, 0.0f, 0.0f);
 	m_hPlaneTest->m_hMesh = m_hMeshQuad;
+
+	SDrawNode3DHandle hPlaneTest2 = (new SDrawNode3D(m_hNodeRoot))->HDrawnode3D();
+	hPlaneTest2->m_hMaterial = (new SMaterial(hShader3D))->HMaterial();
+	hPlaneTest2->m_transformLocal.m_pos = Point(10.0f, 1.0f, 0.0f);
+	hPlaneTest2->m_hMesh = m_hMeshQuad;
 }
 
 int SortUinodeRenderOrder(const void * pVa, const void * pVb)
@@ -1440,6 +1504,7 @@ void SGame::MainLoop()
 
 				unsigned int cbVert = sizeof(SVertData3D);
 				m_pD3ddevicecontext->IASetVertexBuffers(0, 1, &m_cbaVertex3D.m_cbuffer, &cbVert, &g_cbMeshOffset);		// BB don't constantly do this
+				m_pD3ddevicecontext->IASetIndexBuffer(m_cbaIndex.m_cbuffer, DXGI_FORMAT_R16_UINT, 0);					//  ...
 
 				D3D11_MAPPED_SUBRESOURCE mappedSubresource;
 				m_pD3ddevicecontext->Map(m_cbufferDrawnode3D, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
@@ -1455,10 +1520,8 @@ void SGame::MainLoop()
 
 				m_pD3ddevicecontext->Unmap(m_cbufferDrawnode3D, 0);
 
-				//m_pD3ddevicecontext->IASetIndexBuffer(mesh.m_cbufferIndex, DXGI_FORMAT_R16_UINT, 0);
-
-				m_pD3ddevicecontext->Draw(mesh.m_sliceVertex.m_cb / sizeof(SVertData3D), mesh.m_sliceVertex.m_ibStart / sizeof(SVertData3D));
-				//m_pD3ddevicecontext->DrawIndexed(mesh.m_cIndex, 0, 0);
+				//m_pD3ddevicecontext->Draw(mesh.m_sliceVertex.m_cb / sizeof(SVertData3D), mesh.m_sliceVertex.m_ibStart / sizeof(SVertData3D));
+				m_pD3ddevicecontext->DrawIndexed(mesh.m_sliceIndex.m_cb / sizeof(unsigned int), mesh.m_sliceIndex.m_ibStart / sizeof(unsigned int), mesh.m_sliceVertex.m_ibStart / sizeof(SVertData3D));
 			}
 		}
 
