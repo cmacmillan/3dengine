@@ -1412,6 +1412,7 @@ void SGame::MainLoop()
 				ID3D11Buffer * aD3dbuffer[] = { m_cbufferDrawnode3D, m_cbufferGlobals };
 				m_pD3ddevicecontext->VSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
 				m_pD3ddevicecontext->PSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
+
 				unsigned int cbVert = sizeof(SVertData3D);
 				m_pD3ddevicecontext->IASetVertexBuffers(0, 1, &m_cbaVertex3D.m_cbuffer, &cbVert, &g_cbMeshOffset);		// BB don't constantly do this
 
@@ -1437,7 +1438,6 @@ void SGame::MainLoop()
 		}
 
 		// Draw ui nodes
-#if 0
 		for (SUiNodeHandle hUinode : aryhUinodeToRender)
 		{
 			if (!hUinode.PT())
@@ -1468,7 +1468,9 @@ void SGame::MainLoop()
 						ID3D11Buffer * aD3dbuffer[] = { m_cbufferUiNode, m_cbufferGlobals };
 						m_pD3ddevicecontext->VSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
 						m_pD3ddevicecontext->PSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
-						m_pD3ddevicecontext->IASetVertexBuffers(0, 1, &mesh.m_cbufferVertex, &mesh.m_cStride, &mesh.m_cOffset);
+
+						unsigned int cbVert = sizeof(SVertData2D);
+						m_pD3ddevicecontext->IASetVertexBuffers(0, 1, &m_cbaVertex2D.m_cbuffer, &cbVert, &g_cbMeshOffset);		// BB don't constantly do this
 
 						D3D11_MAPPED_SUBRESOURCE mappedSubresource;
 						m_pD3ddevicecontext->Map(m_cbufferUiNode, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
@@ -1482,7 +1484,7 @@ void SGame::MainLoop()
 						ID3D11SamplerState * aD3dsamplerstate[] = { texture.m_pD3dsamplerstate };
 						m_pD3ddevicecontext->PSSetSamplers(0, DIM(aD3dsamplerstate), aD3dsamplerstate);
 
-						m_pD3ddevicecontext->Draw(mesh.m_cVerts, 0);
+						m_pD3ddevicecontext->Draw(mesh.m_sliceVertex.m_cb / (sizeof(SVertData2D)), mesh.m_sliceVertex.m_ibStart);
 					}
 					break;
 				default:
@@ -1502,7 +1504,9 @@ void SGame::MainLoop()
 						ID3D11Buffer * aD3dbuffer[] = { m_cbufferUiNode, m_cbufferGlobals };
 						m_pD3ddevicecontext->VSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
 						m_pD3ddevicecontext->PSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
-						m_pD3ddevicecontext->IASetVertexBuffers(0, 1, &mesh.m_cbufferVertex, &mesh.m_cStride, &mesh.m_cOffset);
+
+						unsigned int cbVert = sizeof(SVertData2D);
+						m_pD3ddevicecontext->IASetVertexBuffers(0, 1, &m_cbaVertex2D.m_cbuffer, &cbVert, &g_cbMeshOffset);		// BB don't constantly do this
 
 						D3D11_MAPPED_SUBRESOURCE mappedSubresource;
 						m_pD3ddevicecontext->Map(m_cbufferUiNode, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
@@ -1516,12 +1520,11 @@ void SGame::MainLoop()
 						ID3D11SamplerState * aD3dsamplerstate[] = { texture.m_pD3dsamplerstate };
 						m_pD3ddevicecontext->PSSetSamplers(0, DIM(aD3dsamplerstate), aD3dsamplerstate);
 
-						m_pD3ddevicecontext->Draw(mesh.m_cVerts, 0);
+						m_pD3ddevicecontext->Draw(mesh.m_sliceVertex.m_cb / (sizeof(SVertData2D)), mesh.m_sliceVertex.m_ibStart);
 					}
 					break;
 			}
 		}
-#endif
 
 		for (int i = 0; i < DIM(m_mpVkFJustPressed); i++)
 		{
