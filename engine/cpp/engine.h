@@ -62,43 +62,6 @@
 #define VK_Y 0x59
 #define VK_Z 0x5A
 
-const unsigned int g_cbMeshOffset = 0;
-
-struct SCBufferSlice
-{
-	int			m_ibStart = -1;
-	int			m_cb = -1;
-};
-
-struct SCBufferAllocatorNode // cbanode
-{
-	// BB should probably be overriding the new operator or something
-
-	SCBufferAllocatorNode(int ibStart, int cbFree);
-	SCBufferAllocatorNode() {}
-
-	void operator delete(void * ptr);
-
-	SCBufferAllocatorNode *		m_pCbanodeNext = nullptr;
-	SCBufferSlice				m_slice = {};
-};
-
-// BB eventually this should probably be some sort of tree to avoid a linear search
-
-struct SCBufferAllocator // cba
-{
-	SCBufferAllocator() {};
-	SCBufferAllocator(const D3D11_BUFFER_DESC & desc, int cbAlignment);
-
-	SCBufferSlice				SliceClaim(int cbDesired);
-	void						ReleaseSlice(const SCBufferSlice & slice);
-
-	D3D11_BUFFER_DESC			m_desc = {};
-	int							m_cbAlignment = -1;
-	ID3D11Buffer * m_cbuffer = nullptr;
-	SCBufferAllocatorNode * m_pCbanodeStart = nullptr;
-};
-
 struct SObject;
 struct SObjectManager
 {
@@ -176,7 +139,8 @@ enum TYPEK
 				TYPEK_DrawNode3D,
 				TYPEK_Camera3D,
 		TYPEK_Font,
-		TYPEK_Mesh,
+		TYPEK_Mesh2D,
+		TYPEK_Mesh3D,
 
 	TYPEK_Nil = -1,
 };
@@ -196,7 +160,8 @@ TYPEK TypekSuper(TYPEK typek)
 					case TYPEK_DrawNode3D:	return TYPEK_Node3D;
 					case TYPEK_Camera3D:	return TYPEK_Node3D;
 			case TYPEK_Font:		return TYPEK_Object;
-			case TYPEK_Mesh:		return TYPEK_Object;
+			case TYPEK_Mesh2D:		return TYPEK_Object;
+			case TYPEK_Mesh3D:		return TYPEK_Object;
 
 			default:
 				{
@@ -336,22 +301,43 @@ CASSERT(sizeof(SVertData2D) == 16);
 void PushQuad2D(float2 posMin, float2 posMax, float2 uvMin, float2 uvMax, std::vector<SVertData2D> * paryVertdata, std::vector<unsigned short> * paryIIndex);
 void PushQuad3D(std::vector<float> * pAryVert, std::vector<unsigned short> * paryIIndex);
 
-// BB add a meshk enum and prevent meshes from switching types
-
-struct SMesh : SObject // mesh
+struct SMesh3D : SObject // mesh
 {
 	typedef SObject super;
-	SMesh();
-	SHandle<SMesh> HMesh() { return (SHandle<SMesh>) m_nHandle; }
+	SMesh3D();
+	SHandle<SMesh3D> HMesh() { return (SHandle<SMesh3D>) m_nHandle; }
 
-	void SetVerts3D(SVertData3D * aVertdata, int cVerts);
-	void SetVerts2D(SVertData2D * aVertdata, int cVerts);
-	void SetIndicies(unsigned short * aiIndex, int cIndex);
+	std::vector<SVertData3D>		m_aryVertdata;
+	std::vector<unsigned short>		m_aryIIndex;
 
-	SCBufferSlice m_sliceIndex = { };
-	SCBufferSlice m_sliceVertex = { };
+	// Data used while rendering only
+	//  This could potentially be factored out and stored as a pointer or something
+
+	unsigned int					m_iVertdata = -1;
+	unsigned int					m_cVerts = -1;
+	unsigned int					m_iIndexdata = -1;
+	unsigned int					m_cIndicies= -1;
 };
-typedef SHandle<SMesh> SMeshHandle;
+typedef SHandle<SMesh3D> SMesh3DHandle;
+
+struct SMesh2D : SObject // mesh
+{
+	typedef SObject super;
+	SMesh2D();
+	SHandle<SMesh2D> HMesh() { return (SHandle<SMesh2D>) m_nHandle; }
+
+	std::vector<SVertData2D>		m_aryVertdata;
+	std::vector<unsigned short>		m_aryIIndex;
+
+	// Data used while rendering only
+	//  This could potentially be factored out and stored as a pointer or something
+
+	unsigned int					m_iVertdata = -1;
+	unsigned int					m_cVerts = -1;
+	unsigned int					m_iIndexdata = -1;
+	unsigned int					m_cIndicies= -1;
+};
+typedef SHandle<SMesh2D> SMesh2DHandle;
 
 struct SShader : SObject // shader
 {
@@ -444,7 +430,7 @@ struct SDrawNode3D : SNode3D // drawnode3D
 	SDrawNode3D(SHandle<SNode> hNodeParent);
 
 	SMaterialHandle m_hMaterial = -1;
-	SMeshHandle m_hMesh = -1;
+	SMesh3DHandle m_hMesh = -1;
 };
 typedef SHandle<SDrawNode3D> SDrawNode3DHandle;
 
@@ -469,7 +455,7 @@ struct SUiNode : SNode // uinode
 	float4 m_color = { 1.0f, 1.0f, 1.0f, 1.0f };
 	float m_gSort = 0.0f; // Lower = drawn first
 	SMaterialHandle m_hMaterial = -1;
-	SMeshHandle m_hMesh = -1;
+	SMesh2DHandle m_hMesh = -1;
 };
 typedef SHandle<SUiNode> SUiNodeHandle;
 
@@ -479,6 +465,7 @@ struct SText : SUiNode // text
 	SHandle<SText> HText() { return (SHandle<SText>) m_nHandle; }
 
 	SText(SFontHandle hFont, SNodeHandle hNodeParent);
+	~SText();
 
 	void Update() override;
 
@@ -528,15 +515,9 @@ struct SGame // game
 	bool m_mpVkFJustReleased[0xFF];
 	float m_sScroll = 0.0f;
 
-	// Cbuffer allocators
-
-	SCBufferAllocator  m_cbaVertex3D;
-	SCBufferAllocator  m_cbaVertex2D;
-	SCBufferAllocator  m_cbaIndex;
-
 	// D3D
 
-	SMeshHandle m_hMeshQuad = -1;
+	SMesh3DHandle m_hMeshQuad = -1;
 
 	ID3D11Device1 * m_pD3ddevice = nullptr;
 	ID3D11DeviceContext1 * m_pD3ddevicecontext = nullptr;
@@ -548,6 +529,9 @@ struct SGame // game
 	ID3D11RasterizerState * m_pD3drasterizerstate = nullptr;
 	ID3D11DepthStencilState * m_pD3ddepthstencilstate = nullptr;
 
+	ID3D11Buffer * m_cbufferVertex3D = nullptr;
+	ID3D11Buffer * m_cbufferVertex2D = nullptr;
+	ID3D11Buffer * m_cbufferIndex = nullptr;
 	ID3D11Buffer * m_cbufferUiNode = nullptr;
 	ID3D11Buffer * m_cbufferDrawnode3D = nullptr;
 	ID3D11Buffer * m_cbufferGlobals = nullptr;

@@ -25,186 +25,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPSTR /*lpC
 	return 0;
 }
 
-// SCBufferAllocator 
-
-SSlotHeap<SCBufferAllocatorNode> g_slotheapCbanode;
-
-SCBufferAllocatorNode::SCBufferAllocatorNode(int ibStart, int cbFree)
-{ 
-	m_slice = { ibStart, cbFree };
-}
-
-void SCBufferAllocatorNode::operator delete(void * ptr)
-{
-	g_slotheapCbanode.FreePT((SCBufferAllocatorNode *) ptr);
-}
-
-SCBufferAllocator::SCBufferAllocator(const D3D11_BUFFER_DESC & desc, int cbAlignment)
-{
-	ASSERT(desc.ByteWidth % cbAlignment == 0);
-
-	m_desc = desc;
-	m_cbAlignment = cbAlignment;
-	HRESULT hResult = g_game.m_pD3ddevice->CreateBuffer(&m_desc, nullptr, &m_cbuffer);
-	ASSERT(SUCCEEDED(hResult));
-	m_pCbanodeStart = new (g_slotheapCbanode.PTAlloc()) SCBufferAllocatorNode(0, m_desc.ByteWidth);
-}
-
-SCBufferSlice SCBufferAllocator::SliceClaim(int cbDesired)
-{
-	// NOTE we don't need to worry about maintaining alignment,
-	//  since we force all requests to request aligned amount of memory
-
-	ASSERT(cbDesired % m_cbAlignment == 0);
-	ASSERT(cbDesired <= m_desc.ByteWidth);
-
-	SCBufferAllocatorNode * pCbanodePrev = nullptr;
-	for (SCBufferAllocatorNode * pCbanode = m_pCbanodeStart; pCbanode; pCbanode = pCbanode->m_pCbanodeNext)
-	{
-		if (pCbanode->m_slice.m_cb >= cbDesired)
-		{
-			if (pCbanode->m_slice.m_cb == cbDesired)
-			{
-				// Complete match, totally remove node from list
-
-				if (pCbanodePrev)
-				{
-					pCbanodePrev->m_pCbanodeNext = pCbanode->m_pCbanodeNext;
-				}
-				else
-				{
-					m_pCbanodeStart = pCbanode->m_pCbanodeNext;
-				}
-
-				int ibResult = pCbanode->m_slice.m_ibStart;
-				delete pCbanode;
-				return { ibResult, cbDesired };
-			}
-			else
-			{
-				// Too much memory, shrink node
-
-				int ibResult = pCbanode->m_slice.m_ibStart;
-				pCbanode->m_slice.m_cb -= cbDesired;
-				pCbanode->m_slice.m_ibStart += cbDesired;
-				return { ibResult, cbDesired };
-			}
-		}
-
-		pCbanodePrev = pCbanode;
-	}
-
-	ASSERT(false); // couldn't find enough memory!
-	return { -1, -1 };
-}
-
-bool FCanMergeSlices(const SCBufferSlice & sliceSmaller, const SCBufferSlice & sliceLarger)
-{
-	return sliceSmaller.m_ibStart + sliceSmaller.m_cb == sliceLarger.m_ibStart;
-}
-
-void SCBufferAllocator::ReleaseSlice(const SCBufferSlice & slice)
-{
-	ASSERT(slice.m_cb % m_cbAlignment == 0);
-	ASSERT(slice.m_cb <= m_desc.ByteWidth);
-
-	if (!m_pCbanodeStart)
-	{
-		m_pCbanodeStart = new (g_slotheapCbanode.PTAlloc()) SCBufferAllocatorNode(slice.m_ibStart, slice.m_cb);
-		return;
-	}
-
-	SCBufferAllocatorNode * pCbanodePrev = nullptr;
-	for (SCBufferAllocatorNode * pCbanode = m_pCbanodeStart; pCbanode; pCbanode = pCbanode->m_pCbanodeNext)
-	{
-		ASSERT(pCbanode->m_slice.m_ibStart != slice.m_ibStart);
-		ASSERT(pCbanode->m_slice.m_ibStart + pCbanode->m_slice.m_cb <= slice.m_ibStart || slice.m_ibStart + slice.m_cb <= pCbanode->m_slice.m_ibStart);
-
-		// if the current node is larger than use, we go before it
-
-		if (slice.m_ibStart < pCbanode->m_slice.m_ibStart)
-		{
-			// Insert before
-
-			if (pCbanodePrev)
-			{
-				if (FCanMergeSlices(pCbanodePrev->m_slice, slice))
-				{
-					// Can we also merge with next?
-
-					if (FCanMergeSlices(slice, pCbanode->m_slice))
-					{
-						// Merge with both
-
-						pCbanodePrev->m_pCbanodeNext = pCbanode->m_pCbanodeNext;
-						pCbanodePrev->m_slice.m_cb += slice.m_cb + pCbanode->m_slice.m_cb;
-						delete pCbanode;
-						return;
-					}
-					else
-					{
-						// Only merge with prev
-
-						pCbanodePrev->m_slice.m_cb += slice.m_cb;
-						return;
-					}
-				}
-				else
-				{
-					// Can't merge with prev, try to merge with next
-
-					if (FCanMergeSlices(slice, pCbanode->m_slice))
-					{
-						pCbanode->m_slice.m_cb += slice.m_cb;
-						pCbanode->m_slice.m_ibStart = slice.m_ibStart;				
-						return;
-					}
-					else
-					{
-						// No merging possible
-
-						SCBufferAllocatorNode * pCbanodeNew = new (g_slotheapCbanode.PTAlloc()) SCBufferAllocatorNode(slice.m_ibStart, slice.m_cb);
-						pCbanodeNew->m_pCbanodeNext = pCbanodePrev->m_pCbanodeNext;
-						pCbanodePrev->m_pCbanodeNext = pCbanodeNew;
-						return;
-					}
-				}
-			}
-			else
-			{
-				// We're the first node
-
-				if (FCanMergeSlices(slice, pCbanode->m_slice))
-				{
-					pCbanode->m_slice.m_cb += slice.m_cb;
-					pCbanode->m_slice.m_ibStart = slice.m_ibStart;
-					return;
-				}
-				else
-				{
-					m_pCbanodeStart = new (g_slotheapCbanode.PTAlloc()) SCBufferAllocatorNode(slice.m_ibStart, slice.m_cb);
-					m_pCbanodeStart->m_pCbanodeNext = pCbanode;
-					return;
-				}	
-			}
-		}
-
-		pCbanodePrev = pCbanode;
-	}
-
-	// See if we can merge with the last node
-
-	if (FCanMergeSlices(pCbanodePrev->m_slice, slice))
-	{
-		pCbanodePrev->m_slice.m_cb += slice.m_cb;
-	}
-	else
-	{
-		SCBufferAllocatorNode * pCbanodeNew = new (g_slotheapCbanode.PTAlloc()) SCBufferAllocatorNode(slice.m_ibStart, slice.m_cb);
-		pCbanodePrev->m_pCbanodeNext = pCbanodeNew;
-	}
-}
-
 /////////////////
 
 float2 SGame::VecWinSize()
@@ -624,8 +444,13 @@ SText::SText(SFontHandle hFont, SNodeHandle hNodeParent) : super(hNodeParent)
 {
 	m_typek = TYPEK_Text;
 
-	m_hMesh = (new SMesh())->HMesh();
+	m_hMesh = (new SMesh2D())->HMesh();
 	m_hFont = hFont;
+}
+
+SText::~SText()
+{
+	delete m_hMesh.PT();
 }
 
 void SText::Update()
@@ -668,8 +493,10 @@ void SText::SetText(const std::string & str)
 	SFontKernPair * pFontkernpair = nullptr;
 	char charPrev = '\0';
 
-	std::vector<SVertData2D> aryVertdata;
-	std::vector<unsigned short> aryIIndex;
+	m_hMesh->m_aryVertdata.clear();
+	m_hMesh->m_aryIIndex.clear();
+	std::vector<SVertData2D> & aryVertdata = m_hMesh->m_aryVertdata;
+	std::vector<unsigned short> & aryIIndex = m_hMesh->m_aryIIndex;
 	
 	float x = 0;
 	for (char charCur : str)
@@ -701,9 +528,6 @@ void SText::SetText(const std::string & str)
 		// TODO support kerning
 		x += pFontchar->m_nXAdvance;
 	}
-
-	m_hMesh->SetVerts2D(aryVertdata.data(), aryVertdata.size());
-	m_hMesh->SetIndicies(aryIIndex.data(), aryIIndex.size());
 }
 
 SNode::SNode(SHandle<SNode> hNodeParent) :
@@ -865,15 +689,17 @@ void PushQuad3D(std::vector<SVertData3D> * paryVertdata, std::vector<unsigned sh
 	paryVertdata->push_back({ posUpperLeft, float2(0.0f, 1.0f) });
 }
 
-SMesh::SMesh()
+SMesh3D::SMesh3D() : super()
 {
-	m_typek = TYPEK_Mesh;
+	m_typek = TYPEK_Mesh3D;
 }
 
-// BB SetVerts3D/SetVerts2D/SetIndicies duplicate code
+SMesh2D::SMesh2D() : super()
+{
+	m_typek = TYPEK_Mesh2D;
+}
 
-// BB D3D11_MAP_WRITE_DISCARD is clearing the old contents of our buffer
-
+#if TODO_DELETE
 void SMesh::SetVerts3D(SVertData3D * aVertdata, int cVerts)
 {
 	// BB shouldn't immediately release this slice, should wait until we're 100% sure the gpu is done with it
@@ -934,6 +760,7 @@ void SMesh::SetIndicies(unsigned short * aiIndex, int cIndex)
 	memcpy((char *)mappedSubresourceIndicies.pData + m_sliceIndex.m_ibStart, aiIndex, cIndex * sizeof(unsigned short));
 	g_game.m_pD3ddevicecontext->Unmap(g_game.m_cbaIndex.m_cbuffer, 0);
 }
+#endif
 
 void SGame::Init(HINSTANCE hInstance)
 {
@@ -1118,37 +945,40 @@ void SGame::Init(HINSTANCE hInstance)
 	{
 		const int cVertsMax = 100000;
 
-		D3D11_BUFFER_DESC vertexBufferDesc = {};
-		vertexBufferDesc.ByteWidth = cVertsMax * sizeof(SVertData3D);
-		vertexBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-		vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-		vertexBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		D3D11_BUFFER_DESC descVertexBuffer = {};
+		descVertexBuffer.ByteWidth = cVertsMax * sizeof(SVertData3D);
+		descVertexBuffer.Usage = D3D11_USAGE_DYNAMIC;
+		descVertexBuffer.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+		descVertexBuffer.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 
-		m_cbaVertex3D = SCBufferAllocator(vertexBufferDesc, sizeof(SVertData3D));
+		HRESULT hResult = m_pD3ddevice->CreateBuffer(&descVertexBuffer, nullptr, &m_cbufferVertex3D);
+		assert(SUCCEEDED(hResult));
 	}
 
 	{
 		const int cVertsMax = 100000;
 
-		D3D11_BUFFER_DESC vertexBufferDesc = {};
-		vertexBufferDesc.ByteWidth = cVertsMax * sizeof(SVertData2D);
-		vertexBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-		vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-		vertexBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		D3D11_BUFFER_DESC descVertexBuffer = {};
+		descVertexBuffer.ByteWidth = cVertsMax * sizeof(SVertData2D);
+		descVertexBuffer.Usage = D3D11_USAGE_DYNAMIC;
+		descVertexBuffer.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+		descVertexBuffer.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 
-		m_cbaVertex2D = SCBufferAllocator(vertexBufferDesc, sizeof(SVertData2D));
+		HRESULT hResult = m_pD3ddevice->CreateBuffer(&descVertexBuffer, nullptr, &m_cbufferVertex2D);
+		assert(SUCCEEDED(hResult));
 	}
 
 	{
 		const int cIndexMax = 100000;
 
-		D3D11_BUFFER_DESC indexBufferDesc = {};
-		indexBufferDesc.ByteWidth = cIndexMax * sizeof(unsigned short);
-		indexBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-		indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-		indexBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		D3D11_BUFFER_DESC descIndexBuffer = {};
+		descIndexBuffer.ByteWidth = cIndexMax * sizeof(unsigned short);
+		descIndexBuffer.Usage = D3D11_USAGE_DYNAMIC;
+		descIndexBuffer.BindFlags = D3D11_BIND_INDEX_BUFFER;
+		descIndexBuffer.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 
-		m_cbaIndex = SCBufferAllocator(indexBufferDesc, sizeof(unsigned short));
+		HRESULT hResult = m_pD3ddevice->CreateBuffer(&descIndexBuffer, nullptr, &m_cbufferIndex);
+		assert(SUCCEEDED(hResult));
 	}
 
 	{
@@ -1238,15 +1068,9 @@ void SGame::Init(HINSTANCE hInstance)
 	// Create quad mesh
 
 	{
-		m_hMeshQuad = (new SMesh())->HMesh();
+		m_hMeshQuad = (new SMesh3D())->HMesh();
 
-		std::vector<SVertData3D> aryVertdata;
-		std::vector<unsigned short> aryIIndex;
-
-		PushQuad3D(&aryVertdata, &aryIIndex);
-
-		m_hMeshQuad->SetVerts3D(aryVertdata.data(), aryVertdata.size());
-		m_hMeshQuad->SetIndicies(aryIIndex.data(), aryIIndex.size());
+		PushQuad3D(&m_hMeshQuad->m_aryVertdata, &m_hMeshQuad->m_aryIIndex);
 	}
 
 	SShaderHandle hShaderUnlit = (new SShader(L"shaders\\unlit2d.hlsl", false))->HShader();
@@ -1466,6 +1290,86 @@ void SGame::MainLoop()
 			m_pD3ddevicecontext->Unmap(m_cbufferGlobals, 0);
 		}
 
+		// Pack all the meshes into a big index and vertex buffer
+		//  See https://learn.microsoft.com/en-us/windows/win32/api/d3d11/ne-d3d11-d3d11_map
+		//  "A common use of these two flags involves filling dynamic index/vertex buffers with geometry that can be seen from the camera's current position. 
+		//  The first time that data is entered into the buffer on a given frame, Map is called with D3D11_MAP_WRITE_DISCARD; 
+		//  doing so invalidates the previous contents of the buffer. The buffer is then filled with all available data."
+
+		// Reset all mesh flags 
+		// BB Do this clearing in a better way, which would probably involve looping over meshes only
+
+		for (SDrawNode3DHandle hDrawnode3D : aryhDrawnode3DToRender)
+		{
+			SMesh3D * pMesh = hDrawnode3D->m_hMesh.PT();
+			pMesh->m_iIndexdata = -1;
+			pMesh->m_iVertdata = -1;
+		}
+
+		for (SUiNodeHandle hUinode : aryhUinodeToRender)
+		{
+			SMesh2D * pMesh = hUinode->m_hMesh.PT();
+			pMesh->m_iIndexdata = -1;
+			pMesh->m_iVertdata = -1;
+		}
+
+		int iBIndex = 0;
+		int iBVert3D = 0;
+		int iBVert2D = 0;
+
+		D3D11_MAPPED_SUBRESOURCE mappedSubresourceIndex;
+		g_game.m_pD3ddevicecontext->Map(m_cbufferIndex, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresourceIndex);
+
+		D3D11_MAPPED_SUBRESOURCE mappedSubresourceVerts3D;
+		g_game.m_pD3ddevicecontext->Map(m_cbufferVertex3D, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresourceVerts3D);
+
+		D3D11_MAPPED_SUBRESOURCE mappedSubresourceVerts2D;
+		g_game.m_pD3ddevicecontext->Map(m_cbufferVertex2D, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresourceVerts2D);
+
+		for (SDrawNode3DHandle hDrawnode3D : aryhDrawnode3DToRender)
+		{
+			SMesh3D * pMesh = hDrawnode3D->m_hMesh.PT();
+			if (pMesh->m_iVertdata != -1)
+				continue;
+
+			pMesh->m_cVerts = pMesh->m_aryVertdata.size();
+			pMesh->m_iVertdata = iBVert3D / sizeof(SVertData3D);
+			pMesh->m_cIndicies = pMesh->m_aryIIndex.size();
+			pMesh->m_iIndexdata = iBIndex / sizeof(unsigned short);
+
+			unsigned int cBVert = sizeof(SVertData3D) * pMesh->m_aryVertdata.size();
+			memcpy((char *) mappedSubresourceVerts3D.pData + iBVert3D, pMesh->m_aryVertdata.data(), cBVert);
+			iBVert3D += cBVert;
+
+			unsigned int cBIndex = sizeof(unsigned short) * pMesh->m_aryIIndex.size();
+			memcpy((char *) mappedSubresourceIndex.pData + iBIndex, pMesh->m_aryIIndex.data(), cBIndex);
+			iBIndex += cBIndex;
+		}
+
+		for (SUiNodeHandle hUinode : aryhUinodeToRender)
+		{
+			SMesh2D * pMesh = hUinode->m_hMesh.PT();
+			if (pMesh->m_iVertdata != -1)
+				continue;
+
+			pMesh->m_cVerts = pMesh->m_aryVertdata.size();
+			pMesh->m_iVertdata = iBVert2D / sizeof(SVertData2D);
+			pMesh->m_cIndicies = pMesh->m_aryIIndex.size();
+			pMesh->m_iIndexdata = iBIndex / sizeof(unsigned short);
+
+			unsigned int cBVert = sizeof(SVertData2D) * pMesh->m_aryVertdata.size();
+			memcpy((char *) mappedSubresourceVerts2D.pData + iBVert2D, pMesh->m_aryVertdata.data(), cBVert);
+			iBVert2D += cBVert;
+
+			unsigned int cBIndex = sizeof(unsigned short) * pMesh->m_aryIIndex.size();
+			memcpy((char *) mappedSubresourceIndex.pData + iBIndex, pMesh->m_aryIIndex.data(), cBIndex);
+			iBIndex += cBIndex;
+		}
+
+		g_game.m_pD3ddevicecontext->Unmap(m_cbufferIndex, 0);
+		g_game.m_pD3ddevicecontext->Unmap(m_cbufferVertex3D, 0);
+		g_game.m_pD3ddevicecontext->Unmap(m_cbufferVertex2D, 0);
+
 		// Draw 3d nodes
 
 		{
@@ -1490,7 +1394,7 @@ void SGame::MainLoop()
 				const SShader & shader = *(material.m_hShader);
 				ASSERT(hDrawnode3D->m_typek == TYPEK_DrawNode3D);
 
-				const SMesh & mesh = *hDrawnode3D->m_hMesh;
+				const SMesh3D & mesh = *hDrawnode3D->m_hMesh;
 
 				m_pD3ddevicecontext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 				m_pD3ddevicecontext->IASetInputLayout(shader.m_pD3dinputlayout);
@@ -1503,8 +1407,10 @@ void SGame::MainLoop()
 				m_pD3ddevicecontext->PSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
 
 				unsigned int cbVert = sizeof(SVertData3D);
-				m_pD3ddevicecontext->IASetVertexBuffers(0, 1, &m_cbaVertex3D.m_cbuffer, &cbVert, &g_cbMeshOffset);		// BB don't constantly do this
-				m_pD3ddevicecontext->IASetIndexBuffer(m_cbaIndex.m_cbuffer, DXGI_FORMAT_R16_UINT, 0);					//  ...
+				unsigned int s_cbMeshOffset = 0;
+
+				m_pD3ddevicecontext->IASetVertexBuffers(0, 1, &m_cbufferVertex3D, &cbVert, &s_cbMeshOffset);	// BB don't constantly do this
+				m_pD3ddevicecontext->IASetIndexBuffer(m_cbufferIndex, DXGI_FORMAT_R16_UINT, 0);					//  ...
 
 				D3D11_MAPPED_SUBRESOURCE mappedSubresource;
 				m_pD3ddevicecontext->Map(m_cbufferDrawnode3D, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
@@ -1521,7 +1427,7 @@ void SGame::MainLoop()
 				m_pD3ddevicecontext->Unmap(m_cbufferDrawnode3D, 0);
 
 				//m_pD3ddevicecontext->Draw(mesh.m_sliceVertex.m_cb / sizeof(SVertData3D), mesh.m_sliceVertex.m_ibStart / sizeof(SVertData3D));
-				m_pD3ddevicecontext->DrawIndexed(mesh.m_sliceIndex.m_cb / sizeof(unsigned int), mesh.m_sliceIndex.m_ibStart / sizeof(unsigned int), mesh.m_sliceVertex.m_ibStart / sizeof(SVertData3D));
+				m_pD3ddevicecontext->DrawIndexed(mesh.m_cIndicies, mesh.m_iIndexdata, mesh.m_iVertdata);
 			}
 		}
 
@@ -1540,7 +1446,7 @@ void SGame::MainLoop()
 			{
 				case TYPEK_Text:
 					{
-						const SMesh & mesh = *hUinode->m_hMesh;
+						const SMesh2D & mesh = *hUinode->m_hMesh;
 						const STexture & texture = *material.m_hTexture;
 
 						m_pD3ddevicecontext->IASetInputLayout(shader.m_pD3dinputlayout);
@@ -1558,7 +1464,10 @@ void SGame::MainLoop()
 						m_pD3ddevicecontext->PSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
 
 						unsigned int cbVert = sizeof(SVertData2D);
-						m_pD3ddevicecontext->IASetVertexBuffers(0, 1, &m_cbaVertex2D.m_cbuffer, &cbVert, &g_cbMeshOffset);		// BB don't constantly do this
+						unsigned int s_cbMeshOffset = 0;
+
+						m_pD3ddevicecontext->IASetVertexBuffers(0, 1, &m_cbufferVertex2D, &cbVert, &s_cbMeshOffset);	// BB don't constantly do this
+						m_pD3ddevicecontext->IASetIndexBuffer(m_cbufferIndex, DXGI_FORMAT_R16_UINT, 0);					//  ...
 
 						D3D11_MAPPED_SUBRESOURCE mappedSubresource;
 						m_pD3ddevicecontext->Map(m_cbufferUiNode, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
@@ -1572,12 +1481,13 @@ void SGame::MainLoop()
 						ID3D11SamplerState * aD3dsamplerstate[] = { texture.m_pD3dsamplerstate };
 						m_pD3ddevicecontext->PSSetSamplers(0, DIM(aD3dsamplerstate), aD3dsamplerstate);
 
-						m_pD3ddevicecontext->Draw(mesh.m_sliceVertex.m_cb / sizeof(SVertData2D), mesh.m_sliceVertex.m_ibStart / sizeof(SVertData2D));
+						m_pD3ddevicecontext->DrawIndexed(mesh.m_cIndicies, mesh.m_iIndexdata, mesh.m_iVertdata);
+						//m_pD3ddevicecontext->Draw(mesh.m_sliceVertex.m_cb / sizeof(SVertData2D), mesh.m_sliceVertex.m_ibStart / sizeof(SVertData2D));
 					}
 					break;
 				default:
 					{
-						const SMesh & mesh = *hUinode->m_hMesh;
+						const SMesh2D & mesh = *hUinode->m_hMesh;
 						const STexture & texture = *material.m_hTexture;
 
 						float blendFactor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
@@ -1594,7 +1504,10 @@ void SGame::MainLoop()
 						m_pD3ddevicecontext->PSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
 
 						unsigned int cbVert = sizeof(SVertData2D);
-						m_pD3ddevicecontext->IASetVertexBuffers(0, 1, &m_cbaVertex2D.m_cbuffer, &cbVert, &g_cbMeshOffset);		// BB don't constantly do this
+						unsigned int s_cbMeshOffset = 0;
+
+						m_pD3ddevicecontext->IASetVertexBuffers(0, 1, &m_cbufferVertex2D, &cbVert, &s_cbMeshOffset);	// BB don't constantly do this
+						m_pD3ddevicecontext->IASetIndexBuffer(m_cbufferIndex, DXGI_FORMAT_R16_UINT, 0);					//  ...
 
 						D3D11_MAPPED_SUBRESOURCE mappedSubresource;
 						m_pD3ddevicecontext->Map(m_cbufferUiNode, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
@@ -1608,7 +1521,8 @@ void SGame::MainLoop()
 						ID3D11SamplerState * aD3dsamplerstate[] = { texture.m_pD3dsamplerstate };
 						m_pD3ddevicecontext->PSSetSamplers(0, DIM(aD3dsamplerstate), aD3dsamplerstate);
 
-						m_pD3ddevicecontext->Draw(mesh.m_sliceVertex.m_cb / sizeof(SVertData2D), mesh.m_sliceVertex.m_ibStart / sizeof(SVertData2D));
+						m_pD3ddevicecontext->DrawIndexed(mesh.m_cIndicies, mesh.m_iIndexdata, mesh.m_iVertdata);
+						//m_pD3ddevicecontext->Draw(mesh.m_sliceVertex.m_cb / sizeof(SVertData2D), mesh.m_sliceVertex.m_ibStart / sizeof(SVertData2D));
 					}
 					break;
 			}
