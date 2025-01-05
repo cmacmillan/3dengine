@@ -122,11 +122,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="cpp\engine.cpp" />
+    <ClCompile Include="cpp\slotheap.cpp" />
     <ClCompile Include="cpp\util.cpp" />
     <ClCompile Include="cpp\vector.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cpp\engine.h" />
+    <ClInclude Include="cpp\slotheap.h" />
     <ClInclude Include="cpp\stb_image.h" />
     <ClInclude Include="cpp\util.h" />
     <ClInclude Include="cpp\vector.h" />

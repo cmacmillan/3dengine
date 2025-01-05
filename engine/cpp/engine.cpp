@@ -25,6 +25,185 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPSTR /*lpC
 	return 0;
 }
 
+// SCBufferAllocator 
+
+SSlotHeap<SCBufferAllocatorNode> g_slotheapCbanode;
+
+SCBufferAllocatorNode::SCBufferAllocatorNode(int ibStart, int cbFree)
+{ 
+	m_slice = { ibStart, cbFree };
+}
+
+SCBufferAllocatorNode::~SCBufferAllocatorNode()
+{
+	g_slotheapCbanode.FreePT(this);
+}
+
+SCBufferAllocator::SCBufferAllocator(const D3D11_BUFFER_DESC & desc, int cbAlignment)
+{
+	ASSERT(desc.ByteWidth % cbAlignment == 0);
+
+	m_desc = desc;
+	m_cbAlignment = cbAlignment;
+	HRESULT hResult = g_game.m_pD3ddevice->CreateBuffer(&m_desc, nullptr, &m_cbuffer);
+	ASSERT(SUCCEEDED(hResult));
+	m_pCbanodeStart = new (g_slotheapCbanode.PTAlloc()) SCBufferAllocatorNode(0, m_desc.ByteWidth);
+}
+
+SCBufferSlice SCBufferAllocator::SliceClaim(int cbDesired)
+{
+	// NOTE we don't need to worry about maintaining alignment,
+	//  since we force all requests to request aligned amount of memory
+
+	ASSERT(cbDesired % m_cbAlignment == 0);
+	ASSERT(cbDesired <= m_desc.ByteWidth);
+
+	SCBufferAllocatorNode * pCbanodePrev = nullptr;
+	for (SCBufferAllocatorNode * pCbanode = m_pCbanodeStart; pCbanode; pCbanode = pCbanode->m_pCbanodeNext)
+	{
+		if (pCbanode->m_slice.m_cb >= cbDesired)
+		{
+			if (pCbanode->m_slice.m_cb == cbDesired)
+			{
+				// Complete match, totally remove node from list
+
+				if (pCbanodePrev)
+				{
+					pCbanodePrev->m_pCbanodeNext = pCbanode->m_pCbanodeNext;
+				}
+				else
+				{
+					m_pCbanodeStart = pCbanode->m_pCbanodeNext;
+				}
+
+				int ibResult = pCbanode->m_slice.m_ibStart;
+				delete pCbanode;
+				return { ibResult, cbDesired };
+			}
+			else
+			{
+				// Too much memory, shrink node
+
+				int ibResult = pCbanode->m_slice.m_ibStart;
+				pCbanode->m_slice.m_cb -= cbDesired;
+				pCbanode->m_slice.m_ibStart += cbDesired;
+				return { ibResult, cbDesired };
+			}
+		}
+
+		pCbanodePrev = pCbanode;
+	}
+
+	ASSERT(false); // couldn't find enough memory!
+	return { -1, -1 };
+}
+
+bool FCanMergeSlices(const SCBufferSlice & sliceSmaller, const SCBufferSlice & sliceLarger)
+{
+	return sliceSmaller.m_ibStart + sliceSmaller.m_cb == sliceLarger.m_ibStart;
+}
+
+void SCBufferAllocator::ReleaseSlice(const SCBufferSlice & slice)
+{
+	ASSERT(slice.m_cb % m_cbAlignment == 0);
+	ASSERT(slice.m_cb <= m_desc.ByteWidth);
+
+	if (!m_pCbanodeStart)
+	{
+		m_pCbanodeStart = new (g_slotheapCbanode.PTAlloc()) SCBufferAllocatorNode(slice.m_ibStart, slice.m_cb);
+		return;
+	}
+
+	SCBufferAllocatorNode * pCbanodePrev = nullptr;
+	for (SCBufferAllocatorNode * pCbanode = m_pCbanodeStart; pCbanode; pCbanode = pCbanode->m_pCbanodeNext)
+	{
+		ASSERT(pCbanode->m_slice.m_ibStart != slice.m_ibStart);
+
+		// if the current node is larger than use, we go before it
+
+		if (slice.m_ibStart < pCbanode->m_slice.m_ibStart)
+		{
+			// Insert before
+
+			if (pCbanodePrev)
+			{
+				if (FCanMergeSlices(pCbanodePrev->m_slice, slice))
+				{
+					// Can we also merge with next?
+
+					if (FCanMergeSlices(slice, pCbanode->m_slice))
+					{
+						// Merge with both
+
+						pCbanodePrev->m_pCbanodeNext = pCbanode->m_pCbanodeNext;
+						pCbanodePrev->m_slice.m_cb += slice.m_cb + pCbanode->m_slice.m_cb;
+						delete pCbanode;
+						return;
+					}
+					else
+					{
+						// Only merge with prev
+
+						pCbanodePrev->m_slice.m_cb += slice.m_cb;
+						return;
+					}
+				}
+				else
+				{
+					// Can't merge with prev, try to merge with next
+
+					if (FCanMergeSlices(slice, pCbanode->m_slice))
+					{
+						pCbanode->m_slice.m_cb += slice.m_cb;
+						pCbanode->m_slice.m_ibStart = slice.m_ibStart;				
+						return;
+					}
+					else
+					{
+						// No merging possible
+
+						SCBufferAllocatorNode * pCbanodeNew = new (g_slotheapCbanode.PTAlloc()) SCBufferAllocatorNode(slice.m_ibStart, slice.m_cb);
+						pCbanodeNew->m_pCbanodeNext = pCbanodePrev->m_pCbanodeNext;
+						pCbanodePrev->m_pCbanodeNext = pCbanodeNew;
+						return;
+					}
+				}
+			}
+			else
+			{
+				// We're the first node
+
+				if (FCanMergeSlices(slice, pCbanode->m_slice))
+				{
+					pCbanode->m_slice.m_cb += slice.m_cb;
+					pCbanode->m_slice.m_ibStart = slice.m_ibStart;
+					return;
+				}
+				else
+				{
+					m_pCbanodeStart = new (g_slotheapCbanode.PTAlloc()) SCBufferAllocatorNode(slice.m_ibStart, slice.m_cb);
+					m_pCbanodeStart->m_pCbanodeNext = pCbanode;
+					return;
+				}	
+			}
+		}
+
+		pCbanodePrev = pCbanode;
+	}
+
+	// See if we can merge with the last node
+
+	if (FCanMergeSlices(pCbanodePrev->m_slice, slice))
+	{
+		pCbanodePrev->m_slice.m_cb += slice.m_cb;
+	}
+	else
+	{
+		SCBufferAllocatorNode * pCbanodeNew = new (g_slotheapCbanode.PTAlloc()) SCBufferAllocatorNode(slice.m_ibStart, slice.m_cb);
+		pCbanodePrev->m_pCbanodeNext = pCbanodeNew;
+	}
+}
+
 /////////////////
 
 float2 SGame::VecWinSize()
@@ -745,6 +924,7 @@ void SGame::Init(HINSTANCE hInstance)
 {
 	AuditFixArray();
 	AuditVectors();
+	AuditSlotheap();
 
 	m_hNodeRoot = (new SNode(-1))->HNode();
 
@@ -1280,14 +1460,13 @@ void SGame::MainLoop()
 				m_pD3ddevicecontext->Unmap(m_cbufferDrawnode3D, 0);
 
 				m_pD3ddevicecontext->IASetVertexBuffers(0, 1, &mesh.m_cbufferVertex, &mesh.m_cStride, &mesh.m_cOffset);
-				//m_pD3ddevicecontext->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R16_UINT, 0);
+				//m_pD3ddevicecontext->IASetIndexBuffer(mesh.m_cbufferIndex, DXGI_FORMAT_R16_UINT, 0);
 
 				m_pD3ddevicecontext->Draw(mesh.m_cVerts, 0);
-				//m_pD3ddevicecontext->DrawIndexed(numIndices, 0, 0);
+				//m_pD3ddevicecontext->DrawIndexed(mesh.m_cIndex, 0, 0);
 			}
 		}
 
-#if 0
 		// Draw ui nodes
 
 		for (SUiNodeHandle hUinode : aryhUinodeToRender)
@@ -1373,7 +1552,6 @@ void SGame::MainLoop()
 					break;
 			}
 		}
-#endif
 
 		for (int i = 0; i < DIM(m_mpVkFJustPressed); i++)
 		{

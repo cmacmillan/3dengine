@@ -22,6 +22,7 @@
 #pragma comment(lib, "d3dcompiler.lib")
 
 #include "vector.h"
+#include "slotheap.h"
 
 //#include "stb_image.h"
 
@@ -296,9 +297,11 @@ struct SMesh : SObject // mesh
 	void SetVerts(float * pGVerts, int cVerts, int cStride, int cOffset);
 
 	ID3D11Buffer * m_cbufferVertex = nullptr;
-	UINT m_cVerts = -1;
-	UINT m_cStride = -1;
-	UINT m_cOffset = -1;
+	ID3D11Buffer * m_cbufferIndex = nullptr;
+	unsigned int m_cVerts = -1;
+	unsigned int m_cStride = -1;
+	unsigned int m_cOffset = -1;
+	unsigned int m_cIndex = -1;
 };
 typedef SHandle<SMesh> SMeshHandle;
 
@@ -435,6 +438,39 @@ struct SText : SUiNode // text
 	std::string m_str;
 };
 typedef SHandle<SText> STextHandle;
+
+struct SCBufferSlice
+{
+	int			m_ibStart = -1;
+	int			m_cb = -1;
+};
+
+struct SCBufferAllocatorNode // cbanode
+{
+	// BB should probably be overriding the new operator or something
+
+	SCBufferAllocatorNode(int ibStart, int cbFree);
+	SCBufferAllocatorNode() {}
+	~SCBufferAllocatorNode();
+
+	SCBufferAllocatorNode *		m_pCbanodeNext = nullptr;
+	SCBufferSlice				m_slice = {};
+};
+
+// BB eventually this should probably be some sort of tree to avoid a linear search
+
+struct SCBufferAllocator // cba
+{
+								SCBufferAllocator(const D3D11_BUFFER_DESC & desc, int cbAlignment);
+
+	SCBufferSlice				SliceClaim(int cbDesired);
+	void						ReleaseSlice(const SCBufferSlice & slice);
+
+	D3D11_BUFFER_DESC			m_desc = {};
+	int							m_cbAlignment = -1;
+	ID3D11Buffer *				m_cbuffer = nullptr;
+	SCBufferAllocatorNode *		m_pCbanodeStart = nullptr;
+};
 
 struct SGame // game 
 {
