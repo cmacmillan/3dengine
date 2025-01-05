@@ -4,9 +4,6 @@
 
 #define ASSET_PATH "C:\\Users\\chase\\OneDrive\\Desktop\\3dengine\\engine\\" // TODO make relative instead of absolute
 
-#define DX_GRID 15
-#define DY_GRID 15
-
 // Uses some starter code from https://github.com/kevinmoran/BeginnerDirect3D11
 
 #define WIN32_LEAN_AND_MEAN
@@ -64,6 +61,42 @@
 #define VK_X 0x58
 #define VK_Y 0x59
 #define VK_Z 0x5A
+
+const unsigned int g_cbMeshOffset = 0;
+
+struct SCBufferSlice
+{
+	int			m_ibStart = -1;
+	int			m_cb = -1;
+};
+
+struct SCBufferAllocatorNode // cbanode
+{
+	// BB should probably be overriding the new operator or something
+
+	SCBufferAllocatorNode(int ibStart, int cbFree);
+	SCBufferAllocatorNode() {}
+	~SCBufferAllocatorNode();
+
+	SCBufferAllocatorNode *		m_pCbanodeNext = nullptr;
+	SCBufferSlice				m_slice = {};
+};
+
+// BB eventually this should probably be some sort of tree to avoid a linear search
+
+struct SCBufferAllocator // cba
+{
+	SCBufferAllocator() {};
+	SCBufferAllocator(const D3D11_BUFFER_DESC & desc, int cbAlignment);
+
+	SCBufferSlice				SliceClaim(int cbDesired);
+	void						ReleaseSlice(const SCBufferSlice & slice);
+
+	D3D11_BUFFER_DESC			m_desc = {};
+	int							m_cbAlignment = -1;
+	ID3D11Buffer * m_cbuffer = nullptr;
+	SCBufferAllocatorNode * m_pCbanodeStart = nullptr;
+};
 
 struct SObject;
 struct SObjectManager
@@ -285,8 +318,24 @@ struct SFont : SObject
 };
 typedef SHandle<SFont> SFontHandle;
 
-void PushQuad2D(float2 posMin, float2 posMax, float2 uvMin, float2 uvMax, std::vector<float> * pAryVert);
+struct SVertData3D
+{
+	Point	m_pos;
+	float2	m_uv;
+};
+CASSERT(sizeof(SVertData3D) == 24);
+
+struct SVertData2D
+{
+	float2	m_pos;
+	float2	m_uv;
+};
+CASSERT(sizeof(SVertData2D) == 16);
+
+void PushQuad2D(float2 posMin, float2 posMax, float2 uvMin, float2 uvMax, std::vector<SVertData2D> * paryVertdata);
 void PushQuad3DDebug(std::vector<float> * pAryVert);
+
+// BB add a meshk enum and prevent meshes from switching types
 
 struct SMesh : SObject // mesh
 {
@@ -294,14 +343,11 @@ struct SMesh : SObject // mesh
 	SMesh();
 	SHandle<SMesh> HMesh() { return (SHandle<SMesh>) m_nHandle; }
 
-	void SetVerts(float * pGVerts, int cVerts, int cStride, int cOffset);
+	void SetVerts3D(SVertData3D * aVertdata, int cVerts);
+	void SetVerts2D(SVertData2D * aVertdata, int cVerts);
 
-	ID3D11Buffer * m_cbufferVertex = nullptr;
-	ID3D11Buffer * m_cbufferIndex = nullptr;
-	unsigned int m_cVerts = -1;
-	unsigned int m_cStride = -1;
-	unsigned int m_cOffset = -1;
-	unsigned int m_cIndex = -1;
+	SCBufferSlice m_sliceIndex;
+	SCBufferSlice m_sliceVertex;
 };
 typedef SHandle<SMesh> SMeshHandle;
 
@@ -439,39 +485,6 @@ struct SText : SUiNode // text
 };
 typedef SHandle<SText> STextHandle;
 
-struct SCBufferSlice
-{
-	int			m_ibStart = -1;
-	int			m_cb = -1;
-};
-
-struct SCBufferAllocatorNode // cbanode
-{
-	// BB should probably be overriding the new operator or something
-
-	SCBufferAllocatorNode(int ibStart, int cbFree);
-	SCBufferAllocatorNode() {}
-	~SCBufferAllocatorNode();
-
-	SCBufferAllocatorNode *		m_pCbanodeNext = nullptr;
-	SCBufferSlice				m_slice = {};
-};
-
-// BB eventually this should probably be some sort of tree to avoid a linear search
-
-struct SCBufferAllocator // cba
-{
-								SCBufferAllocator(const D3D11_BUFFER_DESC & desc, int cbAlignment);
-
-	SCBufferSlice				SliceClaim(int cbDesired);
-	void						ReleaseSlice(const SCBufferSlice & slice);
-
-	D3D11_BUFFER_DESC			m_desc = {};
-	int							m_cbAlignment = -1;
-	ID3D11Buffer *				m_cbuffer = nullptr;
-	SCBufferAllocatorNode *		m_pCbanodeStart = nullptr;
-};
-
 struct SGame // game 
 {
 	SGame();
@@ -510,6 +523,12 @@ struct SGame // game
 	bool m_mpVkFJustPressed[0xFF];
 	bool m_mpVkFJustReleased[0xFF];
 	float m_sScroll = 0.0f;
+
+	// Cbuffer allocators
+
+	SCBufferAllocator  m_cbaVertex3D;
+	SCBufferAllocator  m_cbaVertex2D;
+	SCBufferAllocator  m_cbaIndex;
 
 	// D3D
 

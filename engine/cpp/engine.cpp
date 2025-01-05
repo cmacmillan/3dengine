@@ -635,7 +635,7 @@ void SText::SetText(const std::string & str)
 	SFontKernPair * pFontkernpair = nullptr;
 	char charPrev = '\0';
 
-	std::vector<float> aryVerts;
+	std::vector<SVertData2D> aryVertdata;
 	
 	float x = 0;
 	for (char charCur : str)
@@ -662,16 +662,13 @@ void SText::SetText(const std::string & str)
 		float2 uvMax = uvMin + vecExtents / vecDivisor;
 		float2 posMax = float2(x + vecExtents.m_x, pFont->m_fontcb.m_nBase - pFontchar->m_nYOffset);
 		float2 posMin = float2(x, posMax.m_y - vecExtents.m_y);
-		PushQuad2D(posMin, posMax, uvMin, uvMax, &aryVerts);
+		PushQuad2D(posMin, posMax, uvMin, uvMax, &aryVertdata);
 
 		// TODO support kerning
 		x += pFontchar->m_nXAdvance;
 	}
 
-
-	int cStride = 4 * sizeof(float);
-	int cVerts = aryVerts.size() / 4;
-	m_hMesh->SetVerts(aryVerts.data(), cVerts, cStride, 0);
+	m_hMesh->SetVerts2D(aryVertdata.data(), aryVertdata.size());
 }
 
 SNode::SNode(SHandle<SNode> hNodeParent) :
@@ -785,105 +782,47 @@ void SUiNode::GetRenderConstants(SUiNodeRenderConstants * pUinoderc)
 	pUinoderc->m_color = m_color;
 }
 
-// BB This Text Update is good to induce the text memory issue, revisit
-
-/*
-int blah = 0;
-float delta = 0;
-void SText::Update()
+void PushQuad2D(float2 posMin, float2 posMax, float2 uvMin, float2 uvMax, std::vector<SVertData2D> * paryVertdata)
 {
-	return;
-	delta += g_game.m_dT;
-	if (delta > 2.0f)
-	{
-		delta = 0.0f;
-		blah++;
-		blah = blah % 26;
-		char aCh[] = {'a', '\0'};
-		aCh[0] = 'a' + blah;
-		SetText((const char *)aCh);
-	}
-}
-*/
-
-void PushQuad2D(float2 posMin, float2 posMax, float2 uvMin, float2 uvMax, std::vector<float> * pAryVert)
-{
-	int iQuadStart = pAryVert->size();
+	int iQuadStart = paryVertdata->size();
 
 	// BB not reusing verts?
 	//  Where is our index buffer lol
 
-	pAryVert->resize(pAryVert->size() + 6 * 4);
+	paryVertdata->resize(paryVertdata->size() + 6);
 
-	{
-		(*pAryVert)[iQuadStart] = posMin.m_x;
-		(*pAryVert)[iQuadStart + 1] = posMax.m_y;
-		(*pAryVert)[iQuadStart + 2] = uvMin.m_x;
-		(*pAryVert)[iQuadStart + 3] = uvMin.m_y;
-	}
-
-	{
-		(*pAryVert)[iQuadStart + 4] = posMax.m_x;
-		(*pAryVert)[iQuadStart + 5] = posMin.m_y;
-		(*pAryVert)[iQuadStart + 6] = uvMax.m_x;
-		(*pAryVert)[iQuadStart + 7] = uvMax.m_y;
-	}
-
-	{
-		(*pAryVert)[iQuadStart + 8] = posMin.m_x;
-		(*pAryVert)[iQuadStart + 9] = posMin.m_y;
-		(*pAryVert)[iQuadStart + 10] = uvMin.m_x;
-		(*pAryVert)[iQuadStart + 11] = uvMax.m_y;
-	}
-
-	{
-		(*pAryVert)[iQuadStart + 12] = posMin.m_x;
-		(*pAryVert)[iQuadStart + 13] = posMax.m_y;
-		(*pAryVert)[iQuadStart + 14] = uvMin.m_x;
-		(*pAryVert)[iQuadStart + 15] = uvMin.m_y;
-	}
-
-	{
-		(*pAryVert)[iQuadStart + 16] = posMax.m_x;
-		(*pAryVert)[iQuadStart + 17] = posMax.m_y;
-		(*pAryVert)[iQuadStart + 18] = uvMax.m_x;
-		(*pAryVert)[iQuadStart + 19] = uvMin.m_y;
-	}
-
-	{
-		(*pAryVert)[iQuadStart + 20] = posMax.m_x;
-		(*pAryVert)[iQuadStart + 21] = posMin.m_y;
-		(*pAryVert)[iQuadStart + 22] = uvMax.m_x;
-		(*pAryVert)[iQuadStart + 23] = uvMax.m_y;
-	}
+	(*paryVertdata)[iQuadStart++] = { {posMin.m_x, posMax.m_y}, {uvMin.m_x, uvMin.m_y} };
+	(*paryVertdata)[iQuadStart++] = { {posMax.m_x, posMin.m_y}, {uvMax.m_x, uvMax.m_y} };
+	(*paryVertdata)[iQuadStart++] = { {posMin.m_x,posMin.m_y},{uvMin.m_x,uvMax.m_y} };
+	(*paryVertdata)[iQuadStart++] = { {posMin.m_x, posMax.m_y}, {uvMin.m_x, uvMin.m_y} };
+	(*paryVertdata)[iQuadStart++] = { {posMax.m_x, posMax.m_y}, {uvMax.m_x, uvMin.m_y} };
+	(*paryVertdata)[iQuadStart++] = { {posMax.m_x, posMin.m_y}, {uvMax.m_x, uvMax.m_y} };
 }
 
-void PushVert(Point pos, float2 uv, std::vector<float> * pAryVert, int * pI)
+void PushVert(Point pos, float2 uv, std::vector<SVertData3D> * paryVertdata, int * pI)
 {
-	(*pAryVert)[(*pI)++] = pos.X();
-	(*pAryVert)[(*pI)++] = pos.Y();
-	(*pAryVert)[(*pI)++] = pos.Z();
-	(*pAryVert)[(*pI)++] = uv.m_x;
-	(*pAryVert)[(*pI)++] = uv.m_y;
+	SVertData3D * vertdata = &(*paryVertdata)[(*pI)++];
+	vertdata->m_pos = pos;
+	vertdata->m_uv = uv;
 }
 
-void PushQuad3DDebug(std::vector<float> * pAryVert)
+void PushQuad3DDebug(std::vector<SVertData3D> * paryVertdata)
 {
-	int iQuadStart = pAryVert->size();
+	int iQuadStart = paryVertdata->size();
 
 	Point posLowerLeft = Point(0.0f, -1.0f, -1.0f);
 	Point posLowerRight = Point(0.0f, 1.0f, -1.0f);
 	Point posUpperLeft = Point(0.0f, -1.0f, 1.0f);
 	Point posUpperRight = Point(0.0f, 1.0f, 1.0f);
 
-	pAryVert->resize(pAryVert->size() + 6 * 5);
+	paryVertdata->resize(paryVertdata->size() + 6);
 
-	PushVert(posUpperRight, float2(1.0f, 1.0f), pAryVert, &iQuadStart);
-	PushVert(posLowerLeft, float2(0.0f, 0.0f), pAryVert, &iQuadStart);
-	PushVert(posLowerRight, float2(1.0f, 0.0f), pAryVert, &iQuadStart);
-	PushVert(posLowerLeft, float2(0.0f, 0.0f), pAryVert, &iQuadStart);
-	PushVert(posUpperRight, float2(1.0f, 1.0f), pAryVert, &iQuadStart);
-	PushVert(posUpperLeft, float2(0.0f, 1.0f), pAryVert, &iQuadStart);
+	(*paryVertdata)[iQuadStart++] = { posUpperRight, float2(1.0f, 1.0f) };
+	(*paryVertdata)[iQuadStart++] = { posLowerLeft, float2(0.0f, 0.0f) };
+	(*paryVertdata)[iQuadStart++] = { posLowerRight, float2(1.0f, 0.0f) };
+	(*paryVertdata)[iQuadStart++] = { posLowerLeft, float2(0.0f, 0.0f) };
+	(*paryVertdata)[iQuadStart++] = { posUpperRight, float2(1.0f, 1.0f) };
+	(*paryVertdata)[iQuadStart++] = { posUpperLeft, float2(0.0f, 1.0f) };
 }
 
 SMesh::SMesh()
@@ -891,33 +830,44 @@ SMesh::SMesh()
 	m_typek = TYPEK_Mesh;
 }
 
-void SMesh::SetVerts(float * pGVerts, int cVerts, int cStride, int cOffset)
+void SMesh::SetVerts3D(SVertData3D * aVertdata, int cVerts)
 {
-	// Destroy old buffer
+	// BB shouldn't immediately release this slice, should wait until we're 100% sure the gpu is done with it
 
-	// BB would really be better to hand out pieces of a larger buffer e.g. https://www.gamedev.net/forums/topic/574484-d3d11-how-when-to-properly-destroy-a-vertex-buffer/4664871/
-	//  That discussion also mentions that releasing the buffer like this can cause artifacts if the buffer is still being used for rendering
-	//  Probably not a problem for my highly sequential renderer?
-
-	if (m_cbufferVertex != nullptr)
+	if (m_sliceVertex.m_ibStart != -1)
 	{
-		m_cbufferVertex->Release();
-		m_cbufferVertex = nullptr;
+		g_game.m_cbaVertex3D.ReleaseSlice(m_sliceVertex);
 	}
 
-	m_cVerts = cVerts;
-	m_cStride = cStride;
-	m_cOffset = cOffset;
+	m_sliceVertex = g_game.m_cbaVertex3D.SliceClaim(cVerts * sizeof(SVertData3D));
 
-	D3D11_BUFFER_DESC vertexBufferDesc = {};
-	vertexBufferDesc.ByteWidth = cVerts * cStride * sizeof(float);
-	vertexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
-	vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	// BB/NOTE How would a deferred renderer handle this? If we need to update a constant buffer while the gpu theoretically might be still using it?
+	//  Would we need some kind of queue?
 
-	D3D11_SUBRESOURCE_DATA vertexSubresourceData = { pGVerts };
+	D3D11_MAPPED_SUBRESOURCE mappedSubresourceVerts;
+	g_game.m_pD3ddevicecontext->Map(g_game.m_cbaVertex3D.m_cbuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresourceVerts);
+	memcpy((char *) mappedSubresourceVerts.pData + m_sliceVertex.m_ibStart, aVertdata, cVerts * sizeof(SVertData3D));
+	g_game.m_pD3ddevicecontext->Unmap(g_game.m_cbaVertex3D.m_cbuffer, 0);
+}
 
-	HRESULT hResult = g_game.m_pD3ddevice->CreateBuffer(&vertexBufferDesc, &vertexSubresourceData, &m_cbufferVertex);
-	assert(SUCCEEDED(hResult));
+void SMesh::SetVerts2D(SVertData2D * aVertdata, int cVerts)
+{
+	// BB shouldn't immediately release this slice, should wait until we're 100% sure the gpu is done with it
+
+	if (m_sliceVertex.m_ibStart != -1)
+	{
+		g_game.m_cbaVertex2D.ReleaseSlice(m_sliceVertex);
+	}
+
+	m_sliceVertex = g_game.m_cbaVertex2D.SliceClaim(cVerts * sizeof(SVertData2D));
+
+	// BB/NOTE How would a deferred renderer handle this? If we need to update a constant buffer while the gpu theoretically might be still using it?
+	//  Would we need some kind of queue?
+
+	D3D11_MAPPED_SUBRESOURCE mappedSubresourceVerts;
+	g_game.m_pD3ddevicecontext->Map(g_game.m_cbaVertex2D.m_cbuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresourceVerts);
+	memcpy((char *)mappedSubresourceVerts.pData + m_sliceVertex.m_ibStart, aVertdata, cVerts * sizeof(SVertData2D));
+	g_game.m_pD3ddevicecontext->Unmap(g_game.m_cbaVertex2D.m_cbuffer, 0);
 }
 
 void SGame::Init(HINSTANCE hInstance)
@@ -1100,24 +1050,28 @@ void SGame::Init(HINSTANCE hInstance)
 		depthBuffer->Release();
 	}
 
-	// Create quad mesh
+	{
+		const int cVertsMax = 100000;
+
+		D3D11_BUFFER_DESC vertexBufferDesc = {};
+		vertexBufferDesc.ByteWidth = cVertsMax * sizeof(SVertData3D);
+		vertexBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+		vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+		vertexBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
+		m_cbaVertex3D = SCBufferAllocator(vertexBufferDesc, sizeof(SVertData3D));
+	}
 
 	{
-		m_hMeshQuad = (new SMesh())->HMesh();
+		const int cVertsMax = 100000;
 
-		std::vector<float> aryVert;
+		D3D11_BUFFER_DESC vertexBufferDesc = {};
+		vertexBufferDesc.ByteWidth = cVertsMax * sizeof(SVertData2D);
+		vertexBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+		vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+		vertexBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 
-		// TODO CHANGEME
-
-		PushQuad3DDebug(&aryVert);
-		int cStride = 5 * sizeof(float);
-		int cVerts = aryVert.size() / 5;
-
-		//PushQuad2D(float2(-0.5f, -0.5f), float2(0.5f, 0.5f), float2(0.0f, 0.0f), float2(1.0f, 1.0f), &aryVert);
-		//int cStride = 4 * sizeof(float);
-		//int cVerts = aryVert.size() / 4;
-
-		m_hMeshQuad->SetVerts(aryVert.data(), cVerts, cStride, 0);
+		m_cbaVertex2D = SCBufferAllocator(vertexBufferDesc, sizeof(SVertData2D));
 	}
 
 	{
@@ -1202,6 +1156,18 @@ void SGame::Init(HINSTANCE hInstance)
 		LARGE_INTEGER perfFreq;
 		QueryPerformanceFrequency(&perfFreq);
 		m_perfCounterFrequency = perfFreq.QuadPart;
+	}
+
+	// Create quad mesh
+
+	{
+		m_hMeshQuad = (new SMesh())->HMesh();
+
+		std::vector<SVertData3D> aryVertdata;
+
+		PushQuad3DDebug(&aryVertdata);
+
+		m_hMeshQuad->SetVerts3D(aryVertdata.data(), aryVertdata.size());
 	}
 
 	SShaderHandle hShaderUnlit = (new SShader(L"shaders\\unlit2d.hlsl", false))->HShader();
@@ -1443,7 +1409,8 @@ void SGame::MainLoop()
 				ID3D11Buffer * aD3dbuffer[] = { m_cbufferDrawnode3D, m_cbufferGlobals };
 				m_pD3ddevicecontext->VSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
 				m_pD3ddevicecontext->PSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
-				m_pD3ddevicecontext->IASetVertexBuffers(0, 1, &mesh.m_cbufferVertex, &mesh.m_cStride, &mesh.m_cOffset);
+				unsigned int cbVert = sizeof(SVertData3D);
+				m_pD3ddevicecontext->IASetVertexBuffers(0, 1, &m_cbaVertex3D.m_cbuffer, &cbVert, &g_cbMeshOffset);		// BB don't constantly do this
 
 				D3D11_MAPPED_SUBRESOURCE mappedSubresource;
 				m_pD3ddevicecontext->Map(m_cbufferDrawnode3D, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
@@ -1459,16 +1426,15 @@ void SGame::MainLoop()
 
 				m_pD3ddevicecontext->Unmap(m_cbufferDrawnode3D, 0);
 
-				m_pD3ddevicecontext->IASetVertexBuffers(0, 1, &mesh.m_cbufferVertex, &mesh.m_cStride, &mesh.m_cOffset);
 				//m_pD3ddevicecontext->IASetIndexBuffer(mesh.m_cbufferIndex, DXGI_FORMAT_R16_UINT, 0);
 
-				m_pD3ddevicecontext->Draw(mesh.m_cVerts, 0);
+				m_pD3ddevicecontext->Draw(mesh.m_sliceVertex.m_cb / (sizeof(SVertData3D)), mesh.m_sliceVertex.m_ibStart);
 				//m_pD3ddevicecontext->DrawIndexed(mesh.m_cIndex, 0, 0);
 			}
 		}
 
 		// Draw ui nodes
-
+#if 0
 		for (SUiNodeHandle hUinode : aryhUinodeToRender)
 		{
 			if (!hUinode.PT())
@@ -1552,6 +1518,7 @@ void SGame::MainLoop()
 					break;
 			}
 		}
+#endif
 
 		for (int i = 0; i < DIM(m_mpVkFJustPressed); i++)
 		{

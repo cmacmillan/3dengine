@@ -39,6 +39,7 @@ struct SSlotHeapChunk	// slotheapchunk
 		SSlot<T> * pSlot = m_pSlotFree;
 		m_pSlotFree = static_cast<SSlot<T> *>(pSlot->m_pV);
 		pSlot->m_pV = static_cast<void *>(this);
+		assert(pSlot->m_pV);
 		return &pSlot->m_t;
 	}
 
@@ -59,6 +60,7 @@ struct SSlotHeap // slotheap
 {
 						~SSlotHeap()
 	{
+		m_fIsDestructing = true;
 		SSlotHeapChunk<T> * pSlotheapchunk = m_pSlotheapchunkFree;
 		while(pSlotheapchunk)
 		{
@@ -93,6 +95,9 @@ struct SSlotHeap // slotheap
 
 	void				FreePT(T * pT)
 	{
+		if (m_fIsDestructing) // If things try to unregister themselves because we destroy them while we're destroying ourselves, just ignore that
+			return;
+
 		size_t cOffset = offsetof(SSlot<T>, m_t);
 		SSlot<T> * pSlot = static_cast<SSlot<T> *>(static_cast<void *>(static_cast<char *>(static_cast<void *>(pT)) - cOffset));
 		assert(&pSlot->m_t == pT);
@@ -110,6 +115,7 @@ struct SSlotHeap // slotheap
 	}
 
 	SSlotHeapChunk<T> *		m_pSlotheapchunkFree = nullptr;
+	bool					m_fIsDestructing = false;
 };
 
 
