@@ -34,9 +34,9 @@ SCBufferAllocatorNode::SCBufferAllocatorNode(int ibStart, int cbFree)
 	m_slice = { ibStart, cbFree };
 }
 
-SCBufferAllocatorNode::~SCBufferAllocatorNode()
+void SCBufferAllocatorNode::operator delete(void * ptr)
 {
-	g_slotheapCbanode.FreePT(this);
+	g_slotheapCbanode.FreePT((SCBufferAllocatorNode *) ptr);
 }
 
 SCBufferAllocator::SCBufferAllocator(const D3D11_BUFFER_DESC & desc, int cbAlignment)
@@ -627,6 +627,23 @@ SText::SText(SFontHandle hFont, SNodeHandle hNodeParent) : super(hNodeParent)
 	m_hFont = hFont;
 }
 
+void SText::Update()
+{
+	int i0 = int(g_game.m_dTSyst * 13.0f) % 26;
+	int i1 = int(g_game.m_dTSyst * 17.0f) % 26;
+	int i2 = int(g_game.m_dTSyst * 19.0f) % 26;
+	int i3 = int(g_game.m_dTSyst * 121.0f) % 26;
+	int i4 = int(g_game.m_dTSyst * 123.0f) % 26;
+	SetText(
+		StrPrintf(
+			"%c%c%c%c%c", 
+			char(i0 + 'a'), 
+			char(i1 + 'a'),
+			char(i2 + 'a'),
+			char(i3 + 'a'),
+			char(i4 + 'a')));
+}
+
 
 void SText::SetText(const std::string & str)
 {
@@ -1183,14 +1200,24 @@ void SGame::Init(HINSTANCE hInstance)
 
 	m_hFont = (new SFont("fonts\\candara.fnt"))->HFont();
 
+	SMaterialHandle hMaterialText = (new SMaterial(hShaderText))->HMaterial();
+	hMaterialText->m_hTexture = m_hFont->m_aryhTexture[0];
+
 	m_hText = (new SText(m_hFont, m_hNodeRoot))->HText();
-	m_hText->m_hMaterial = (new SMaterial(hShaderText))->HMaterial();
-	m_hText->m_hMaterial->m_hTexture = m_hText->m_hFont->m_aryhTexture[0];
+	m_hText->m_hMaterial = hMaterialText;
 	m_hText->SetText("Score: joy");
 	m_hText->m_vecScale = float2(1.0f, 1.0f);
 	m_hText->m_gSort = 10.0f;
 	m_hText->m_pos = float2(0.0f, 0.0f);
 	m_hText->m_color = { 0.0f, 0.0f, 0.0f, 1.0f };
+
+	STextHandle hText2 = (new SText(m_hFont, m_hNodeRoot))->HText();
+	hText2->m_hMaterial = hMaterialText;
+	hText2->SetText("Score: joy");
+	hText2->m_vecScale = float2(1.0f, 1.0f);
+	hText2->m_gSort = 10.0f;
+	hText2->m_pos = float2(50.0f, 50.0f);
+	hText2->m_color = { 0.0f, 0.0f, 0.0f, 1.0f };
 
 	// Camera
 
@@ -1286,8 +1313,6 @@ void SGame::MainLoop()
 		//m_hPlaneTest->m_transformLocal.m_quat = QuatAxisAngle(g_vecZAxis, m_dT*10.0f) * m_hPlaneTest->m_transformLocal.m_quat;
 		m_hPlaneTest->m_transformLocal.m_quat = QuatAxisAngle(g_vecZAxis, m_dT) * m_hPlaneTest->m_transformLocal.m_quat;
 		//m_hPlaneTest->m_transformLocal.m_quat = QuatAxisAngle(g_vecZAxis, *m_dT) * m_hPlaneTest->m_transformLocal.m_quat;
-
-		//m_hText->m_vecScale = GSin(m_dTSyst) * float2(1.0f, 1.0f);
 
 		///////////////////////////////
 
@@ -1432,7 +1457,7 @@ void SGame::MainLoop()
 
 				//m_pD3ddevicecontext->IASetIndexBuffer(mesh.m_cbufferIndex, DXGI_FORMAT_R16_UINT, 0);
 
-				m_pD3ddevicecontext->Draw(mesh.m_sliceVertex.m_cb / (sizeof(SVertData3D)), mesh.m_sliceVertex.m_ibStart);
+				m_pD3ddevicecontext->Draw(mesh.m_sliceVertex.m_cb / sizeof(SVertData3D), mesh.m_sliceVertex.m_ibStart / sizeof(SVertData3D));
 				//m_pD3ddevicecontext->DrawIndexed(mesh.m_cIndex, 0, 0);
 			}
 		}
@@ -1484,7 +1509,7 @@ void SGame::MainLoop()
 						ID3D11SamplerState * aD3dsamplerstate[] = { texture.m_pD3dsamplerstate };
 						m_pD3ddevicecontext->PSSetSamplers(0, DIM(aD3dsamplerstate), aD3dsamplerstate);
 
-						m_pD3ddevicecontext->Draw(mesh.m_sliceVertex.m_cb / (sizeof(SVertData2D)), mesh.m_sliceVertex.m_ibStart);
+						m_pD3ddevicecontext->Draw(mesh.m_sliceVertex.m_cb / sizeof(SVertData2D), mesh.m_sliceVertex.m_ibStart / sizeof(SVertData2D));
 					}
 					break;
 				default:
@@ -1520,7 +1545,7 @@ void SGame::MainLoop()
 						ID3D11SamplerState * aD3dsamplerstate[] = { texture.m_pD3dsamplerstate };
 						m_pD3ddevicecontext->PSSetSamplers(0, DIM(aD3dsamplerstate), aD3dsamplerstate);
 
-						m_pD3ddevicecontext->Draw(mesh.m_sliceVertex.m_cb / (sizeof(SVertData2D)), mesh.m_sliceVertex.m_ibStart);
+						m_pD3ddevicecontext->Draw(mesh.m_sliceVertex.m_cb / sizeof(SVertData2D), mesh.m_sliceVertex.m_ibStart / sizeof(SVertData2D));
 					}
 					break;
 			}

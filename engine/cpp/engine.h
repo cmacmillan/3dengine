@@ -76,7 +76,8 @@ struct SCBufferAllocatorNode // cbanode
 
 	SCBufferAllocatorNode(int ibStart, int cbFree);
 	SCBufferAllocatorNode() {}
-	~SCBufferAllocatorNode();
+
+	void operator delete(void * ptr);
 
 	SCBufferAllocatorNode *		m_pCbanodeNext = nullptr;
 	SCBufferSlice				m_slice = {};
@@ -477,6 +478,8 @@ struct SText : SUiNode // text
 	SHandle<SText> HText() { return (SHandle<SText>) m_nHandle; }
 
 	SText(SFontHandle hFont, SNodeHandle hNodeParent);
+
+	void Update() override;
 
 	void SetText(const std::string & str);
 
