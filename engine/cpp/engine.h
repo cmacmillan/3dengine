@@ -135,6 +135,7 @@ enum TYPEK
 		TYPEK_Node,
 			TYPEK_UiNode,
 				TYPEK_Text,
+			TYPEK_FpsCounter,
 			TYPEK_Node3D,
 				TYPEK_DrawNode3D,
 				TYPEK_Camera3D,
@@ -145,31 +146,7 @@ enum TYPEK
 	TYPEK_Nil = -1,
 };
 
-TYPEK TypekSuper(TYPEK typek)
-{
-	switch (typek)
-	{
-		case TYPEK_Object:	return TYPEK_Nil;
-			case TYPEK_Texture:		return TYPEK_Object;
-			case TYPEK_Shader:		return TYPEK_Object;
-			case TYPEK_Material:	return TYPEK_Object;
-			case TYPEK_Node:		return TYPEK_Object;
-				case TYPEK_UiNode:		return TYPEK_Node;
-					case TYPEK_Text:		return TYPEK_UiNode;
-				case TYPEK_Node3D:		return TYPEK_Node;
-					case TYPEK_DrawNode3D:	return TYPEK_Node3D;
-					case TYPEK_Camera3D:	return TYPEK_Node3D;
-			case TYPEK_Font:		return TYPEK_Object;
-			case TYPEK_Mesh2D:		return TYPEK_Object;
-			case TYPEK_Mesh3D:		return TYPEK_Object;
-
-			default:
-				{
-					ASSERT(false);
-					return TYPEK_Nil;
-				}
-	}
-}
+TYPEK TypekSuper(TYPEK typek);
 
 struct SObject  // obj
 {
@@ -467,8 +444,6 @@ struct SText : SUiNode // text
 	SText(SFontHandle hFont, SNodeHandle hNodeParent);
 	~SText();
 
-	void Update() override;
-
 	void SetText(const std::string & str);
 
 	SFontHandle m_hFont = -1;
@@ -500,6 +475,8 @@ struct SGame // game
 	// Fonts
 
 	SFontHandle m_hFont;
+
+	SMaterialHandle m_hMaterialText;
 
 	// Window
 
@@ -545,3 +522,5 @@ struct SGame // game
 	LONGLONG m_startPerfCount = 0;
 	LONGLONG m_perfCounterFrequency = 0;
 };
+
+extern SGame g_game;

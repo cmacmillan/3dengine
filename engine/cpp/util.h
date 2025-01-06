@@ -30,6 +30,20 @@ inline float GMax(float g1, float g2)
 	return g2;
 }
 
+inline int NMin(float n1, float n2)
+{
+	if (n1 < n2)
+		return n1;
+	return n2;
+}
+
+inline int NMax(int n1, int n2)
+{
+	if (n1 > n2)
+		return n1;
+	return n2;
+}
+
 template<typename T>
 int IFind(const std::vector<T> & aryT, const T & t)
 {

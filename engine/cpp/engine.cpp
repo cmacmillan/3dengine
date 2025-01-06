@@ -4,6 +4,7 @@
 #include "stb_image.h"
 
 #include "engine.h"
+#include "fpscounter.h"
 
 #include <exception>
 
@@ -26,6 +27,33 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPSTR /*lpC
 }
 
 /////////////////
+
+TYPEK TypekSuper(TYPEK typek)
+{
+	switch (typek)
+	{
+		case TYPEK_Object:	return TYPEK_Nil;
+			case TYPEK_Texture:		return TYPEK_Object;
+			case TYPEK_Shader:		return TYPEK_Object;
+			case TYPEK_Material:	return TYPEK_Object;
+			case TYPEK_Node:		return TYPEK_Object;
+				case TYPEK_UiNode:		return TYPEK_Node;
+					case TYPEK_Text:		return TYPEK_UiNode;
+				case TYPEK_Node3D:		return TYPEK_Node;
+					case TYPEK_DrawNode3D:	return TYPEK_Node3D;
+					case TYPEK_Camera3D:	return TYPEK_Node3D;
+			case TYPEK_Font:		return TYPEK_Object;
+			case TYPEK_Mesh2D:		return TYPEK_Object;
+			case TYPEK_Mesh3D:		return TYPEK_Object;
+			case TYPEK_FpsCounter:	return TYPEK_Node;
+
+			default:
+				{
+					ASSERT(false);
+					return TYPEK_Nil;
+				}
+	}
+}
 
 float2 SGame::VecWinSize()
 {
@@ -453,36 +481,6 @@ SText::~SText()
 	delete m_hMesh.PT();
 }
 
-void SText::Update()
-{
-	int i0 = (m_nHandle + int((g_game.m_dTSyst + m_nHandle*17) * 13.0f)) % 26;
-	int i1 = int(m_nHandle+ g_game.m_dTSyst * 17.0f) % 26;
-	int i2 = int(m_nHandle + g_game.m_dTSyst * 19.0f) % 26;
-	int i3 = int(m_nHandle + g_game.m_dTSyst * 121.0f) % 26;
-	int i4 = int(m_nHandle + g_game.m_dTSyst * 123.0f) % 26;
-	if (int(m_nHandle + (g_game.m_dTSyst + m_nHandle*13) * 20) % 2 == 0)
-	{
-		SetText(
-			StrPrintf(
-				"%c%c%c%c%c",
-				char(i0 + 'a'),
-				char(i1 + 'a'),
-				char(i2 + 'a'),
-				char(i3 + 'a'),
-				char(i4 + 'a')));
-	}
-	else
-	{
-		SetText(
-			StrPrintf(
-				"%c%c%c",
-				char(i0 + 'a'),
-				char(i1 + 'a'),
-				char(i2 + 'a')));
-	}
-}
-
-
 void SText::SetText(const std::string & str)
 {
 	SFont * pFont = m_hFont.PT();
@@ -698,69 +696,6 @@ SMesh2D::SMesh2D() : super()
 {
 	m_typek = TYPEK_Mesh2D;
 }
-
-#if TODO_DELETE
-void SMesh::SetVerts3D(SVertData3D * aVertdata, int cVerts)
-{
-	// BB shouldn't immediately release this slice, should wait until we're 100% sure the gpu is done with it
-
-	if (m_sliceVertex.m_ibStart != -1)
-	{
-		g_game.m_cbaVertex3D.ReleaseSlice(m_sliceVertex);
-	}
-
-	m_sliceVertex = g_game.m_cbaVertex3D.SliceClaim(cVerts * sizeof(SVertData3D));
-
-	// BB/NOTE How would a deferred renderer handle this? If we need to update a constant buffer while the gpu theoretically might be still using it?
-	//  Would we need some kind of queue?
-
-	D3D11_MAPPED_SUBRESOURCE mappedSubresourceVerts;
-	g_game.m_pD3ddevicecontext->Map(g_game.m_cbaVertex3D.m_cbuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresourceVerts);
-	memcpy((char *) mappedSubresourceVerts.pData + m_sliceVertex.m_ibStart, aVertdata, cVerts * sizeof(SVertData3D));
-	g_game.m_pD3ddevicecontext->Unmap(g_game.m_cbaVertex3D.m_cbuffer, 0);
-}
-
-void SMesh::SetVerts2D(SVertData2D * aVertdata, int cVerts)
-{
-	// BB shouldn't immediately release this slice, should wait until we're 100% sure the gpu is done with it
-
-	if (m_sliceVertex.m_ibStart != -1)
-	{
-		g_game.m_cbaVertex2D.ReleaseSlice(m_sliceVertex);
-	}
-
-	m_sliceVertex = g_game.m_cbaVertex2D.SliceClaim(cVerts * sizeof(SVertData2D));
-
-	// BB/NOTE How would a deferred renderer handle this? If we need to update a constant buffer while the gpu theoretically might be still using it?
-	//  Would we need some kind of queue?
-
-	D3D11_MAPPED_SUBRESOURCE mappedSubresourceVerts;
-	g_game.m_pD3ddevicecontext->Map(g_game.m_cbaVertex2D.m_cbuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresourceVerts);
-	memcpy((char *)mappedSubresourceVerts.pData + m_sliceVertex.m_ibStart, aVertdata, cVerts * sizeof(SVertData2D));
-	g_game.m_pD3ddevicecontext->Unmap(g_game.m_cbaVertex2D.m_cbuffer, 0);
-}
-
-void SMesh::SetIndicies(unsigned short * aiIndex, int cIndex)
-{
-	// BB shouldn't immediately release this slice, should wait until we're 100% sure the gpu is done with it
-
-	if (m_sliceIndex.m_ibStart != -1)
-	{
-		g_game.m_cbaIndex.ReleaseSlice(m_sliceIndex);
-	}
-
-	m_sliceIndex = g_game.m_cbaIndex.SliceClaim(cIndex * sizeof(unsigned short));
-
-	// BB/NOTE How would a deferred renderer handle this? If we need to update a constant buffer while the gpu theoretically might be still using it?
-	//  Would we need some kind of queue?
-
-	D3D11_MAPPED_SUBRESOURCE mappedSubresourceIndicies;
-	g_game.m_pD3ddevicecontext->Map(g_game.m_cbaIndex.m_cbuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresourceIndicies);
-	unsigned short * pShort = (unsigned short *) mappedSubresourceIndicies.pData;
-	memcpy((char *)mappedSubresourceIndicies.pData + m_sliceIndex.m_ibStart, aiIndex, cIndex * sizeof(unsigned short));
-	g_game.m_pD3ddevicecontext->Unmap(g_game.m_cbaIndex.m_cbuffer, 0);
-}
-#endif
 
 void SGame::Init(HINSTANCE hInstance)
 {
@@ -1083,24 +1018,20 @@ void SGame::Init(HINSTANCE hInstance)
 
 	m_hFont = (new SFont("fonts\\candara.fnt"))->HFont();
 
-	SMaterialHandle hMaterialText = (new SMaterial(hShaderText))->HMaterial();
-	hMaterialText->m_hTexture = m_hFont->m_aryhTexture[0];
+	m_hMaterialText = (new SMaterial(hShaderText))->HMaterial();
+	m_hMaterialText->m_hTexture = m_hFont->m_aryhTexture[0];
 
 	m_hText = (new SText(m_hFont, m_hNodeRoot))->HText();
-	m_hText->m_hMaterial = hMaterialText;
+	m_hText->m_hMaterial = m_hMaterialText;
 	m_hText->SetText("Score: joy");
 	m_hText->m_vecScale = float2(1.0f, 1.0f);
 	m_hText->m_gSort = 10.0f;
 	m_hText->m_pos = float2(0.0f, 0.0f);
 	m_hText->m_color = { 0.0f, 0.0f, 0.0f, 1.0f };
 
-	STextHandle hText2 = (new SText(m_hFont, m_hNodeRoot))->HText();
-	hText2->m_hMaterial = hMaterialText;
-	hText2->SetText("Score: joy");
-	hText2->m_vecScale = float2(1.0f, 1.0f);
-	hText2->m_gSort = 10.0f;
-	hText2->m_pos = float2(50.0f, 50.0f);
-	hText2->m_color = { 0.0f, 0.0f, 0.0f, 1.0f };
+	// Fps counter
+
+	(new SFpsCounter(m_hNodeRoot));
 
 	// Camera
 
