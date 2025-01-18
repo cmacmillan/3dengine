@@ -125,6 +125,7 @@
     <ClCompile Include="cpp\camera.cpp" />
     <ClCompile Include="cpp\drawnode3d.cpp" />
     <ClCompile Include="cpp\engine.cpp" />
+    <ClCompile Include="cpp\file.cpp" />
     <ClCompile Include="cpp\font.cpp" />
     <ClCompile Include="cpp\fpscounter.cpp" />
     <ClCompile Include="cpp\material.cpp" />
@@ -145,6 +146,7 @@
     <ClInclude Include="cpp\camera3d.h" />
     <ClInclude Include="cpp\drawnode3d.h" />
     <ClInclude Include="cpp\engine.h" />
+    <ClInclude Include="cpp\file.h" />
     <ClInclude Include="cpp\font.h" />
     <ClInclude Include="cpp\fpscounter.h" />
     <ClInclude Include="cpp\material.h" />

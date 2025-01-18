@@ -3,6 +3,7 @@
 #include <windows.h>
 #include "texture.h"
 #include "util.h"
+#include "file.h"
 
 struct SFontBlockHeader
 {
@@ -74,34 +75,10 @@ SFont::SFont(const char * pChzBitmapfontFile) : super()
 {
 	m_typek = TYPEK_Font;
 
-	// BB would be nice to have a stack allocated string class
+	SFile file;
+	VERIFY(FTryReadFile(pChzBitmapfontFile, &file));
 
-	std::string strPath = std::string(ASSET_PATH) + pChzBitmapfontFile;
-
-    HANDLE hFile = CreateFileA(strPath.c_str(),
-							   GENERIC_READ,		   // open for reading
-							   0,                      // do not share
-							   NULL,                   // default security
-							   OPEN_EXISTING,		   // open existing only
-							   FILE_ATTRIBUTE_NORMAL,  // normal file
-							   NULL);                  // no attr. template
-
-    if (hFile == INVALID_HANDLE_VALUE) 
-    { 
-		MessageBoxA(0, "Font load failed", "Fatal Error", MB_OK);
-		exit;
-    }
-
-	int cBytesFile = GetFileSize(hFile, nullptr);
-	unsigned char * pB = new unsigned char[cBytesFile];
-
-	if (!ReadFile(hFile, pB, cBytesFile, nullptr, nullptr))
-	{
-		MessageBoxA(0, "Font load failed", "Fatal Error", MB_OK);
-		exit;
-	}
-
-	SBinaryStream bs(pB);
+	SBinaryStream bs(file.m_pB);
 	ASSERT(bs.CharRead() == 'B' && bs.CharRead() == 'M' && bs.CharRead() == 'F' && bs.CharRead() == 3);
 
 	SFontBlockHeader fontbhInfo = SFontBlockHeader(&bs);
@@ -134,6 +111,4 @@ SFont::SFont(const char * pChzBitmapfontFile) : super()
 	{
 		m_aryFontkernpair.push_back(SFontKernPair(&bs));
 	}
-
-	delete [] pB;
 }

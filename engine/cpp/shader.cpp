@@ -1,26 +1,26 @@
 #include "shader.h"
 #include <d3dcompiler.h>
 #include "engine.h"
+#include "file.h"
 
-SShader::SShader(LPCWSTR lpcwstrFilename, bool fIs3D) : super()
+SShader::SShader(const char * pChzFile, bool fIs3D) : super()
 {
 	m_typek = TYPEK_Shader;
 
-	std::wstring wstrPath = WstrFromStr(std::string(ASSET_PATH)) + std::wstring(lpcwstrFilename);
+	SFile file;
+	VERIFY(FTryReadFile(pChzFile, &file));
 
 	// Create Vertex Shader
 	ID3DBlob * vsBlob = nullptr;
 	{
+
+		// BB Omitting 3rd argument to D3DCompile will prevent shader #includes from working
+
 		ID3DBlob * shaderCompileErrorsBlob;
-		HRESULT hResult = D3DCompileFromFile(wstrPath.c_str(), nullptr, nullptr, "vs_main", "vs_5_0", 0, 0, &vsBlob, &shaderCompileErrorsBlob);
+		HRESULT hResult = D3DCompile(file.m_pB, file.m_cBytesFile, nullptr, nullptr, nullptr, "vs_main", "vs_5_0", 0, 0, &vsBlob, &shaderCompileErrorsBlob);
 		if (FAILED(hResult))
 		{
-
-			if (hResult == HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND))
-			{
-				MessageBoxA(0, "Could not compile shader; file not found", "Shader Compiler Error", MB_ICONERROR | MB_OK);
-			}
-			else if (shaderCompileErrorsBlob)
+			if (shaderCompileErrorsBlob)
 			{
 				MessageBoxA(0, (const char *) shaderCompileErrorsBlob->GetBufferPointer(), "Shader Compiler Error", MB_ICONERROR | MB_OK);
 			}
@@ -35,13 +35,11 @@ SShader::SShader(LPCWSTR lpcwstrFilename, bool fIs3D) : super()
 	{
 		ID3DBlob * psBlob;
 		ID3DBlob * shaderCompileErrorsBlob;
-		HRESULT hResult = D3DCompileFromFile(wstrPath.c_str(), nullptr, nullptr, "ps_main", "ps_5_0", 0, 0, &psBlob, &shaderCompileErrorsBlob);
+		HRESULT hResult = D3DCompile(file.m_pB, file.m_cBytesFile, nullptr, nullptr, nullptr, "ps_main", "ps_5_0", 0, 0, &psBlob, &shaderCompileErrorsBlob);
 		if (FAILED(hResult))
 		{
 			const char * errorString = NULL;
-			if (hResult == HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND))
-				errorString = "Could not compile shader; file not found";
-			else if (shaderCompileErrorsBlob)
+			if (shaderCompileErrorsBlob)
 			{
 				errorString = (const char *) shaderCompileErrorsBlob->GetBufferPointer();
 				shaderCompileErrorsBlob->Release();

@@ -6,7 +6,7 @@
 struct SShader : SObject // shader
 {
 	typedef SObject super;
-	SShader(LPCWSTR lpcwstrFilename, bool fIs3D);
+	SShader(const char * pChzFile, bool fIs3D);
 	SShaderHandle HShader() { return (SShaderHandle) m_nHandle; }
 
 	ID3D11VertexShader * m_pD3dvertexshader = nullptr;

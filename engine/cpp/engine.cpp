@@ -360,11 +360,11 @@ void SGame::Init(HINSTANCE hInstance)
 		PushQuad3D(&m_hMeshQuad->m_aryVertdata, &m_hMeshQuad->m_aryIIndex);
 	}
 
-	SShaderHandle hShaderUnlit = (new SShader(L"shaders\\unlit2d.hlsl", false))->HShader();
-	SShaderHandle hShaderText = (new SShader(L"shaders\\text2d.hlsl", false))->HShader();
-	SShaderHandle hShaderLit = (new SShader(L"shaders\\lit2d.hlsl", false))->HShader();
+	SShaderHandle hShaderUnlit = (new SShader("shaders\\unlit2d.hlsl", false))->HShader();
+	SShaderHandle hShaderText = (new SShader("shaders\\text2d.hlsl", false))->HShader();
+	SShaderHandle hShaderLit = (new SShader("shaders\\lit2d.hlsl", false))->HShader();
 
-	SShaderHandle hShader3D = (new SShader(L"shaders\\unlit3d.hlsl", true))->HShader();
+	SShaderHandle hShader3D = (new SShader("shaders\\unlit3d.hlsl", true))->HShader();
 
 	// Font 
 
