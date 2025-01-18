@@ -11,11 +11,20 @@ SFpsCounter::SFpsCounter(SHandle<SNode> hNodeParent) : super(hNodeParent)
 	m_hText->m_gSort = 10.0f;
 	m_hText->m_pos = float2(0.0f, 0.0f);
 	m_hText->m_color = { 0.0f, 0.0f, 0.0f, 1.0f };
+
+	m_hTextFps = (new SText(g_game.m_hFont, HNode()))->HText();
+	m_hTextFps->m_hMaterial = g_game.m_hMaterialText;
+	m_hTextFps->SetText("FPS: ___");
+	m_hTextFps->m_vecScale = float2(0.3f, 0.3f);
+	m_hTextFps->m_gSort = 10.0f;
+	m_hTextFps->m_pos = float2(0.0f, 0.0f);
+	m_hTextFps->m_color = { 0.0f, 0.0f, 0.0f, 1.0f };
 }
 
 SFpsCounter::~SFpsCounter()
 {
 	delete m_hText.PT();
+	delete m_hTextFps.PT();
 }
 
 void SFpsCounter::Update()
@@ -26,7 +35,8 @@ void SFpsCounter::Update()
 
 	m_cdT = NMin(++m_cdT, DIM(m_adT));
 	m_idT = (m_idT + 1) % m_cdT;
-	m_adT[m_idT] = g_game.m_dT;
+	m_adT[m_idT] = g_game.m_dTSyst - m_dTSyst;
+	m_dTSyst = g_game.m_dTSyst;
 
 	float gdTAvg = 0.0f;
 	float dTWorst = 0.0f;
@@ -37,24 +47,18 @@ void SFpsCounter::Update()
 	}
 	gdTAvg /= m_cdT;
 
+	if (gdTAvg == 0.0f)
+		return;
+
 	float gFps = 1.0f / gdTAvg;
 
-	float s_gEpsilonNearEnough = .05f;
-	if (gFps - NFloor(gFps) < s_gEpsilonNearEnough)
-		gFps = NFloor(gFps);
+	// TODO fps counter should be a node 2d these things are parented to
 
-	if (NCeil(gFps) - gFps < s_gEpsilonNearEnough)
-		gFps = NCeil(gFps);
+	m_hText->SetText(StrPrintf("avg: %.1fms \nworst: %.1fms\nhistory:%i", GRound(1000 * gdTAvg, 1), GRound(1000 * dTWorst, 1), m_cdT));
+	m_hTextFps->SetText(StrPrintf("(%.0ffps)", GRound(gFps, 0)));
 
-	m_hText->SetText(StrPrintf("avg: %.2f\nworst: %.2f\nhistory:%i", gFps, 1.0f / dTWorst, m_cdT));
+	// BB why do we have to scale vecwinsize by 2?
 
-#if 0
-	// BB this seems to imply that our 2d rendering doesn't have the proper coordinates
-
-	// Todo offset by text size rather than arbitrary nonsense
-
-	m_hText->m_pos = float2(vecWinSize.m_x * 1.0f, vecWinSize.m_y * 1.9f);
-#else
-	m_hText->m_pos = float2(20.0f, vecWinSize.m_y * 1.9f);
-#endif
+	m_hText->m_pos = float2(20.0f, 2.0f * vecWinSize.m_y - 20.0f);
+	m_hTextFps->m_pos = float2(350.0f, 2.0f * vecWinSize.m_y - 20.0f);
 }

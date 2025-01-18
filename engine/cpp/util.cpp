@@ -10,17 +10,17 @@ float GMapRange(float a1, float a2, float b1, float b2, float g)
 
 float GSin(float g)
 {
-	return std::sin(g);
+	return float(std::sin(g));
 }
 
 float GCos(float g)
 {
-	return std::cos(g);
+	return float(std::cos(g));
 }
 
 float GTan(float g)
 {
-	return std::tan(g);
+	return float(std::tan(g));
 }
 
 float GAbs(float g)
@@ -34,6 +34,11 @@ float GAbs(float g)
 float GSqrt(float g)
 {
 	return sqrtf(g);
+}
+
+float GPow(float gBase, float gExponent)
+{
+	return float(std::pow(gBase, gExponent));
 }
 
 float RadFromDeg(float deg)
@@ -59,14 +64,28 @@ bool FIsNear(float a, float b)
 	return FIsNear(a, b, s_gEpsilon);
 }
 
+float GRound(float g, int nDecimalPlaces)
+{
+	float gScalar = GPow(g, nDecimalPlaces);
+	return std::round(g * gScalar) / gScalar;
+}
+
+void AuditGRound()
+{
+	ASSERT(FIsNear(GRound(1.567, 0), 2.0f));
+	ASSERT(FIsNear(GRound(1.567, 1), 1.6f));
+	ASSERT(FIsNear(GRound(1.567, 2), 1.57));
+	ASSERT(FIsNear(GRound(1.567, 3), 1.567));
+}
+
 int NFloor(float g)
 {
-	return std::floor(g);
+	return int(std::floor(g));
 }
 
 int NCeil(float g)
 {
-	return std::ceil(g);
+	return int(std::ceil(g));
 }
 
 bool FIsUpper(char ch)

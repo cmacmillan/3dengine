@@ -1,11 +1,11 @@
 #pragma once
 
 #include <unordered_map>
+
+// Also just kinda including things that everything needs to be able to include, should find a better place
+
 #include "util.h"
 #include "vector.h"
-
-// TODO put ASSET_PATH somewhere better
-
 #define ASSET_PATH "C:\\Users\\chase\\OneDrive\\Desktop\\3dengine\\engine\\" // TODO make relative instead of absolute
 
 struct SObject;
@@ -92,6 +92,10 @@ enum TYPEK
 		TYPEK_Mesh3D,
 
 	TYPEK_Nil = -1,
+
+	// NOTE When adding new elements to this, make sure to add them to TypekSuper too!!!
+	// NOTE When adding new elements to this, make sure to add them to TypekSuper too!!!
+	// NOTE When adding new elements to this, make sure to add them to TypekSuper too!!!
 };
 
 TYPEK TypekSuper(TYPEK typek);

@@ -143,9 +143,8 @@ struct SGame // game
 	// Timing
 
 	float m_dT;
-	float m_dTSyst;
+	double m_dTSyst = 0.0;
 
-	double m_dTSystDouble = 0.0;
 	LONGLONG m_startPerfCount = 0;
 	LONGLONG m_perfCounterFrequency = 0;
 };

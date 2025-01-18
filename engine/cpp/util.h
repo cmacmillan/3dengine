@@ -88,12 +88,16 @@ float GCos(float g);
 float GTan(float g);
 float GAbs(float g);
 float GSqrt(float g);
+float GPow(float gBase, float gExponent);
 
 float RadFromDeg(float deg);
 float DegFromRad(float rad);
 
 bool FIsNear(float a, float b);
 bool FIsNear(float a, float b, float gEpsilon);
+
+float GRound(float g, int nDecimal);
+void AuditGRound();
 
 int NFloor(float g);
 int NCeil(float g);

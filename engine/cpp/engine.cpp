@@ -418,16 +418,15 @@ void SGame::MainLoop()
 	while (isRunning)
 	{
 		{
-			double m_dTSystDoublePrev = m_dTSystDouble;
+			double m_dTSystPrev = m_dTSyst;
 			LARGE_INTEGER perfCount;
 			QueryPerformanceCounter(&perfCount);
 
-			m_dTSystDouble = (double) (perfCount.QuadPart - m_startPerfCount) / (double) m_perfCounterFrequency;
-			m_dT = (float) (m_dTSystDouble - m_dTSystDoublePrev);
+			m_dTSyst = (double) (perfCount.QuadPart - m_startPerfCount) / (double) m_perfCounterFrequency;
+			m_dT = (float) (m_dTSyst - m_dTSystPrev);
 			if (m_dT > (1.f / 60.f))
 				m_dT = (1.f / 60.f);
 		}
-		m_dTSyst = float(m_dTSystDouble);
 
 		MSG msg = {};
 		while (PeekMessageW(&msg, 0, 0, 0, PM_REMOVE))
