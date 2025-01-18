@@ -12,6 +12,7 @@
 #include "slotheap.h"
 #include "binarystream.h"
 #include "font.h"
+#include "material.h"
 
 #include <windows.h>
 #include <vector>
@@ -114,29 +115,6 @@ struct SMesh2D : SObject // mesh
 	unsigned int					m_cVerts = -1;
 	unsigned int					m_iIndexdata = -1;
 	unsigned int					m_cIndicies= -1;
-};
-
-struct SShader : SObject // shader
-{
-	typedef SObject super;
-	SShader(LPCWSTR lpcwstrFilename, bool fIs3D);
-	SShaderHandle HShader() { return (SShaderHandle) m_nHandle; }
-
-	ID3D11VertexShader * m_pD3dvertexshader = nullptr;
-	ID3D11PixelShader * m_pD3dfragshader = nullptr;
-	ID3D11InputLayout * m_pD3dinputlayout = nullptr;
-};
-
-struct SMaterial : SObject // material
-{
-	typedef SObject super;
-	SMaterial(SShaderHandle hShader);
-	SMaterialHandle HMaterial() { return (SMaterialHandle) m_nHandle; }
-
-	STextureHandle m_hTexture = -1;
-	STextureHandle m_hTexture2 = -1;
-	SShaderHandle m_hShader = -1;
-	float2 m_uvTopleft;
 };
 
 struct ShaderGlobals

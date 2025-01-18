@@ -126,6 +126,7 @@
     <ClCompile Include="cpp\font.cpp" />
     <ClCompile Include="cpp\fpscounter.cpp" />
     <ClCompile Include="cpp\object.cpp" />
+    <ClCompile Include="cpp\shader.cpp" />
     <ClCompile Include="cpp\slotheap.cpp" />
     <ClCompile Include="cpp\texture.cpp" />
     <ClCompile Include="cpp\util.cpp" />
@@ -136,7 +137,9 @@
     <ClInclude Include="cpp\engine.h" />
     <ClInclude Include="cpp\font.h" />
     <ClInclude Include="cpp\fpscounter.h" />
+    <ClInclude Include="cpp\material.h" />
     <ClInclude Include="cpp\object.h" />
+    <ClInclude Include="cpp\shader.h" />
     <ClInclude Include="cpp\slotheap.h" />
     <ClInclude Include="cpp\stb_image.h" />
     <ClInclude Include="cpp\texture.h" />

@@ -1,5 +1,7 @@
 #include "object.h"
 
+SObjectManager g_objman;
+
 TYPEK TypekSuper(TYPEK typek)
 {
 	switch (typek)

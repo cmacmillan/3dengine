@@ -2,6 +2,7 @@
 
 #include <unordered_map>
 #include "util.h"
+#include "vector.h"
 
 // TODO put ASSET_PATH somewhere better
 
