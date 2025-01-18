@@ -5,6 +5,7 @@
 
 #include "engine.h"
 #include "fpscounter.h"
+#include "texture.h"
 
 #include <exception>
 
@@ -28,33 +29,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPSTR /*lpC
 
 /////////////////
 
-TYPEK TypekSuper(TYPEK typek)
-{
-	switch (typek)
-	{
-		case TYPEK_Object:	return TYPEK_Nil;
-			case TYPEK_Texture:		return TYPEK_Object;
-			case TYPEK_Shader:		return TYPEK_Object;
-			case TYPEK_Material:	return TYPEK_Object;
-			case TYPEK_Node:		return TYPEK_Object;
-				case TYPEK_UiNode:		return TYPEK_Node;
-					case TYPEK_Text:		return TYPEK_UiNode;
-				case TYPEK_Node3D:		return TYPEK_Node;
-					case TYPEK_DrawNode3D:	return TYPEK_Node3D;
-					case TYPEK_Camera3D:	return TYPEK_Node3D;
-			case TYPEK_Font:		return TYPEK_Object;
-			case TYPEK_Mesh2D:		return TYPEK_Object;
-			case TYPEK_Mesh3D:		return TYPEK_Object;
-			case TYPEK_FpsCounter:	return TYPEK_Node;
-
-			default:
-				{
-					ASSERT(false);
-					return TYPEK_Nil;
-				}
-	}
-}
-
 float2 SGame::VecWinSize()
 {
 	RECT winRect;
@@ -73,117 +47,6 @@ SGame::SGame()
 		m_mpVkFJustPressed[i] = false;
 		m_mpVkFJustReleased[i] = false;
 	}
-}
-
-void SObjectManager::RegisterObj(SObject * pObj)
-{
-	int id = m_cId;
-	m_cId++;
-	m_mpObjhObj.emplace(id, pObj);
-	pObj->m_nHandle = id;
-}
-
-void SObjectManager::UnregisterObj(SObject * pObj)
-{
-	m_mpObjhObj.erase(m_mpObjhObj.find(pObj->m_nHandle));
-}
-
-SObject::SObject()
-{
-	g_objman.RegisterObj(this);
-}
-
-SObject::~SObject()
-{
-	g_objman.UnregisterObj(this);
-}
-
-// BB could be faster and non-recursive
-
-bool SObject::FIsDerivedFrom(TYPEK typek)
-{
-	for (TYPEK typekIter = m_typek; typekIter != TYPEK_Nil; typekIter = TypekSuper(typekIter))
-	{
-		if (typekIter == typek)
-			return true;
-	}
-
-	return false;
-}
-
-STexture::STexture(const char * pChzFilename, bool fIsNormal, bool fGenerateMips) : super()
-{
-	m_typek = TYPEK_Texture;
-
-	// Create Sampler State
-
-	D3D11_SAMPLER_DESC samplerDesc = {};
-	samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
-	samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
-	samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
-	samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
-	samplerDesc.MinLOD = 0.0f;
-	samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
-	samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
-
-#if ENABLE_ANISOTROPY
-	samplerDesc.MaxAnisotropy = D3D11_REQ_MAXANISOTROPY;
-	samplerDesc.Filter = D3D11_FILTER_ANISOTROPIC;
-#endif
-
-	g_game.m_pD3ddevice->CreateSamplerState(&samplerDesc, &m_pD3dsamplerstate);
-
-	std::string strPath = StrPrintf("%s%s", ASSET_PATH, pChzFilename);
-
-	// Load Image
-	int texNumChannels;
-	int texForceNumChannels = 4;
-	unsigned char * aBTexture = stbi_load(strPath.c_str(), &m_dX, &m_dY,
-		&texNumChannels, texForceNumChannels);
-	assert(aBTexture);
-	int texBytesPerRow = 4 * m_dX;
-
-	// Create Texture
-	D3D11_TEXTURE2D_DESC textureDesc = {};
-	textureDesc.Width = m_dX;
-	textureDesc.Height = m_dY;
-	//textureDesc.MipLevels = 1;
-	textureDesc.MipLevels = fGenerateMips ? 0 : 1;
-	textureDesc.ArraySize = 1;
-	textureDesc.Format = fIsNormal ? DXGI_FORMAT_R8G8B8A8_UNORM : DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-	textureDesc.SampleDesc.Count = 1;
-	//textureDesc.Usage = D3D11_USAGE_IMMUTABLE;
-	textureDesc.Usage = D3D11_USAGE_DEFAULT;
-	textureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-	if (fGenerateMips)
-	{
-		textureDesc.BindFlags |= D3D11_BIND_RENDER_TARGET;
-		textureDesc.MiscFlags = D3D11_RESOURCE_MISC_GENERATE_MIPS;
-	}
-
-	D3D11_SUBRESOURCE_DATA textureSubresourceData = {};
-	textureSubresourceData.pSysMem = aBTexture;
-	textureSubresourceData.SysMemPitch = texBytesPerRow;
-	textureSubresourceData.SysMemSlicePitch = 4 * m_dX * m_dY;
-
-	HRESULT hresultTexture = g_game.m_pD3ddevice->CreateTexture2D(&textureDesc, fGenerateMips ? nullptr : &textureSubresourceData, &m_pD3dtexture);
-	ASSERT(hresultTexture == S_OK);
-
-	D3D11_SHADER_RESOURCE_VIEW_DESC d3dsrvd = {};
-
-	d3dsrvd.Format = textureDesc.Format;
-	d3dsrvd.ViewDimension = D3D_SRV_DIMENSION_TEXTURE2D;
-	d3dsrvd.Texture2D.MipLevels = -1;
-
-	g_game.m_pD3ddevice->CreateShaderResourceView(m_pD3dtexture, &d3dsrvd, &m_pD3dsrview);
-
-	if (fGenerateMips)
-	{
-		g_game.m_pD3ddevicecontext->UpdateSubresource(m_pD3dtexture, 0, nullptr, aBTexture, 4 * m_dX, 4 * m_dX * m_dY);
-		g_game.m_pD3ddevicecontext->GenerateMips(m_pD3dsrview);
-	}
-
-	free(aBTexture);
 }
 
 SShader::SShader(LPCWSTR lpcwstrFilename, bool fIs3D) : super()
@@ -288,186 +151,6 @@ float2 SCamera::PosWorldFromCursor(float2 posCursor)
 }
 */
 
-char SBinaryStream::CharRead()
-{
-	return m_pB[m_i++];
-}
-
-unsigned char SBinaryStream::UcharRead()
-{
-	return m_pB[m_i++];
-}
-
-short SBinaryStream::ShortRead()
-{
-	short s = m_pB[m_i] | (m_pB[m_i+1] << 8);
-	m_i += 2;
-	return s;
-}
-
-unsigned short SBinaryStream::UshortRead()
-{
-	unsigned short s = m_pB[m_i] | (m_pB[m_i+1] << 8);
-	m_i += 2;
-	return s;
-}
-
-int SBinaryStream::IntRead()
-{
-	int n = m_pB[m_i] | (m_pB[m_i+1] << 8) | (m_pB[m_i+2] << 16) | (m_pB[m_i+3] << 24);
-	m_i += 4;
-	return n;
-}
-
-unsigned int SBinaryStream::UintRead()
-{
-	unsigned int n = m_pB[m_i] | (m_pB[m_i+1] << 8) | (m_pB[m_i+2] << 16) | (m_pB[m_i+3] << 24);
-	m_i += 4;
-	return n;
-}
-
-const char * SBinaryStream::PChzRead()
-{
-	const char * pChz = (const char *)m_pB + m_i;
-	int c = strlen(pChz);
-	m_i = m_i + c + 1;
-	return pChz;
-}
-
-struct SFontBlockHeader
-{
-	SFontBlockHeader(SBinaryStream * pBs);
-	char m_bType;
-	unsigned int m_cBytes;
-};
-
-// https://www.angelcode.com/products/bmfont/doc/file_format.html#bin
-
-SFontBlockHeader::SFontBlockHeader(SBinaryStream * pBs)
-{
-	m_bType = pBs->CharRead();
-	m_cBytes = pBs->UintRead();
-}
-
-SFontInfoBlock::SFontInfoBlock(SBinaryStream * pBs)
-{
-	m_nFontSize = pBs->ShortRead();
-	m_bBitField = pBs->CharRead();
-	m_bCharSet = pBs->UcharRead();
-	m_nStretchH = pBs->UshortRead();
-	m_bAA = pBs->UcharRead();
-	m_bPaddingUp = pBs->UcharRead();
-	m_bPaddingRight = pBs->UcharRead();
-	m_bPaddingDown = pBs->UcharRead();
-	m_bPaddingLeft = pBs->UcharRead();
-	m_bSpacingHoriz = pBs->UcharRead();
-	m_bSpacingVert = pBs->UcharRead();
-	m_bOutline = pBs->UcharRead();
-}
-
-SFontCommonBlock::SFontCommonBlock(SBinaryStream * pBs)
-{
-	m_nLineHeight = pBs->UshortRead();
-	m_nBase = pBs->UshortRead();
-	m_nScaleW = pBs->UshortRead();
-	m_nScaleH = pBs->UshortRead();
-	m_nPages = pBs->UshortRead();
-	m_bBitField = pBs->CharRead();
-	m_bAlphaChnl = pBs->UcharRead();
-	m_bRedChnl = pBs->UcharRead();
-	m_bGreenChnl = pBs->UcharRead();
-	m_bBlueChnl = pBs->UcharRead();
-}
-
-SFontChar::SFontChar(SBinaryStream * pBs)
-{
-	m_nId = pBs->UintRead();
-	m_nX = pBs->UshortRead();
-	m_nY = pBs->UshortRead();
-	m_nWidth = pBs->UshortRead();
-	m_nHeight = pBs->UshortRead();
-	m_nXOffset = pBs->ShortRead();
-	m_nYOffset = pBs->ShortRead();
-	m_nXAdvance = pBs->ShortRead();
-	m_nPage = pBs->UcharRead();
-	m_nChnl = pBs->UcharRead();
-}
-
-SFontKernPair::SFontKernPair(SBinaryStream * pBs)
-{
-	m_nFirst = pBs->UintRead();
-	m_nSecond = pBs->UintRead();
-	m_nAmount = pBs->ShortRead();
-}
-
-SFont::SFont(const char * pChzBitmapfontFile) : super()
-{
-	m_typek = TYPEK_Font;
-
-	// BB would be nice to have a stack allocated string class
-
-	std::string strPath = std::string(ASSET_PATH) + pChzBitmapfontFile;
-
-    HANDLE hFile = CreateFileA(strPath.c_str(),
-							   GENERIC_READ,		   // open for reading
-							   0,                      // do not share
-							   NULL,                   // default security
-							   OPEN_EXISTING,		   // open existing only
-							   FILE_ATTRIBUTE_NORMAL,  // normal file
-							   NULL);                  // no attr. template
-
-    if (hFile == INVALID_HANDLE_VALUE) 
-    { 
-		MessageBoxA(0, "Font load failed", "Fatal Error", MB_OK);
-		exit;
-    }
-
-	int cBytesFile = GetFileSize(hFile, nullptr);
-	unsigned char * pB = new unsigned char[cBytesFile];
-
-	if (!ReadFile(hFile, pB, cBytesFile, nullptr, nullptr))
-	{
-		MessageBoxA(0, "Font load failed", "Fatal Error", MB_OK);
-		exit;
-	}
-
-	SBinaryStream bs(pB);
-	ASSERT(bs.CharRead() == 'B' && bs.CharRead() == 'M' && bs.CharRead() == 'F' && bs.CharRead() == 3);
-
-	SFontBlockHeader fontbhInfo = SFontBlockHeader(&bs);
-	m_fontib = SFontInfoBlock(&bs);
-	const char * pChzFontName = bs.PChzRead();
-	m_strFontName = std::string(pChzFontName);
-
-	SFontBlockHeader fontbhCommon = SFontBlockHeader(&bs);
-	m_fontcb = SFontCommonBlock(&bs);
-
-	SFontBlockHeader fontbhNames = SFontBlockHeader(&bs);
-	for (int i = 0; i < m_fontcb.m_nPages; i++)
-	{
-		const char * pChzFile = bs.PChzRead();
-		m_aryhTexture.push_back((new STexture(StrPrintf("fonts\\%s", pChzFile).c_str(), false, false))->HTexture());
-	}
-
-	SFontBlockHeader fontbhChars = SFontBlockHeader(&bs);
-	int cFontchar = fontbhChars.m_cBytes / 20;
-	for (int i = 0; i < cFontchar; i++)
-	{
-		m_aryFontchar.push_back(SFontChar(&bs));
-	}
-
-	// BB this header & block may be missing if no kern pairs are present
-
-	SFontBlockHeader fontbhKern = SFontBlockHeader(&bs);
-	int cFontkernpair = fontbhKern.m_cBytes / 10;
-	for (int i = 0; i < cFontkernpair; i++)
-	{
-		m_aryFontkernpair.push_back(SFontKernPair(&bs));
-	}
-
-	delete [] pB;
-}
-
 SText::SText(SFontHandle hFont, SNodeHandle hNodeParent) : super(hNodeParent)
 {
 	m_typek = TYPEK_Text;
@@ -537,7 +220,7 @@ void SText::SetText(const std::string & str)
 	}
 }
 
-SNode::SNode(SHandle<SNode> hNodeParent) :
+SNode::SNode(SNodeHandle hNodeParent) :
 	super()
 {
 	SetParent(hNodeParent);
@@ -545,7 +228,7 @@ SNode::SNode(SHandle<SNode> hNodeParent) :
 	m_typek = TYPEK_Node;
 }
 
-void SNode::SetParent(SHandle<SNode> hNodeParent)
+void SNode::SetParent(SNodeHandle hNodeParent)
 {
 	if (m_hNodeParent == hNodeParent)
 		return;
@@ -614,14 +297,14 @@ void SNode::SetParent(SHandle<SNode> hNodeParent)
 	}
 }
 
-SNode3D::SNode3D(SHandle<SNode> hNodeParent) :
+SNode3D::SNode3D(SNodeHandle hNodeParent) :
 	super(hNodeParent),
 	m_transformLocal()
 {
 	m_typek = TYPEK_Node3D;
 }
 
-SCamera3D::SCamera3D(SHandle<SNode> hNodeParent, float radFovHorizontal, float xNearClip, float xFarClip) :
+SCamera3D::SCamera3D(SNodeHandle hNodeParent, float radFovHorizontal, float xNearClip, float xFarClip) :
 	super(hNodeParent),
 	m_radFovHorizontal(radFovHorizontal),
 	m_xNearClip(xNearClip),
@@ -630,7 +313,7 @@ SCamera3D::SCamera3D(SHandle<SNode> hNodeParent, float radFovHorizontal, float x
 	m_typek = TYPEK_Camera3D;
 }
 
-SDrawNode3D::SDrawNode3D(SHandle<SNode> hNodeParent) :
+SDrawNode3D::SDrawNode3D(SNodeHandle hNodeParent) :
 	super(hNodeParent)
 {
 	m_typek = TYPEK_DrawNode3D;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "object.h"
 #include "engine.h"
 
 struct SFpsCounter : SNode // fps

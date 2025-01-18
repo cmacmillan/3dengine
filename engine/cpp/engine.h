@@ -2,24 +2,25 @@
 
 #define DEBUG_BUILD
 
-#define ASSET_PATH "C:\\Users\\chase\\OneDrive\\Desktop\\3dengine\\engine\\" // TODO make relative instead of absolute
-
 // Uses some starter code from https://github.com/kevinmoran/BeginnerDirect3D11
 
 #define WIN32_LEAN_AND_MEAN
 #define UNICODE
+
+#include "object.h"
 #include "util.h"
+#include "slotheap.h"
+#include "binarystream.h"
+#include "font.h"
+
 #include <windows.h>
 #include <vector>
 #include <string>
-#include <unordered_map>
 #include <d3d11_1.h>
 #pragma comment(lib, "d3d11.lib")
 #include <d3dcompiler.h>
 #pragma comment(lib, "d3dcompiler.lib")
-
 #include "vector.h"
-#include "slotheap.h"
 
 //#include "stb_image.h"
 
@@ -62,212 +63,6 @@
 #define VK_Y 0x59
 #define VK_Z 0x5A
 
-struct SObject;
-struct SObjectManager
-{
-	void RegisterObj(SObject * pObj);
-	void UnregisterObj(SObject * pObj);
-	std::unordered_map<int, SObject *> m_mpObjhObj;
-	int m_cId = 0;
-};
-extern SObjectManager g_objman;
-
-template <typename T>
-struct SHandle
-{
-	SHandle() : m_id(-1) {}
-	SHandle(int id) : m_id(id) {}
-	int m_id = -1;
-	T * PT() const
-	{
-		auto kv = g_objman.m_mpObjhObj.find(m_id);
-		if (kv == g_objman.m_mpObjhObj.end()) return nullptr;
-		return (T *) kv->second;
-	}
-	T * operator->() const
-	{
-		return PT();
-	}
-	T & operator*() const
-	{
-		T * pT = PT();
-		if (pT == nullptr)
-		{
-			// Deliberately crash
-			*((char *)nullptr) = 0;
-		}
-		return *pT;
-	}
-	bool operator==(const SHandle<T> & hOther) const
-	{
-		return m_id == hOther.m_id;
-	}
-	bool operator==(const void * pV) const
-	{
-		return PT() == pV;
-	}
-	bool operator==(int id) const
-	{
-		return m_id == id;
-	}
-};
-
-template <typename T>
-bool operator==(const void * pV, const SHandle<T> & hOther)
-{
-	return pV == hOther.PT();
-}
-
-template <typename T>
-bool operator==(const int id, const SHandle<T> & hOther)
-{
-	return id == hOther.m_id;
-}
-
-enum TYPEK
-{
-	// NOTE When adding new elements to this, make sure to add them to TypekSuper too
-
-	TYPEK_Object,
-		TYPEK_Texture,
-		TYPEK_Shader,
-		TYPEK_Material,
-		TYPEK_Node,
-			TYPEK_UiNode,
-				TYPEK_Text,
-			TYPEK_FpsCounter,
-			TYPEK_Node3D,
-				TYPEK_DrawNode3D,
-				TYPEK_Camera3D,
-		TYPEK_Font,
-		TYPEK_Mesh2D,
-		TYPEK_Mesh3D,
-
-	TYPEK_Nil = -1,
-};
-
-TYPEK TypekSuper(TYPEK typek);
-
-struct SObject  // obj
-{
-	SObject();
-	~SObject();
-	bool FIsDerivedFrom(TYPEK typek);
-	TYPEK m_typek = TYPEK_Object;
-	int m_nHandle = -1;
-};
-
-struct SBinaryStream
-{
-	SBinaryStream(unsigned char * pB) : m_pB(pB), m_i(0) {}
-	char CharRead();
-	unsigned char UcharRead();
-	short ShortRead();
-	unsigned short UshortRead();
-	int IntRead();
-	unsigned int UintRead();
-	const char * PChzRead();
-	unsigned char * m_pB;
-	int m_i;
-};
-
-// https://www.angelcode.com/products/bmfont/doc/file_format.html
-
-struct SFontInfoBlock
-{
-	SFontInfoBlock() {}
-	SFontInfoBlock(SBinaryStream * pBs);
-	short m_nFontSize;
-	char m_bBitField;
-	unsigned char m_bCharSet;
-	unsigned short m_nStretchH;
-	unsigned char m_bAA;
-	unsigned char m_bPaddingUp;
-	unsigned char m_bPaddingRight;
-	unsigned char m_bPaddingDown;
-	unsigned char m_bPaddingLeft;
-	unsigned char m_bSpacingHoriz;
-	unsigned char m_bSpacingVert;
-	unsigned char m_bOutline;
-};
-
-struct SFontCommonBlock
-{
-	SFontCommonBlock() {}
-	SFontCommonBlock(SBinaryStream * pBs);
-	unsigned short m_nLineHeight;	// This is the distance in pixels between each line of text.
-	unsigned short m_nBase;			// The number of pixels from the absolute top of the line to the base of the characters.
-	unsigned short m_nScaleW;		// The width of the texture, normally used to scale the x pos of the character image.
-	unsigned short m_nScaleH;		// The height of the texture, normally used to scale the y pos of the character image.
-	unsigned short m_nPages;		// The number of texture pages included in the font.
-	char m_bBitField;				// Set to 1 if the monochrome characters have been packed into each of the texture channels. 
-									//  In this case alphaChnl describes what is stored in each channel.
-
-	////////////////////////////////// The following applies to all of the rgba channels:
-	unsigned char m_bAlphaChnl;		//  Set to 0 if the channel holds the glyph data, 
-	unsigned char m_bRedChnl;		//  1 if it holds the outline, 
-	unsigned char m_bGreenChnl;		//  2 if it holds the glyph and the outline, 
-	unsigned char m_bBlueChnl;		//  3 if its set to zero, 
-									//  and 4 if its set to one.
-};
-
-struct SFontChar
-{
-	SFontChar() {}
-	SFontChar(SBinaryStream * pBs);
-	unsigned int m_nId;				// The character id.
-	unsigned short m_nX;			// The left position of the character image in the texture.
-	unsigned short m_nY;			// The top position of the character image in the texture.
-	unsigned short m_nWidth;		// The width of the character image in the texture.
-	unsigned short m_nHeight;		// The height of the character image in the texture.
-	short m_nXOffset;				// How much the current position should be offset when copying the image from the texture to the screen.
-	short m_nYOffset;				//  ...
-	short m_nXAdvance;				// How much the current position should be advanced after drawing the character.
-	unsigned char m_nPage;			// The texture page where the character image is found.
-	unsigned char m_nChnl;			// The texture channel where the character image is found 
-									//  1 = blue, 2 = green, 4 = red, 8 = alpha, 15 = all channels
-};
-
-struct SFontKernPair
-{
-	SFontKernPair() {}
-	SFontKernPair(SBinaryStream * pBs);
-	unsigned int m_nFirst;			// The first character id.
-	unsigned int m_nSecond;			// The second character id.
-	short m_nAmount;				// How much the x position should be adjusted when drawing the second character immediately following the first.
-};
-
-struct STexture : SObject // texture
-{
-	typedef SObject super;
-	STexture(const char * pChzFilename, bool fIsNormal, bool fGenerateMips);
-	SHandle<STexture> HTexture() { return (SHandle<STexture>) m_nHandle; }
-
-	ID3D11Texture2D * m_pD3dtexture = nullptr;
-	ID3D11ShaderResourceView * m_pD3dsrview = nullptr;
-	ID3D11SamplerState * m_pD3dsamplerstate = nullptr;
-
-	int m_dX;
-	int m_dY;
-};
-typedef SHandle<STexture> STextureHandle;
-
-struct SFont : SObject
-{
-	typedef SObject super;
-	SFont(const char * pChzBitmapfontFile);
-	SHandle<SFont> HFont() { return (SHandle<SFont>) m_nHandle; }
-
-	SFontInfoBlock m_fontib;
-	std::string m_strFontName;
-	SFontCommonBlock m_fontcb;
-	std::vector<SFontChar> m_aryFontchar;
-	std::vector<SFontKernPair> m_aryFontkernpair;
-
-	std::vector<STextureHandle> m_aryhTexture;
-};
-typedef SHandle<SFont> SFontHandle;
-
 struct SVertData3D
 {
 	Point	m_pos;
@@ -289,7 +84,7 @@ struct SMesh3D : SObject // mesh
 {
 	typedef SObject super;
 	SMesh3D();
-	SHandle<SMesh3D> HMesh() { return (SHandle<SMesh3D>) m_nHandle; }
+	SMesh3DHandle HMesh() { return (SMesh3DHandle) m_nHandle; }
 
 	std::vector<SVertData3D>		m_aryVertdata;
 	std::vector<unsigned short>		m_aryIIndex;
@@ -302,13 +97,12 @@ struct SMesh3D : SObject // mesh
 	unsigned int					m_iIndexdata = -1;
 	unsigned int					m_cIndicies= -1;
 };
-typedef SHandle<SMesh3D> SMesh3DHandle;
 
 struct SMesh2D : SObject // mesh
 {
 	typedef SObject super;
 	SMesh2D();
-	SHandle<SMesh2D> HMesh() { return (SHandle<SMesh2D>) m_nHandle; }
+	SMesh2DHandle HMesh() { return (SMesh2DHandle) m_nHandle; }
 
 	std::vector<SVertData2D>		m_aryVertdata;
 	std::vector<unsigned short>		m_aryIIndex;
@@ -321,32 +115,29 @@ struct SMesh2D : SObject // mesh
 	unsigned int					m_iIndexdata = -1;
 	unsigned int					m_cIndicies= -1;
 };
-typedef SHandle<SMesh2D> SMesh2DHandle;
 
 struct SShader : SObject // shader
 {
 	typedef SObject super;
 	SShader(LPCWSTR lpcwstrFilename, bool fIs3D);
-	SHandle<SShader> HShader() { return (SHandle<SShader>) m_nHandle; }
+	SShaderHandle HShader() { return (SShaderHandle) m_nHandle; }
 
 	ID3D11VertexShader * m_pD3dvertexshader = nullptr;
 	ID3D11PixelShader * m_pD3dfragshader = nullptr;
 	ID3D11InputLayout * m_pD3dinputlayout = nullptr;
 };
-typedef SHandle<SShader> SShaderHandle;
 
 struct SMaterial : SObject // material
 {
 	typedef SObject super;
 	SMaterial(SShaderHandle hShader);
-	SHandle<SMaterial> HMaterial() { return (SHandle<SMaterial>) m_nHandle; }
+	SMaterialHandle HMaterial() { return (SMaterialHandle) m_nHandle; }
 
 	STextureHandle m_hTexture = -1;
 	STextureHandle m_hTexture2 = -1;
 	SShaderHandle m_hShader = -1;
 	float2 m_uvTopleft;
 };
-typedef SHandle<SMaterial> SMaterialHandle;
 
 struct ShaderGlobals
 {
@@ -359,47 +150,44 @@ struct ShaderGlobals
 struct SNode : SObject // node
 {
 	typedef SObject super;
-	SHandle<SNode> HNode() { return (SHandle<SNode>) m_nHandle; }
+	SNodeHandle HNode() { return (SNodeHandle) m_nHandle; }
 
-	SNode(SHandle<SNode> hNodeParent);
-	void SetParent(SHandle<SNode> hNodeParent);
+	SNode(SNodeHandle hNodeParent);
+	void SetParent(SNodeHandle hNodeParent);
 
 	virtual void Update() {}
 
-	SHandle<SNode> m_hNodeParent = -1;
+	SNodeHandle m_hNodeParent = -1;
 
-	SHandle<SNode> m_hNodeSiblingPrev = -1;
-	SHandle<SNode> m_hNodeSiblingNext = -1;
+	SNodeHandle m_hNodeSiblingPrev = -1;
+	SNodeHandle m_hNodeSiblingNext = -1;
 
-	SHandle<SNode> m_hNodeChildFirst = -1;
-	SHandle<SNode> m_hNodeChildLast = -1;
+	SNodeHandle m_hNodeChildFirst = -1;
+	SNodeHandle m_hNodeChildLast = -1;
 
 };
-typedef SHandle<SNode> SNodeHandle; 
 
 struct SNode3D : SNode // node3D
 {
 	typedef SNode super;
-	SHandle<SNode3D> HNode3D() { return (SHandle<SNode3D>) m_nHandle; }
+	SNode3DHandle HNode3D() { return (SNode3DHandle) m_nHandle; }
 
-	SNode3D(SHandle<SNode> hNodeParent);
+	SNode3D(SNodeHandle hNodeParent);
 
 	Transform m_transformLocal;
 };
-typedef SHandle<SNode3D> SNode3DHandle;
 
 struct SCamera3D : SNode3D // camera3D
 {
 	typedef SNode3D super;
-	SHandle<SCamera3D> HCamera3D() { return (SHandle<SCamera3D>) m_nHandle; }
+	SCamera3DHandle HCamera3D() { return (SCamera3DHandle) m_nHandle; }
 
-	SCamera3D(SHandle<SNode> hNodeParent, float radFovHorizontal, float xNearClip, float xFarClip);
+	SCamera3D(SNodeHandle hNodeParent, float radFovHorizontal, float xNearClip, float xFarClip);
 
 	float m_radFovHorizontal = -1;
 	float m_xNearClip = -1;
 	float m_xFarClip = -1;
 };
-typedef SHandle<SCamera3D> SCamera3DHandle;
 
 struct SDrawNodeRenderConstants
 {
@@ -409,14 +197,13 @@ struct SDrawNodeRenderConstants
 struct SDrawNode3D : SNode3D // drawnode3D
 {
 	typedef SNode3D super;
-	SHandle<SDrawNode3D> HDrawnode3D() { return (SHandle<SDrawNode3D>) m_nHandle; }
+	SDrawNode3DHandle HDrawnode3D() { return (SDrawNode3DHandle) m_nHandle; }
 
-	SDrawNode3D(SHandle<SNode> hNodeParent);
+	SDrawNode3D(SNodeHandle hNodeParent);
 
 	SMaterialHandle m_hMaterial = -1;
 	SMesh3DHandle m_hMesh = -1;
 };
-typedef SHandle<SDrawNode3D> SDrawNode3DHandle;
 
 struct SUiNodeRenderConstants
 {
@@ -428,7 +215,7 @@ struct SUiNodeRenderConstants
 struct SUiNode : SNode // uinode
 {
 	typedef SNode super;
-	SHandle<SUiNode> HUinode() { return (SHandle<SUiNode>) m_nHandle; }
+	SUiNodeHandle HUinode() { return (SUiNodeHandle) m_nHandle; }
 
 	SUiNode(SNodeHandle hNodeParent);
 	void GetRenderConstants(SUiNodeRenderConstants * pUinoderc);
@@ -441,12 +228,11 @@ struct SUiNode : SNode // uinode
 	SMaterialHandle m_hMaterial = -1;
 	SMesh2DHandle m_hMesh = -1;
 };
-typedef SHandle<SUiNode> SUiNodeHandle;
 
 struct SText : SUiNode // text
 {
 	typedef SUiNode super;
-	SHandle<SText> HText() { return (SHandle<SText>) m_nHandle; }
+	STextHandle HText() { return (STextHandle) m_nHandle; }
 
 	SText(SFontHandle hFont, SNodeHandle hNodeParent);
 	~SText();
@@ -456,7 +242,6 @@ struct SText : SUiNode // text
 	SFontHandle m_hFont = -1;
 	std::string m_str;
 };
-typedef SHandle<SText> STextHandle;
 
 struct SGame // game 
 {
