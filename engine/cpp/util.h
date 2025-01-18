@@ -30,7 +30,7 @@ inline float GMax(float g1, float g2)
 	return g2;
 }
 
-inline int NMin(float n1, float n2)
+inline int NMin(int n1, int n2)
 {
 	if (n1 < n2)
 		return n1;

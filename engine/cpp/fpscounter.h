@@ -2,6 +2,7 @@
 
 #include "object.h"
 #include "engine.h"
+#include "text.h"
 
 struct SFpsCounter : SNode // fps
 {

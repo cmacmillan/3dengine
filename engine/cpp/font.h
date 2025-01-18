@@ -86,4 +86,3 @@ struct SFont : SObject
 
 	std::vector<STextureHandle> m_aryhTexture;
 };
-typedef SHandle<SFont> SFontHandle;

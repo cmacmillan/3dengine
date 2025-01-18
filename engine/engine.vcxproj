@@ -122,27 +122,42 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="cpp\binarystream.cpp" />
+    <ClCompile Include="cpp\camera.cpp" />
+    <ClCompile Include="cpp\drawnode3d.cpp" />
     <ClCompile Include="cpp\engine.cpp" />
     <ClCompile Include="cpp\font.cpp" />
     <ClCompile Include="cpp\fpscounter.cpp" />
+    <ClCompile Include="cpp\material.cpp" />
+    <ClCompile Include="cpp\mesh.cpp" />
+    <ClCompile Include="cpp\node.cpp" />
+    <ClCompile Include="cpp\node3d.cpp" />
     <ClCompile Include="cpp\object.cpp" />
     <ClCompile Include="cpp\shader.cpp" />
     <ClCompile Include="cpp\slotheap.cpp" />
+    <ClCompile Include="cpp\text.cpp" />
     <ClCompile Include="cpp\texture.cpp" />
+    <ClCompile Include="cpp\uinode.cpp" />
     <ClCompile Include="cpp\util.cpp" />
     <ClCompile Include="cpp\vector.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cpp\binarystream.h" />
+    <ClInclude Include="cpp\camera3d.h" />
+    <ClInclude Include="cpp\drawnode3d.h" />
     <ClInclude Include="cpp\engine.h" />
     <ClInclude Include="cpp\font.h" />
     <ClInclude Include="cpp\fpscounter.h" />
     <ClInclude Include="cpp\material.h" />
+    <ClInclude Include="cpp\mesh.h" />
+    <ClInclude Include="cpp\node.h" />
+    <ClInclude Include="cpp\node3d.h" />
     <ClInclude Include="cpp\object.h" />
     <ClInclude Include="cpp\shader.h" />
     <ClInclude Include="cpp\slotheap.h" />
     <ClInclude Include="cpp\stb_image.h" />
+    <ClInclude Include="cpp\text.h" />
     <ClInclude Include="cpp\texture.h" />
+    <ClInclude Include="cpp\uinode.h" />
     <ClInclude Include="cpp\util.h" />
     <ClInclude Include="cpp\vector.h" />
   </ItemGroup>

@@ -528,7 +528,7 @@ Quat QuatAxisAngle(const Vector & normal, float radAngle)
 
 	float4 vec = normal.m_vec * GSin(radAngle * .5f);
 
-	return Quat(GCos(radAngle * .5), vec.m_x, vec.m_y, vec.m_z);
+	return Quat(GCos(radAngle * 0.5f), vec.m_x, vec.m_y, vec.m_z);
 }
 
 float4 VecRotate(const float4 & vec, const Quat & quat)

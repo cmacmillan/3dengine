@@ -13,6 +13,12 @@
 #include "binarystream.h"
 #include "font.h"
 #include "material.h"
+#include "node.h"
+#include "node3d.h"
+#include "camera3d.h"
+#include "drawnode3d.h"
+#include "uinode.h"
+#include "mesh.h"
 
 #include <windows.h>
 #include <vector>
@@ -64,161 +70,12 @@
 #define VK_Y 0x59
 #define VK_Z 0x5A
 
-struct SVertData3D
-{
-	Point	m_pos;
-	float2	m_uv;
-};
-CASSERT(sizeof(SVertData3D) == 24);
-
-struct SVertData2D
-{
-	float2	m_pos;
-	float2	m_uv;
-};
-CASSERT(sizeof(SVertData2D) == 16);
-
-void PushQuad2D(float2 posMin, float2 posMax, float2 uvMin, float2 uvMax, std::vector<SVertData2D> * paryVertdata, std::vector<unsigned short> * paryIIndex);
-void PushQuad3D(std::vector<float> * pAryVert, std::vector<unsigned short> * paryIIndex);
-
-struct SMesh3D : SObject // mesh
-{
-	typedef SObject super;
-	SMesh3D();
-	SMesh3DHandle HMesh() { return (SMesh3DHandle) m_nHandle; }
-
-	std::vector<SVertData3D>		m_aryVertdata;
-	std::vector<unsigned short>		m_aryIIndex;
-
-	// Data used while rendering only
-	//  This could potentially be factored out and stored as a pointer or something
-
-	unsigned int					m_iVertdata = -1;
-	unsigned int					m_cVerts = -1;
-	unsigned int					m_iIndexdata = -1;
-	unsigned int					m_cIndicies= -1;
-};
-
-struct SMesh2D : SObject // mesh
-{
-	typedef SObject super;
-	SMesh2D();
-	SMesh2DHandle HMesh() { return (SMesh2DHandle) m_nHandle; }
-
-	std::vector<SVertData2D>		m_aryVertdata;
-	std::vector<unsigned short>		m_aryIIndex;
-
-	// Data used while rendering only
-	//  This could potentially be factored out and stored as a pointer or something
-
-	unsigned int					m_iVertdata = -1;
-	unsigned int					m_cVerts = -1;
-	unsigned int					m_iIndexdata = -1;
-	unsigned int					m_cIndicies= -1;
-};
-
 struct ShaderGlobals
 {
 	float m_t;
 	float2 m_vecWinSize;
 
 	float m_padding;
-};
-
-struct SNode : SObject // node
-{
-	typedef SObject super;
-	SNodeHandle HNode() { return (SNodeHandle) m_nHandle; }
-
-	SNode(SNodeHandle hNodeParent);
-	void SetParent(SNodeHandle hNodeParent);
-
-	virtual void Update() {}
-
-	SNodeHandle m_hNodeParent = -1;
-
-	SNodeHandle m_hNodeSiblingPrev = -1;
-	SNodeHandle m_hNodeSiblingNext = -1;
-
-	SNodeHandle m_hNodeChildFirst = -1;
-	SNodeHandle m_hNodeChildLast = -1;
-
-};
-
-struct SNode3D : SNode // node3D
-{
-	typedef SNode super;
-	SNode3DHandle HNode3D() { return (SNode3DHandle) m_nHandle; }
-
-	SNode3D(SNodeHandle hNodeParent);
-
-	Transform m_transformLocal;
-};
-
-struct SCamera3D : SNode3D // camera3D
-{
-	typedef SNode3D super;
-	SCamera3DHandle HCamera3D() { return (SCamera3DHandle) m_nHandle; }
-
-	SCamera3D(SNodeHandle hNodeParent, float radFovHorizontal, float xNearClip, float xFarClip);
-
-	float m_radFovHorizontal = -1;
-	float m_xNearClip = -1;
-	float m_xFarClip = -1;
-};
-
-struct SDrawNodeRenderConstants
-{
-	Mat m_matMVP;
-};
-
-struct SDrawNode3D : SNode3D // drawnode3D
-{
-	typedef SNode3D super;
-	SDrawNode3DHandle HDrawnode3D() { return (SDrawNode3DHandle) m_nHandle; }
-
-	SDrawNode3D(SNodeHandle hNodeParent);
-
-	SMaterialHandle m_hMaterial = -1;
-	SMesh3DHandle m_hMesh = -1;
-};
-
-struct SUiNodeRenderConstants
-{
-	float2 m_posCenter;
-	float2 m_vecScale;
-	float4 m_color;
-};
-
-struct SUiNode : SNode // uinode
-{
-	typedef SNode super;
-	SUiNodeHandle HUinode() { return (SUiNodeHandle) m_nHandle; }
-
-	SUiNode(SNodeHandle hNodeParent);
-	void GetRenderConstants(SUiNodeRenderConstants * pUinoderc);
-
-	float2 m_pos = { 0.0f, 0.0f };
-	float2 m_vecScale = { 1.0f, 1.0f };
-
-	float4 m_color = { 1.0f, 1.0f, 1.0f, 1.0f };
-	float m_gSort = 0.0f; // Lower = drawn first
-	SMaterialHandle m_hMaterial = -1;
-	SMesh2DHandle m_hMesh = -1;
-};
-
-struct SText : SUiNode // text
-{
-	typedef SUiNode super;
-	STextHandle HText() { return (STextHandle) m_nHandle; }
-
-	SText(SFontHandle hFont, SNodeHandle hNodeParent);
-	~SText();
-
-	void SetText(const std::string & str);
-
-	SFontHandle m_hFont = -1;
-	std::string m_str;
 };
 
 struct SGame // game 

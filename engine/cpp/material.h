@@ -1,8 +1,6 @@
 #pragma once
 
 #include "object.h"
-#include "shader.h"
-#include "vector.h"
 
 struct SMaterial : SObject // material
 {

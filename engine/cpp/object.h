@@ -137,3 +137,6 @@ typedef SHandle<SUiNode> SUiNodeHandle;
 
 struct SText;
 typedef SHandle<SText> STextHandle;
+
+struct SFont;
+typedef SHandle<SFont> SFontHandle;
