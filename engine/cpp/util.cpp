@@ -98,6 +98,24 @@ bool FIsLower(char ch)
 	return 'a' <= ch && ch <= 'a';
 }
 
+bool FIsWhitespace(char ch)
+{
+	return ch == ' ' || ch == '\t';
+}
+
+bool FMatchCaseInsensitive(const std::string & str1, const std::string & str2)
+{
+	if (str1.size() != str2.size())
+		return false;
+
+	int cCh = str1.size();
+	for (int iCh = 0; iCh < cCh; iCh++)
+		if (ChToLower(str1[iCh]) != ChToLower(str2[iCh]))
+			return false;
+
+	return true;
+}
+
 // https://stackoverflow.com/questions/2573834/c-convert-string-or-char-to-wstring-or-wchar-t
 
 std::wstring WstrFromStr(std::string str)

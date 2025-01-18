@@ -105,6 +105,8 @@ int NCeil(float g);
 
 bool FIsUpper(char ch);
 bool FIsLower(char ch);
+bool FIsWhitespace(char ch);
+bool FMatchCaseInsensitive(const std::string & str1, const std::string & str2);
 
 std::wstring WstrFromStr(std::string str);
 

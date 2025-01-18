@@ -360,11 +360,11 @@ void SGame::Init(HINSTANCE hInstance)
 		PushQuad3D(&m_hMeshQuad->m_aryVertdata, &m_hMeshQuad->m_aryIIndex);
 	}
 
-	SShaderHandle hShaderUnlit = (new SShader("shaders\\unlit2d.hlsl", false))->HShader();
-	SShaderHandle hShaderText = (new SShader("shaders\\text2d.hlsl", false))->HShader();
-	SShaderHandle hShaderLit = (new SShader("shaders\\lit2d.hlsl", false))->HShader();
+	SShaderHandle hShaderUnlit = (new SShader("shaders\\unlit2d.hlsl"))->HShader();
+	SShaderHandle hShaderText = (new SShader("shaders\\text2d.hlsl"))->HShader();
+	SShaderHandle hShaderLit = (new SShader("shaders\\lit2d.hlsl"))->HShader();
 
-	SShaderHandle hShader3D = (new SShader("shaders\\unlit3d.hlsl", true))->HShader();
+	SShaderHandle hShader3D = (new SShader("shaders\\unlit3d.hlsl"))->HShader();
 
 	// Font 
 
@@ -675,6 +675,7 @@ void SGame::MainLoop()
 				const SMaterial & material = *hDrawnode3D->m_hMaterial;
 				const SShader & shader = *(material.m_hShader);
 				ASSERT(hDrawnode3D->m_typek == TYPEK_DrawNode3D);
+				ASSERT(shader.m_shaderk == SHADERK_3D);
 
 				const SMesh3D & mesh = *hDrawnode3D->m_hMesh;
 
@@ -724,6 +725,7 @@ void SGame::MainLoop()
 
 			const SMaterial & material = *hUinode->m_hMaterial;
 			const SShader & shader = *(material.m_hShader);
+			ASSERT(shader.m_shaderk == SHADERK_Ui);
 			switch (hUinode->m_typek)
 			{
 				case TYPEK_Text:

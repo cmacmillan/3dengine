@@ -1,3 +1,6 @@
+// ShaderKind:Ui
+// END_INFO
+
 cbuffer constants : register(b0)
 {
     float2 posObject;

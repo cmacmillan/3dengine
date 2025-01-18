@@ -1,3 +1,6 @@
+// ShaderKind:3D
+// END_INFO
+
 #pragma pack_matrix(row_major)
 
 cbuffer constants : register(b0)

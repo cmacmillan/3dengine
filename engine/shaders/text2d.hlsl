@@ -1,3 +1,5 @@
+// ShaderKind:Ui
+// END_INFO
 
 cbuffer constants : register(b0)
 {
