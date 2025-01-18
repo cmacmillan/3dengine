@@ -13,7 +13,7 @@ struct SFpsCounter : SNode // fps
 
 	STextHandle		m_hText;
 
-	float			m_adT[60];
+	float			m_adT[4*120];
 	int				m_idT = 0;
 	int				m_cdT = 0;
 };

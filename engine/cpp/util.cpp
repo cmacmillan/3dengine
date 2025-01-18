@@ -46,12 +46,27 @@ float DegFromRad(float rad)
 	return rad * 180.0f / PI;
 }
 
+bool FIsNear(float a, float b, float gEpsilon)
+{
+	if (GAbs(a - b) < gEpsilon)
+		return true;
+	return false;
+}
+
 bool FIsNear(float a, float b)
 {
 	const float s_gEpsilon = .00001f;
-	if (GAbs(a - b) < s_gEpsilon)
-		return true;
-	return false;
+	return FIsNear(a, b, s_gEpsilon);
+}
+
+int NFloor(float g)
+{
+	return std::floor(g);
+}
+
+int NCeil(float g)
+{
+	return std::ceil(g);
 }
 
 bool FIsUpper(char ch)

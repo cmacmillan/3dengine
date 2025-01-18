@@ -93,6 +93,10 @@ float RadFromDeg(float deg);
 float DegFromRad(float rad);
 
 bool FIsNear(float a, float b);
+bool FIsNear(float a, float b, float gEpsilon);
+
+int NFloor(float g);
+int NCeil(float g);
 
 bool FIsUpper(char ch);
 bool FIsLower(char ch);

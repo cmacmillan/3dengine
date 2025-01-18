@@ -497,8 +497,16 @@ void SText::SetText(const std::string & str)
 	std::vector<unsigned short> & aryIIndex = m_hMesh->m_aryIIndex;
 	
 	float x = 0;
+	float y = 0;
 	for (char charCur : str)
 	{
+		if (charCur == '\n')
+		{
+			x = 0;
+			y -= pFont->m_fontcb.m_nLineHeight;
+			continue;
+		}
+
 		const SFontChar * pFontchar = nullptr;
 		for (int i = 0; i < pFont->m_aryFontchar.size(); i++)
 		{
@@ -519,11 +527,12 @@ void SText::SetText(const std::string & str)
 		float2 vecExtents = float2(pFontchar->m_nWidth, pFontchar->m_nHeight);
 		float2 uvMin = float2(pFontchar->m_nX / float(pTexture->m_dX), pFontchar->m_nY / float(pTexture->m_dY));
 		float2 uvMax = uvMin + vecExtents / vecDivisor;
-		float2 posMax = float2(x + vecExtents.m_x, pFont->m_fontcb.m_nBase - pFontchar->m_nYOffset);
-		float2 posMin = float2(x, posMax.m_y - vecExtents.m_y);
+		float2 posMax = float2(x + vecExtents.m_x, y - pFontchar->m_nYOffset); //+ pFont->m_fontcb.m_nBase - pFontchar->m_nYOffset);
+		float2 posMin = float2(x, y - pFontchar->m_nYOffset - vecExtents.m_y);
 		PushQuad2D(posMin, posMax, uvMin, uvMax, &aryVertdata, &aryIIndex);
 
-		// TODO support kerning
+		// TODO support character-pair based kerning
+
 		x += pFontchar->m_nXAdvance;
 	}
 }

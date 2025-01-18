@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
     </Filter>
+    <Filter Include="shaders">
+      <UniqueIdentifier>{587f2fa0-7167-404b-b0d1-8c3115099b4f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="cpp\engine.cpp">
@@ -25,6 +28,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="cpp\slotheap.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="cpp\fpscounter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -44,12 +50,25 @@
     <ClInclude Include="cpp\slotheap.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="cpp\fpscounter.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="shaders\lit2d.hlsl" />
-    <FxCompile Include="shaders\scrabbletile.hlsl" />
-    <FxCompile Include="shaders\text2d.hlsl" />
-    <FxCompile Include="shaders\unlit2d.hlsl" />
-    <FxCompile Include="shaders\unlit3d.hlsl" />
+    <FxCompile Include="shaders\lit2d.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\scrabbletile.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\text2d.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\unlit2d.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\unlit3d.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>
