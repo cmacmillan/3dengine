@@ -390,13 +390,17 @@ void SGame::Init(HINSTANCE hInstance)
 
 	m_hCamera3D = (new SCamera3D(m_hNodeRoot, RadFromDeg(90.0f), 0.1, 100.0f))->HCamera3D();
 
+	SMaterial * pMaterial3d = new SMaterial(hShader3D);
+	pMaterial3d->m_aryNamedtexture.push_back({ (new STexture("textures/testTexture1.png", false, false))->HTexture(),  "mainTexture"});
+	pMaterial3d->m_aryNamedtexture.push_back({ (new STexture("textures/testTexture2.png", false, false))->HTexture(),  "altTexture"});
+
 	m_hPlaneTest = (new SDrawNode3D(m_hNodeRoot))->HDrawnode3D();
-	m_hPlaneTest->m_hMaterial = (new SMaterial(hShader3D))->HMaterial();
+	m_hPlaneTest->m_hMaterial = pMaterial3d->HMaterial();
 	m_hPlaneTest->m_transformLocal.m_pos = Point(10.0f, 0.0f, 0.0f);
 	m_hPlaneTest->m_hMesh = m_hMeshQuad;
 
 	SDrawNode3DHandle hPlaneTest2 = (new SDrawNode3D(m_hNodeRoot))->HDrawnode3D();
-	hPlaneTest2->m_hMaterial = (new SMaterial(hShader3D))->HMaterial();
+	hPlaneTest2->m_hMaterial = pMaterial3d->HMaterial();
 	hPlaneTest2->m_transformLocal.m_pos = Point(10.0f, 1.0f, 0.0f);
 	hPlaneTest2->m_hMesh = m_hMeshQuad;
 }
@@ -710,6 +714,38 @@ void SGame::MainLoop()
 
 				m_pD3ddevicecontext->Unmap(m_cbufferDrawnode3D, 0);
 
+				std::vector<ID3D11ShaderResourceView *> arypD3dsrview;
+				std::vector<ID3D11SamplerState *> arypD3dsamplerstate;
+
+				for (int i = 0; i < shader.CNamedslot(); i++)
+				{
+					arypD3dsrview.push_back(nullptr);
+					arypD3dsamplerstate.push_back(nullptr);
+				}
+
+				for (const SNamedTexture & namedtexture : material.m_aryNamedtexture)
+				{
+					for (const SNamedTextureSlot & namedslot : shader.m_mpISlotStrName)
+					{
+						if (namedslot.m_strName == namedtexture.m_strName)
+						{
+							ASSERT(arypD3dsrview[namedslot.m_iSlot] == nullptr);
+							ASSERT(arypD3dsamplerstate[namedslot.m_iSlot] == nullptr);
+							arypD3dsrview[namedslot.m_iSlot] = namedtexture.m_hTexture->m_pD3dsrview;
+							arypD3dsamplerstate[namedslot.m_iSlot] = namedtexture.m_hTexture->m_pD3dsamplerstate;
+						}
+					}
+				}
+
+				for (int i = 0; i < shader.CNamedslot(); i++)
+				{
+					ASSERT(arypD3dsrview[i] != nullptr);
+					ASSERT(arypD3dsamplerstate[i] != nullptr);
+				}
+
+				m_pD3ddevicecontext->PSSetShaderResources(0, arypD3dsrview.size(), arypD3dsrview.data());
+				m_pD3ddevicecontext->PSSetSamplers(0, arypD3dsamplerstate.size(), arypD3dsamplerstate.data());
+
 				//m_pD3ddevicecontext->Draw(mesh.m_sliceVertex.m_cb / sizeof(SVertData3D), mesh.m_sliceVertex.m_ibStart / sizeof(SVertData3D));
 				m_pD3ddevicecontext->DrawIndexed(mesh.m_cIndicies, mesh.m_iIndexdata, mesh.m_iVertdata);
 			}
@@ -776,6 +812,12 @@ void SGame::MainLoop()
 						arypD3dsamplerstate[namedslot.m_iSlot] = namedtexture.m_hTexture->m_pD3dsamplerstate;
 					}
 				}
+			}
+
+			for (int i = 0; i < shader.CNamedslot(); i++)
+			{
+				ASSERT(arypD3dsrview[i] != nullptr);
+				ASSERT(arypD3dsamplerstate[i] != nullptr);
 			}
 
 			m_pD3ddevicecontext->PSSetShaderResources(0, arypD3dsrview.size(), arypD3dsrview.data());

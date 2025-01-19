@@ -1,4 +1,6 @@
 // ShaderKind:3D
+// Texture:mainTexture slot = 0
+// Texture:altTexture slot = 1
 // END_INFO
 
 #pragma pack_matrix(row_major)
@@ -25,6 +27,11 @@ struct VS_Output {
     float2 uv : TEXCOORD;
 };
 
+Texture2D    mainTexture : register(t0);
+SamplerState mainSampler: register(s0);
+Texture2D    altTexture : register(t1);
+SamplerState altSampler: register(s1);
+
 VS_Output vs_main(VS_Input input)
 {
     VS_Output output;
@@ -35,6 +42,9 @@ VS_Output vs_main(VS_Input input)
 
 float4 ps_main(VS_Output input) : SV_Target
 {
-    return float4(input.uv.xy, 0.0f, 1.0f);
-    //return mytexture.Sample(mysampler, input.uv);   
+    //return float4(input.uv.xy, 0.0f, 1.0f);
+    float4 vecMain = mainTexture.Sample(mainSampler, input.uv);   
+    float4 vecAlt = altTexture.Sample(mainSampler, input.uv);
+    float alpha = vecAlt.a * (sin(time) + 1) * .5f;
+    return float4(vecMain.rgb * (1.0 - alpha) + alpha * vecAlt.rgb, 1.0);
 }
