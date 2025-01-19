@@ -7,6 +7,11 @@ SFile::SFile()
 
 SFile::~SFile()
 {
+	if (m_hFile != INVALID_HANDLE_VALUE)
+	{
+		CloseHandle(m_hFile);
+	}
+
 	if (m_pB)
 	{
 		delete m_pB;
@@ -15,21 +20,21 @@ SFile::~SFile()
 
 bool SFile::FTryRead(const char * pChzPath)
 {
-    HANDLE hFile = CreateFileA(pChzPath,
-							   GENERIC_READ,		   // open for reading
-							   0,                      // do not share
-							   NULL,                   // default security
-							   OPEN_EXISTING,		   // open existing only
-							   FILE_ATTRIBUTE_NORMAL,  // normal file
-							   NULL);                  // no attr. template
+    m_hFile = CreateFileA(pChzPath,
+						   GENERIC_READ,		   // open for reading
+						   0,                      // do not share
+						   NULL,                   // default security
+						   OPEN_EXISTING,		   // open existing only
+						   FILE_ATTRIBUTE_NORMAL,  // normal file
+						   NULL);                  // no attr. template
 
-    if (hFile == INVALID_HANDLE_VALUE) 
+    if (m_hFile == INVALID_HANDLE_VALUE) 
 		return false;
 
-	m_cBytesFile = GetFileSize(hFile, nullptr);
+	m_cBytesFile = GetFileSize(m_hFile, nullptr);
 	m_pB = new unsigned char[m_cBytesFile];
 
-	if (!ReadFile(hFile, m_pB, (DWORD) m_cBytesFile, nullptr, nullptr))
+	if (!ReadFile(m_hFile, m_pB, (DWORD) m_cBytesFile, nullptr, nullptr))
 	{
 		m_pB = nullptr;
 		m_cBytesFile = -1;

@@ -13,6 +13,7 @@ struct SFile
 
 	unsigned char * m_pB = nullptr;
 	size_t m_cBytesFile = -1;
+	HANDLE m_hFile = INVALID_HANDLE_VALUE;
 };
 
 bool FTryReadFile(const char * pChzPath, SFile * pFile);
