@@ -43,7 +43,7 @@ void SFlyCam::Update()
 		SetQuatWorld(QuatWorld() * QuatAxisAngle(g_vecXAxis, -g_game.m_dT));
 	}
 
-	const float gMoveSpeed = 5.0f;
+	float gMoveSpeed = g_game.m_mpVkFDown[VK_SHIFT] ? 50.0f : 5.0f;
 
 	if (g_game.m_mpVkFDown[VK_UP])
 	{

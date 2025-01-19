@@ -91,12 +91,15 @@ struct SGame // game
 	void VkReleased(int vk);
 	void PrintConsole(const std::string & str);
 
+	// Misc
+
 	SNodeHandle	m_hNodeRoot = -1;
 
 	STextHandle m_hTextConsole = -1;
 	std::string m_strConsole = "";
 
-	// Gameplay
+	STextureHandle m_hTextureSkybox = -1;
+	SMesh2DHandle m_
 
 	SCamera3DHandle m_hCamera3DMain = -1;
 	SDrawNode3DHandle m_hPlaneTest = -1;
@@ -105,7 +108,6 @@ struct SGame // game
 	// Fonts
 
 	SFontHandle m_hFont = -1;
-
 	SMaterialHandle m_hMaterialText = -1;
 
 	// Window

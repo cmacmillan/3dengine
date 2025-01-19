@@ -390,9 +390,11 @@ void SGame::Init(HINSTANCE hInstance)
 
 	// Camera
 
-	//m_hCamera3DMain = (new SCamera3D(m_hNodeRoot, "CameraMain", RadFromDeg(90.0f), 0.1, 100.0f))->HCamera3D();
-
 	(new SFlyCam(m_hNodeRoot, "FlyCam"));
+
+	// Skybox
+
+	m_hTextureSkybox = (new STexture("textures/pretoria_gardens.jpg", false, false))->HTexture();
 
 	SMaterial * pMaterial3d = new SMaterial(hShader3D);
 	pMaterial3d->m_aryNamedtexture.push_back({ (new STexture("textures/testTexture1.png", false, false))->HTexture(),  "mainTexture"});
@@ -662,6 +664,14 @@ void SGame::MainLoop()
 		g_game.m_pD3ddevicecontext->Unmap(m_cbufferIndex, 0);
 		g_game.m_pD3ddevicecontext->Unmap(m_cbufferVertex3D, 0);
 		g_game.m_pD3ddevicecontext->Unmap(m_cbufferVertex2D, 0);
+
+		// Draw skybox
+		
+		// TODO consider grouping together into some sort of fullscreen pass system
+
+		{
+
+		}
 
 		// Draw 3d nodes
 
