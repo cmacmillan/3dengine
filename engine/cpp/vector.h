@@ -169,6 +169,8 @@ struct Quat
 	Quat operator*(const Quat & quat) const;
 };
 
+extern Quat g_quatIdentity;
+
 // NOTE a positive radAngle = clockwise rotation about the normal since our coordinate system is right handed
 
 Quat QuatAxisAngle(const Vector & normal, float radAngle);

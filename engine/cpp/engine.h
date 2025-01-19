@@ -84,6 +84,7 @@ struct SGame // game
 
 	void Init(HINSTANCE hInstance);
 	void MainLoop();
+	void BindMaterialTextures(const SMaterial * pMaterial, const SShader * pShader);
 	LRESULT LresultWindowProcedure(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
 	float2 VecWinSize();
 	void VkPressed(int vk);
@@ -93,17 +94,17 @@ struct SGame // game
 
 	// Gameplay
 
-	SMaterialHandle m_hMaterialTile;
-	STextHandle m_hText;
+	SMaterialHandle m_hMaterialTile = -1;
+	STextHandle m_hText = -1;
 
-	SCamera3DHandle m_hCamera3D;
-	SDrawNode3DHandle m_hPlaneTest;
+	SCamera3DHandle m_hCamera3DMain = -1;
+	SDrawNode3DHandle m_hPlaneTest = -1;
 
 	// Fonts
 
-	SFontHandle m_hFont;
+	SFontHandle m_hFont = -1;
 
-	SMaterialHandle m_hMaterialText;
+	SMaterialHandle m_hMaterialText = -1;
 
 	// Window
 
@@ -142,7 +143,7 @@ struct SGame // game
 
 	// Timing
 
-	float m_dT;
+	float m_dT = 0.0f;
 	double m_dTSyst = 0.0;
 
 	LONGLONG m_startPerfCount = 0;

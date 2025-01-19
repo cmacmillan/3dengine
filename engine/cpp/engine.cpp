@@ -388,7 +388,7 @@ void SGame::Init(HINSTANCE hInstance)
 
 	// Camera
 
-	m_hCamera3D = (new SCamera3D(m_hNodeRoot, RadFromDeg(90.0f), 0.1, 100.0f))->HCamera3D();
+	m_hCamera3DMain = (new SCamera3D(m_hNodeRoot, RadFromDeg(90.0f), 0.1, 100.0f))->HCamera3D();
 
 	SMaterial * pMaterial3d = new SMaterial(hShader3D);
 	pMaterial3d->m_aryNamedtexture.push_back({ (new STexture("textures/testTexture1.png", false, false))->HTexture(),  "mainTexture"});
@@ -396,12 +396,12 @@ void SGame::Init(HINSTANCE hInstance)
 
 	m_hPlaneTest = (new SDrawNode3D(m_hNodeRoot))->HDrawnode3D();
 	m_hPlaneTest->m_hMaterial = pMaterial3d->HMaterial();
-	m_hPlaneTest->m_transformLocal.m_pos = Point(10.0f, 0.0f, 0.0f);
+	m_hPlaneTest->SetPosWorld(Point(10.0f, 0.0f, 0.0f));
 	m_hPlaneTest->m_hMesh = m_hMeshQuad;
 
-	SDrawNode3DHandle hPlaneTest2 = (new SDrawNode3D(m_hNodeRoot))->HDrawnode3D();
+	SDrawNode3DHandle hPlaneTest2 = (new SDrawNode3D(m_hPlaneTest->HNode()))->HDrawnode3D();
 	hPlaneTest2->m_hMaterial = pMaterial3d->HMaterial();
-	hPlaneTest2->m_transformLocal.m_pos = Point(10.0f, 1.0f, 0.0f);
+	hPlaneTest2->SetPosWorld(Point(10.0f, 2.0f, 0.0f));
 	hPlaneTest2->m_hMesh = m_hMeshQuad;
 }
 
@@ -486,7 +486,7 @@ void SGame::MainLoop()
 		////////// GAMEPLAY CODE (JANK)
 	
 		//m_hPlaneTest->m_transformLocal.m_quat = QuatAxisAngle(g_vecZAxis, m_dT*10.0f) * m_hPlaneTest->m_transformLocal.m_quat;
-		m_hPlaneTest->m_transformLocal.m_quat = QuatAxisAngle(g_vecZAxis, m_dT) * m_hPlaneTest->m_transformLocal.m_quat;
+		m_hPlaneTest->SetQuatLocal(QuatAxisAngle(g_vecZAxis, m_dT) * m_hPlaneTest->QuatLocal());
 		//m_hPlaneTest->m_transformLocal.m_quat = QuatAxisAngle(g_vecZAxis, *m_dT) * m_hPlaneTest->m_transformLocal.m_quat;
 
 		///////////////////////////////
@@ -533,8 +533,6 @@ void SGame::MainLoop()
 
 		// BB I think eventually we'd want render all draw nodes once per camera
 
-		SCamera3DHandle hCamera3D = -1;
-
 		for (SNodeHandle hNode : aryhNode)
 		{
 			if (hNode != -1)
@@ -543,11 +541,6 @@ void SGame::MainLoop()
 				if (hNode->FIsDerivedFrom(TYPEK_UiNode))
 				{
 					aryhUinodeToRender.push_back(SUiNodeHandle(hNode.m_id));
-				}
-				else if (hNode->FIsDerivedFrom(TYPEK_Camera3D))
-				{
-					ASSERT(hCamera3D == -1);
-					hCamera3D = SCamera3DHandle(hNode.m_id);
 				}
 				else if (hNode->FIsDerivedFrom(TYPEK_DrawNode3D))
 				{
@@ -561,6 +554,8 @@ void SGame::MainLoop()
 		std::qsort(aryhUinodeToRender.data(), aryhUinodeToRender.size(), sizeof(SUiNodeHandle), SortUinodeRenderOrder);
 
 		// Start rendering stuff
+
+		SCamera3D * pCamera3D = m_hCamera3DMain.PT();
 
 		FLOAT backgroundColor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 		m_pD3ddevicecontext->ClearRenderTargetView(m_pD3dframebufferview, backgroundColor);
@@ -665,8 +660,6 @@ void SGame::MainLoop()
 
 			m_pD3ddevicecontext->OMSetRenderTargets(1, &m_pD3dframebufferview, m_pD3ddepthstencilview);
 
-			SCamera3D * pCamera3D = hCamera3D.PT();
-
 			for (SDrawNode3DHandle hDrawnode3D : aryhDrawnode3DToRender)
 			{
 				if (!hDrawnode3D.PT())
@@ -706,49 +699,16 @@ void SGame::MainLoop()
 
 				// TODO don't constantly recompute
 
-				Mat matModel = hDrawnode3D->m_transformLocal.Mat();
-				Mat matCamera = hCamera3D->m_transformLocal.Mat().MatInverse();
-				Mat matPerspective = MatPerspective(hCamera3D->m_radFovHorizontal, vecWinSize.m_x / vecWinSize.m_y, hCamera3D->m_xNearClip, hCamera3D->m_xFarClip);
+				Mat matModel = hDrawnode3D->MatObjectToWorld();
+				Mat matCamera = pCamera3D->MatObjectToWorld().MatInverse();
+				Mat matPerspective = MatPerspective(pCamera3D->m_radFovHorizontal, vecWinSize.m_x / vecWinSize.m_y, pCamera3D->m_xNearClip, pCamera3D->m_xFarClip);
 				ASSERT(sizeof(Mat) == sizeof(float) * 16);
 				pDrawnode3Drc->m_matMVP = matModel * matCamera * matPerspective;
 
 				m_pD3ddevicecontext->Unmap(m_cbufferDrawnode3D, 0);
 
-				ASSERT(material.m_aryNamedtexture.size() == shader.m_mpISlotStrName.size());
+				BindMaterialTextures(&material, &shader);
 
-				std::vector<ID3D11ShaderResourceView *> arypD3dsrview;
-				std::vector<ID3D11SamplerState *> arypD3dsamplerstate;
-
-				for (int i = 0; i < shader.CNamedslot(); i++)
-				{
-					arypD3dsrview.push_back(nullptr);
-					arypD3dsamplerstate.push_back(nullptr);
-				}
-
-				for (const SNamedTexture & namedtexture : material.m_aryNamedtexture)
-				{
-					for (const SNamedTextureSlot & namedslot : shader.m_mpISlotStrName)
-					{
-						if (namedslot.m_strName == namedtexture.m_strName)
-						{
-							ASSERT(arypD3dsrview[namedslot.m_iSlot] == nullptr);
-							ASSERT(arypD3dsamplerstate[namedslot.m_iSlot] == nullptr);
-							arypD3dsrview[namedslot.m_iSlot] = namedtexture.m_hTexture->m_pD3dsrview;
-							arypD3dsamplerstate[namedslot.m_iSlot] = namedtexture.m_hTexture->m_pD3dsamplerstate;
-						}
-					}
-				}
-
-				for (int i = 0; i < shader.CNamedslot(); i++)
-				{
-					ASSERT(arypD3dsrview[i] != nullptr);
-					ASSERT(arypD3dsamplerstate[i] != nullptr);
-				}
-
-				m_pD3ddevicecontext->PSSetShaderResources(0, arypD3dsrview.size(), arypD3dsrview.data());
-				m_pD3ddevicecontext->PSSetSamplers(0, arypD3dsamplerstate.size(), arypD3dsamplerstate.data());
-
-				//m_pD3ddevicecontext->Draw(mesh.m_sliceVertex.m_cb / sizeof(SVertData3D), mesh.m_sliceVertex.m_ibStart / sizeof(SVertData3D));
 				m_pD3ddevicecontext->DrawIndexed(mesh.m_cIndicies, mesh.m_iIndexdata, mesh.m_iVertdata);
 			}
 		}
@@ -793,39 +753,7 @@ void SGame::MainLoop()
 			hUinode->GetRenderConstants(pUinoderc);
 			m_pD3ddevicecontext->Unmap(m_cbufferUiNode, 0);
 
-			ASSERT(material.m_aryNamedtexture.size() == shader.m_mpISlotStrName.size());
-
-			std::vector<ID3D11ShaderResourceView *> arypD3dsrview;
-			std::vector<ID3D11SamplerState *> arypD3dsamplerstate;
-
-			for (int i = 0; i < shader.CNamedslot(); i++)
-			{
-				arypD3dsrview.push_back(nullptr);
-				arypD3dsamplerstate.push_back(nullptr);
-			}
-
-			for (const SNamedTexture & namedtexture : material.m_aryNamedtexture)
-			{
-				for (const SNamedTextureSlot & namedslot : shader.m_mpISlotStrName)
-				{
-					if (namedslot.m_strName == namedtexture.m_strName)
-					{
-						ASSERT(arypD3dsrview[namedslot.m_iSlot] == nullptr);
-						ASSERT(arypD3dsamplerstate[namedslot.m_iSlot] == nullptr);
-						arypD3dsrview[namedslot.m_iSlot] = namedtexture.m_hTexture->m_pD3dsrview;
-						arypD3dsamplerstate[namedslot.m_iSlot] = namedtexture.m_hTexture->m_pD3dsamplerstate;
-					}
-				}
-			}
-
-			for (int i = 0; i < shader.CNamedslot(); i++)
-			{
-				ASSERT(arypD3dsrview[i] != nullptr);
-				ASSERT(arypD3dsamplerstate[i] != nullptr);
-			}
-
-			m_pD3ddevicecontext->PSSetShaderResources(0, arypD3dsrview.size(), arypD3dsrview.data());
-			m_pD3ddevicecontext->PSSetSamplers(0, arypD3dsamplerstate.size(), arypD3dsamplerstate.data());
+			BindMaterialTextures(&material, &shader);
 
 			m_pD3ddevicecontext->DrawIndexed(mesh.m_cIndicies, mesh.m_iIndexdata, mesh.m_iVertdata);
 		}
@@ -839,6 +767,43 @@ void SGame::MainLoop()
 
 		m_pD3dswapchain->Present(1, 0);
 	}
+}
+
+void SGame::BindMaterialTextures(const SMaterial * pMaterial, const SShader * pShader)
+{
+	ASSERT(pMaterial->m_aryNamedtexture.size() == pShader->m_mpISlotStrName.size());
+
+	std::vector<ID3D11ShaderResourceView *> arypD3dsrview;
+	std::vector<ID3D11SamplerState *> arypD3dsamplerstate;
+
+	for (int i = 0; i < pShader->CNamedslot(); i++)
+	{
+		arypD3dsrview.push_back(nullptr);
+		arypD3dsamplerstate.push_back(nullptr);
+	}
+
+	for (const SNamedTexture & namedtexture : pMaterial->m_aryNamedtexture)
+	{
+		for (const SNamedTextureSlot & namedslot : pShader->m_mpISlotStrName)
+		{
+			if (namedslot.m_strName == namedtexture.m_strName)
+			{
+				ASSERT(arypD3dsrview[namedslot.m_iSlot] == nullptr);
+				ASSERT(arypD3dsamplerstate[namedslot.m_iSlot] == nullptr);
+				arypD3dsrview[namedslot.m_iSlot] = namedtexture.m_hTexture->m_pD3dsrview;
+				arypD3dsamplerstate[namedslot.m_iSlot] = namedtexture.m_hTexture->m_pD3dsamplerstate;
+			}
+		}
+	}
+
+	for (int i = 0; i < pShader->CNamedslot(); i++)
+	{
+		ASSERT(arypD3dsrview[i] != nullptr);
+		ASSERT(arypD3dsamplerstate[i] != nullptr);
+	}
+
+	m_pD3ddevicecontext->PSSetShaderResources(0, arypD3dsrview.size(), arypD3dsrview.data());
+	m_pD3ddevicecontext->PSSetSamplers(0, arypD3dsamplerstate.size(), arypD3dsamplerstate.data());
 }
 
 void SGame::VkPressed(int vk)

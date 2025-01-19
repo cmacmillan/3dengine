@@ -87,6 +87,7 @@ enum TYPEK
 			TYPEK_Node3D,
 				TYPEK_DrawNode3D,
 				TYPEK_Camera3D,
+				TYPEK_FlyCam,
 		TYPEK_Font,
 		TYPEK_Mesh2D,
 		TYPEK_Mesh3D,
@@ -144,3 +145,6 @@ typedef SHandle<SText> STextHandle;
 
 struct SFont;
 typedef SHandle<SFont> SFontHandle;
+
+struct SFlyCam;
+typedef SHandle<SFlyCam> SFlycamHandle;
