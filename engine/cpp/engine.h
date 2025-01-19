@@ -99,6 +99,7 @@ struct SGame // game
 
 	SCamera3DHandle m_hCamera3DMain = -1;
 	SDrawNode3DHandle m_hPlaneTest = -1;
+	SDrawNode3DHandle m_hPlaneTest2 = -1;
 
 	// Fonts
 

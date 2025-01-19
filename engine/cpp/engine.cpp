@@ -399,10 +399,10 @@ void SGame::Init(HINSTANCE hInstance)
 	m_hPlaneTest->SetPosWorld(Point(10.0f, 0.0f, 0.0f));
 	m_hPlaneTest->m_hMesh = m_hMeshQuad;
 
-	SDrawNode3DHandle hPlaneTest2 = (new SDrawNode3D(m_hPlaneTest->HNode()))->HDrawnode3D();
-	hPlaneTest2->m_hMaterial = pMaterial3d->HMaterial();
-	hPlaneTest2->SetPosWorld(Point(10.0f, 2.0f, 0.0f));
-	hPlaneTest2->m_hMesh = m_hMeshQuad;
+	m_hPlaneTest2 = (new SDrawNode3D(m_hPlaneTest->HNode()))->HDrawnode3D();
+	m_hPlaneTest2->m_hMaterial = pMaterial3d->HMaterial();
+	m_hPlaneTest2->SetPosWorld(Point(10.0f, 2.0f, 0.0f));
+	m_hPlaneTest2->m_hMesh = m_hMeshQuad;
 }
 
 int SortUinodeRenderOrder(const void * pVa, const void * pVb)
@@ -487,6 +487,7 @@ void SGame::MainLoop()
 	
 		//m_hPlaneTest->m_transformLocal.m_quat = QuatAxisAngle(g_vecZAxis, m_dT*10.0f) * m_hPlaneTest->m_transformLocal.m_quat;
 		m_hPlaneTest->SetQuatLocal(QuatAxisAngle(g_vecZAxis, m_dT) * m_hPlaneTest->QuatLocal());
+		m_hPlaneTest2->SetQuatLocal(QuatAxisAngle(g_vecYAxis, m_dT * 10.0f) * m_hPlaneTest2->QuatLocal());
 		//m_hPlaneTest->m_transformLocal.m_quat = QuatAxisAngle(g_vecZAxis, *m_dT) * m_hPlaneTest->m_transformLocal.m_quat;
 
 		///////////////////////////////

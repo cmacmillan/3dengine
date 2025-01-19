@@ -5,6 +5,15 @@ SNode3D::SNode3D(SNodeHandle hNodeParent) :
 	m_transformLocal()
 {
 	m_typek = TYPEK_Node3D;
+
+	UpdateSelfAndChildTransformCache();
+}
+
+void SNode3D::SetParent(SNodeHandle hNodeParent)
+{
+	super::SetParent(hNodeParent);
+
+	UpdateSelfAndChildTransformCache();
 }
 
 SNode3D * SNode3D::PNode3DParent()

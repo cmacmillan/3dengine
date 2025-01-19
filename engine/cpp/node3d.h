@@ -10,6 +10,8 @@ struct SNode3D : SNode // node3D
 
 	SNode3D(SNodeHandle hNodeParent);
 
+	void SetParent(SNodeHandle hNodeParent) override;
+
 	SNode3D * PNode3DParent();
 
 	Point PosLocal() { return m_transformLocal.m_pos; }
