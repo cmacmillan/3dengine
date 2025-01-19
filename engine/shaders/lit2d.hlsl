@@ -1,4 +1,6 @@
 // ShaderKind:Ui
+// Texture:texAlbedo slot=0
+// Texture:texNormal slot=1
 // END_INFO
 
 cbuffer constants : register(b0)

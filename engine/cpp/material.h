@@ -1,6 +1,13 @@
 #pragma once
 
 #include "object.h"
+#include "vector.h"
+
+struct SNamedTexture
+{
+	STextureHandle	m_hTexture;
+	std::string		m_strName;
+};
 
 struct SMaterial : SObject // material
 {
@@ -8,8 +15,7 @@ struct SMaterial : SObject // material
 	SMaterial(SShaderHandle hShader);
 	SMaterialHandle HMaterial() { return (SMaterialHandle) m_nHandle; }
 
-	STextureHandle m_hTexture = -1;
-	STextureHandle m_hTexture2 = -1;
+	std::vector<SNamedTexture> m_aryNamedtexture = {};
 	SShaderHandle m_hShader = -1;
 	float2 m_uvTopleft;
 };

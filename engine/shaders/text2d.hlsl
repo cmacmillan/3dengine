@@ -1,4 +1,5 @@
 // ShaderKind:Ui
+// Texture:fontTexture slot=0
 // END_INFO
 
 cbuffer constants : register(b0)
@@ -27,7 +28,7 @@ struct VS_Output {
     float2 uv : TEX;
 };
 
-Texture2D    mytexture : register(t0);
+Texture2D    fontTexture : register(t0);
 SamplerState mysampler : register(s0);
 
 VS_Output vs_main(VS_INPUT vsinput)
@@ -52,10 +53,10 @@ float4 ps_main(VS_Output input) : SV_Target
     float uv2 = float2(3.0f / 8.0f, -1.0f / 8.0f);
     float uv3 = float2(-1.0f / 8.0f, -3.0f / 8.0f);
 
-    float gAlpha0 = mytexture.Sample(mysampler, input.uv + uv0 * vecPixel).r;
-    float gAlpha1 = mytexture.Sample(mysampler, input.uv + uv1 * vecPixel).r;
-    float gAlpha2 = mytexture.Sample(mysampler, input.uv + uv2 * vecPixel).r;
-    float gAlpha3 = mytexture.Sample(mysampler, input.uv + uv3 * vecPixel).r;
+    float gAlpha0 = fontTexture.Sample(mysampler, input.uv + uv0 * vecPixel).r;
+    float gAlpha1 = fontTexture.Sample(mysampler, input.uv + uv1 * vecPixel).r;
+    float gAlpha2 = fontTexture.Sample(mysampler, input.uv + uv2 * vecPixel).r;
+    float gAlpha3 = fontTexture.Sample(mysampler, input.uv + uv3 * vecPixel).r;
 
     float gAlpha = (gAlpha0 + gAlpha1 + gAlpha2 + gAlpha3) / 4.0f;
     //gAlpha = 1.0f;

@@ -1,4 +1,5 @@
 // ShaderKind:Ui
+// Texture:mainTexture slot=0
 // END_INFO
 
 cbuffer constants : register(b0)
@@ -27,7 +28,7 @@ struct VS_Output {
     float2 uv : TEX;
 };
 
-Texture2D    mytexture : register(t0);
+Texture2D    mainTexture : register(t0);
 SamplerState mysampler : register(s0);
 
 VS_Output vs_main(VS_INPUT vsinput)
@@ -41,5 +42,5 @@ VS_Output vs_main(VS_INPUT vsinput)
 
 float4 ps_main(VS_Output input) : SV_Target
 {
-    return mytexture.Sample(mysampler, input.uv) * input.color;
+    return mainTexture.Sample(mysampler, input.uv) * input.color;
 }

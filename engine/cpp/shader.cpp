@@ -10,29 +10,270 @@ struct SPair
 	std::string m_strValue;
 };
 
-const std::string * PStrFind(const std::string & strKey, const std::vector<SPair> & aryPair)
+struct SParsedLine
 {
-	for (const SPair & pair : aryPair)
+	const SPair * PPairParamFind(const std::string & str) const;
+
+	SPair m_pairMain;
+	std::vector<SPair> m_aryPair;
+};
+
+enum PARSE
+{
+	PARSE_CommentStart = 0,
+	PARSE_Key = 1,
+	PARSE_Delimiter = 2,
+	PARSE_Value = 3,
+	PARSE_LineEndOrParam = 4,
+	PARSE_LineEnd = 5,
+	PARSE_Done = 6,
+
+	PARSE_Nil = -1,
+};
+
+struct SLineParser
+{
+	void						ParseLines(const std::string & str);
+	void						SetState(PARSE parse, const std::string & str);
+	void						SkipWhitespace(const std::string & str);
+	void						FindLines(const std::string & strKey, std::vector<const SParsedLine *> * parypLine) const;
+
+	std::vector<SParsedLine>	m_aryLine = {};
+	PARSE						m_parse = PARSE_Nil;
+	bool						m_fFoundMainPair = false;
+	int							m_iChBuilder = -1;
+	char						m_aChBuilder[256];
+	int							m_iCh = -1;
+};
+
+const SPair * SParsedLine::PPairParamFind(const std::string & strKey) const
+{
+	for (const SPair & pair : m_aryPair)
 	{
 		if (FMatchCaseInsensitive(pair.m_strKey, strKey))
-			return &pair.m_strValue;
+			return &pair;
 	}
-
 	return nullptr;
 }
 
-bool FMatches(const char * pChBuilder, int cChBuilder, const char * pChzRef, int cChRef)
+void SLineParser::FindLines(const std::string & strKey, std::vector<const SParsedLine *> * parypLine) const
 {
-	if (cChBuilder != cChRef)
-		return false;
+	for (const SParsedLine & line: m_aryLine)
+	{
+		if (FMatchCaseInsensitive(line.m_pairMain.m_strKey, strKey))
+			parypLine->push_back(&line);
+	}
+
+	return;
+}
+
+enum MATCHRES
+{
+	MATCHRES_PartialMatch, // All of builder matches the start of ref
+	MATCHRES_Match, // All of builder matches all of ref
+	MATCHRES_Mismatch, // All of builder matches all of ref
+};
+
+MATCHRES Matchres(const char * pChBuilder, int cChBuilder, const char * pChzRef, int cChRef)
+{
+	if (cChBuilder > cChRef)
+		return MATCHRES_Mismatch;
 
 	for (int iCh = 0; iCh < cChBuilder; iCh++)
 	{
 		if (pChBuilder[iCh] != pChzRef[iCh])
-			return false;
+			return MATCHRES_Mismatch;
+	}
+	
+	if (cChBuilder < cChRef)
+	{
+		return MATCHRES_PartialMatch;
 	}
 
-	return true;
+	return MATCHRES_Match;
+}
+
+void SLineParser::SetState(PARSE parse, const std::string & str)
+{
+	if (parse == m_parse)
+		return;
+
+	// Leave previous state
+
+	switch (m_parse)
+	{
+		case PARSE_LineEnd:
+		case PARSE_Delimiter:
+		case PARSE_CommentStart:
+			m_iCh++;
+			break;
+
+		case PARSE_Key:
+			if (!m_fFoundMainPair)
+			{
+				m_aryLine.back().m_pairMain.m_strKey = std::string(m_aChBuilder, m_iChBuilder);
+			}
+			else
+			{
+				m_aryLine.back().m_aryPair.back().m_strKey = std::string(m_aChBuilder, m_iChBuilder);
+			}
+			break;
+
+		case PARSE_Value:
+			if (!m_fFoundMainPair)
+			{
+				m_aryLine.back().m_pairMain.m_strValue = std::string(m_aChBuilder, m_iChBuilder);
+				m_fFoundMainPair = true;
+			}
+			else
+			{
+				m_aryLine.back().m_aryPair.back().m_strValue = std::string(m_aChBuilder, m_iChBuilder);
+			}
+			break;
+	}
+
+	m_parse = parse;
+
+	// Enter new State
+
+	switch (m_parse)
+	{
+		case PARSE_Done:
+			m_aryLine.pop_back();
+			break;
+
+		case PARSE_CommentStart:
+			m_fFoundMainPair = false;
+			break;
+
+		case PARSE_Key:
+			if (!m_fFoundMainPair)
+			{
+				m_aryLine.push_back({ });
+			}
+			else
+			{
+				m_aryLine.back().m_aryPair.push_back({});
+			}
+			break;
+
+	}
+
+	SkipWhitespace(str);
+	m_iChBuilder = 0;
+}
+
+void SLineParser::ParseLines(const std::string & str)
+{
+	ASSERT(m_parse == PARSE_Nil);
+
+	m_iCh = 0;
+	SetState(PARSE_CommentStart, str);
+	
+	for (;m_parse != PARSE_Done;)
+	{
+		if (m_iCh >= str.size() - 1)
+		{
+			ASSERT(false); // failed to find END_INFO
+			return;
+		}
+
+		const char * pChzTerminator = "END_INFO";
+
+		// Update state until it settles
+
+		for (;;)
+		{
+			PARSE parsePrev = m_parse;
+
+			char ch = str[m_iCh];
+
+			if (Matchres(m_aChBuilder, m_iChBuilder, pChzTerminator, strlen(pChzTerminator)) == MATCHRES_Match)
+			{
+				SetState(PARSE_Done, str);
+			}
+
+			char chParamDelimit = m_fFoundMainPair ? '=' : ':';
+			switch (m_parse)
+			{
+				case PARSE_CommentStart:
+					{
+						const char * pChzToken = "//";
+						MATCHRES matchres = Matchres(m_aChBuilder, m_iChBuilder, pChzToken, strlen(pChzToken));
+						switch (matchres)
+						{
+							case MATCHRES_Match:
+								SetState(PARSE_Key, str);
+								break;
+
+							case MATCHRES_Mismatch:
+								ASSERT(false);
+								break;
+						}
+					}
+					break;
+
+				case PARSE_Key:
+					{
+						if (ch == chParamDelimit || FIsWhitespace(ch))
+							SetState(PARSE_Delimiter, str);
+					}
+					break;
+
+				case PARSE_Delimiter:
+					{
+						if (ch == chParamDelimit)
+							SetState(PARSE_Value, str);
+					}
+					break;
+
+				case PARSE_Value:
+					{
+						if (FIsWhitespace(ch))
+							SetState(PARSE_LineEndOrParam, str);
+						if (ch == '\r' || ch == '\n')
+							SetState(PARSE_LineEnd, str);
+					}
+					break;
+
+				case PARSE_LineEndOrParam:
+					{
+						if (ch == '\r' || ch == '\n')
+							SetState(PARSE_LineEnd, str);
+						else
+							SetState(PARSE_Key, str);
+					}
+					break;
+
+				case PARSE_LineEnd:
+					{
+						if (ch == '\n')
+						{
+							SetState(PARSE_CommentStart, str);
+						}
+						else if (ch != '\r')
+						{
+							ASSERT(false);
+						}
+					}
+					break;
+			}
+
+			if (parsePrev == m_parse)
+				break;
+		}
+
+		m_aChBuilder[m_iChBuilder++] = str[m_iCh];
+		m_iCh++;
+	}
+
+
+	SetState(PARSE_Nil, str);
+}
+
+void SLineParser::SkipWhitespace(const std::string & str)
+{
+	for (; FIsWhitespace(str[m_iCh]); m_iCh++);
 }
 
 SShader::SShader(const char * pChzFile) : super()
@@ -44,167 +285,64 @@ SShader::SShader(const char * pChzFile) : super()
 
 	std::string strFile = file.StrGet();
 
-	int iChBuilder = 0;
-	char aChBuilder[1024];
-
-	enum PARSE
-	{
-		PARSE_CommentStart = 0,
-		PARSE_Key = 1,
-		PARSE_Colon = 2,
-		PARSE_Value = 3,
-		PARSE_LineEnd = 4,
-	};
-	
-	std::vector<SPair> aryPair;
-
-	PARSE parse = PARSE_CommentStart;
-	bool fSkipWhitespace = true;
-	for (int iCh = 0;;)
-	{
-		if (iCh >= strFile.size() - 1)
-		{
-			ASSERT(false); // failed to find END_INFO
-			return;
-		}
-
-		char ch = strFile[iCh];
-
-		if (fSkipWhitespace)
-		{
-			if (FIsWhitespace(ch))
-			{
-				iCh++;
-				continue;
-			}
-
-			fSkipWhitespace = false;
-		}
-
-		aChBuilder[iChBuilder++] = ch;
-
-		const char * pChzTerminator = "END_INFO";
-		bool fDone = false;
-		switch (parse)
-		{
-			case PARSE_Key:
-			case PARSE_Value:
-				if (FMatches(aChBuilder, iChBuilder, pChzTerminator, strlen(pChzTerminator)))
-				{
-					fDone = true;
-				}
-				break;
-		}
-		if (fDone)
-			break;
-
-		switch (parse)
-		{
-			case PARSE_CommentStart:
-				{
-					const char * pChzToken = "//";
-					if (FMatches(aChBuilder, iChBuilder, pChzToken, strlen(pChzToken)))
-					{
-						fSkipWhitespace = true;
-						parse = PARSE_Key;
-						iChBuilder = 0;
-					}
-					iCh++;
-				}
-				break;
-
-			case PARSE_Key:
-				{
-					if (ch == ':' || FIsWhitespace(ch))
-					{
-						parse = PARSE_Colon;
-						aryPair.push_back({ std::string(aChBuilder,iChBuilder-1), std::string() });
-						fSkipWhitespace = true;
-						iChBuilder = 0;
-					}
-					else
-					{
-						iCh++;
-					}
-				}
-				break;
-
-			case PARSE_Colon:
-				{
-					if (ch == ':')
-					{
-						parse = PARSE_Value;
-						iChBuilder = 0;
-						fSkipWhitespace = true;
-						iCh++;
-					}
-					else
-					{
-						ASSERT(false);
-					}
-				}
-				break;
-
-			case PARSE_Value:
-				{
-					if (FIsWhitespace(ch) || ch == '\r' || ch == '\n')
-					{
-						aryPair[aryPair.size() - 1].m_strValue = std::string(aChBuilder,iChBuilder-1);
-						parse = PARSE_LineEnd;
-						iChBuilder = 0;
-						fSkipWhitespace = true;
-					}
-					else
-					{
-						iCh++;
-					}
-				}
-				break;
-
-			case PARSE_LineEnd:
-				{
-					if (ch == '\r')
-					{
-						iCh++;
-						ch = strFile[iCh];
-					}
-
-					if (ch == '\n')
-					{
-						parse = PARSE_CommentStart;
-						fSkipWhitespace = true;
-						iChBuilder = 0;
-						iCh++;
-					}
-					else
-					{
-						ASSERT(false);
-					}
-				}
-				break;
-		}
-	}
+	SLineParser parser;
+	parser.ParseLines(strFile);
 
 	static const std::string strShaderkKey = std::string("ShaderKind");
 	static const std::string strShaderkValue3D = std::string("3D");
 	static const std::string strShaderkValueUi = std::string("UI");
 
-	const std::string * pStr = PStrFind("ShaderKind", aryPair);
-	if (!pStr)
+	std::vector<const SParsedLine *> arypLine;
+
 	{
-		ASSERT(false); // No shader kind
+		parser.FindLines("ShaderKind", &arypLine);
+		ASSERT(arypLine.size() == 1); // Not exactly 1 shader kind
+
+		const SParsedLine & line = *arypLine.front();
+
+		if (FMatchCaseInsensitive(line.m_pairMain.m_strValue, strShaderkValue3D))
+		{
+			m_shaderk = SHADERK_3D;
+		}
+		else if (FMatchCaseInsensitive(line.m_pairMain.m_strValue, strShaderkValueUi))
+		{
+			m_shaderk = SHADERK_Ui;
+		}
+		else
+		{
+			ASSERT(false); // Couldn't resolve type
+		}
 	}
-	else if (FMatchCaseInsensitive(*pStr, strShaderkValue3D))
+
+	arypLine.clear();
+
 	{
-		m_shaderk = SHADERK_3D;
-	}
-	else if (FMatchCaseInsensitive(*pStr, strShaderkValueUi))
-	{
-		m_shaderk = SHADERK_Ui;
-	}
-	else
-	{
-		ASSERT(false); // Couldn't resolve type
+		parser.FindLines("Texture", &arypLine);
+
+		std::vector<SNamedTextureSlot> aryNamedslot;
+		for (const SParsedLine * pLine : arypLine)
+		{
+			if (const SPair * pPair = pLine->PPairParamFind("slot"))
+			{
+				aryNamedslot.push_back({ pLine->m_pairMain.m_strValue, NFromStr(pPair->m_strValue) });
+			}
+		}
+
+		m_mpISlotStrName.resize(aryNamedslot.size());
+		for (int i = 0; i < aryNamedslot.size(); i++)
+		{
+			m_mpISlotStrName[i] = { {},-1 };
+		}
+
+		for (const SNamedTextureSlot & namedslot : aryNamedslot)
+		{
+			m_mpISlotStrName[namedslot.m_iSlot] = namedslot;
+		}
+
+		for (const SNamedTextureSlot & namedslot : m_mpISlotStrName)
+		{
+			ASSERT(namedslot.m_iSlot != -1);
+		}
 	}
 
 	// Create Vertex Shader

@@ -41,6 +41,11 @@ float GPow(float gBase, float gExponent)
 	return float(std::pow(gBase, gExponent));
 }
 
+int NPow(int nBase, int nExponent)
+{
+	return pow(nBase, nExponent);
+}
+
 float RadFromDeg(float deg)
 {
 	return deg * PI / 180.0f;
@@ -114,6 +119,61 @@ bool FMatchCaseInsensitive(const std::string & str1, const std::string & str2)
 			return false;
 
 	return true;
+}
+
+
+bool FChIsNumber(char ch)
+{
+	return ch >= '0' && ch <= '9';
+}
+
+int NFromCh(char ch)
+{
+	if (FChIsNumber(ch))
+	{
+		return ch - '0';
+	}
+	ASSERT(false);
+	return -1;
+}
+
+int NFromStr(const std::string & str)
+{
+	int iStrStart = 0;
+	int cStr = str.size();
+	int nSign = 1;
+	if (FChIsNumber(str[0]))
+	{
+		// ...
+	}
+	else if (str[0] == '-')
+	{
+		nSign = -1;
+		iStrStart++;
+	}
+	else
+	{
+		ASSERT(false);
+		return -1;
+	}
+
+	int n = 0;
+	for (int iCh = iStrStart; iCh < cStr; iCh++)
+	{
+		int nPow = (cStr - 1) - iCh;
+		n += NFromCh(str[iCh]) * NPow(10, nPow);
+	}
+
+	return n * nSign;
+}
+
+void AuditNFromStr()
+{
+	ASSERT(NFromStr(std::string("-15")) == -15);
+	ASSERT(NFromStr(std::string("234")) == 234);
+	ASSERT(NFromStr(std::string("0")) == 0);
+	ASSERT(NFromStr(std::string("1")) == 1);
+	ASSERT(NFromStr(std::string("-1")) == -1);
 }
 
 // https://stackoverflow.com/questions/2573834/c-convert-string-or-char-to-wstring-or-wchar-t

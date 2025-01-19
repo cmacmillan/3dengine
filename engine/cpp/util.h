@@ -66,6 +66,26 @@ T Lerp(const T & t1, const T & t2, float lerp)
 
 float GMapRange(float a1, float a2, float b1, float b2, float g);
 
+float GSin(float g);
+float GCos(float g);
+float GTan(float g);
+float GAbs(float g);
+float GSqrt(float g);
+float GPow(float gBase, float gExponent);
+int NPow(int nBase, int nExponent);
+
+float RadFromDeg(float deg);
+float DegFromRad(float rad);
+
+bool FIsNear(float a, float b);
+bool FIsNear(float a, float b, float gEpsilon);
+
+float GRound(float g, int nDecimal);
+void AuditGRound();
+
+int NFloor(float g);
+int NCeil(float g);
+
 inline char ChToLower(char ch)
 {
 	if (ch >= 'A' && ch <= 'Z')
@@ -84,29 +104,14 @@ inline char ChToUpper(char ch)
 	return ch;
 }
 
-float GSin(float g);
-float GCos(float g);
-float GTan(float g);
-float GAbs(float g);
-float GSqrt(float g);
-float GPow(float gBase, float gExponent);
-
-float RadFromDeg(float deg);
-float DegFromRad(float rad);
-
-bool FIsNear(float a, float b);
-bool FIsNear(float a, float b, float gEpsilon);
-
-float GRound(float g, int nDecimal);
-void AuditGRound();
-
-int NFloor(float g);
-int NCeil(float g);
-
 bool FIsUpper(char ch);
 bool FIsLower(char ch);
 bool FIsWhitespace(char ch);
 bool FMatchCaseInsensitive(const std::string & str1, const std::string & str2);
+bool FChIsNumber(char ch);
+int NFromCh(char ch);
+int NFromStr(const std::string & str);
+void AuditNFromStr();
 
 std::wstring WstrFromStr(std::string str);
 

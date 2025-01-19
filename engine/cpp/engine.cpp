@@ -54,6 +54,7 @@ void SGame::Init(HINSTANCE hInstance)
 	AuditFixArray();
 	AuditVectors();
 	AuditSlotheap();
+	AuditNFromStr();
 
 	m_hNodeRoot = (new SNode(-1))->HNode();
 
@@ -362,7 +363,6 @@ void SGame::Init(HINSTANCE hInstance)
 
 	SShaderHandle hShaderUnlit = (new SShader("shaders\\unlit2d.hlsl"))->HShader();
 	SShaderHandle hShaderText = (new SShader("shaders\\text2d.hlsl"))->HShader();
-	SShaderHandle hShaderLit = (new SShader("shaders\\lit2d.hlsl"))->HShader();
 
 	SShaderHandle hShader3D = (new SShader("shaders\\unlit3d.hlsl"))->HShader();
 
@@ -371,7 +371,8 @@ void SGame::Init(HINSTANCE hInstance)
 	m_hFont = (new SFont("fonts\\candara.fnt"))->HFont();
 
 	m_hMaterialText = (new SMaterial(hShaderText))->HMaterial();
-	m_hMaterialText->m_hTexture = m_hFont->m_aryhTexture[0];
+	//m_hMaterialText->m_hTexture = m_hFont->m_aryhTexture[0];
+	m_hMaterialText->m_aryNamedtexture.push_back({ m_hFont->m_aryhTexture[0], "fontTexture" });
 
 	m_hText = (new SText(m_hFont, m_hNodeRoot))->HText();
 	m_hText->m_hMaterial = m_hMaterialText;
@@ -726,90 +727,61 @@ void SGame::MainLoop()
 			const SMaterial & material = *hUinode->m_hMaterial;
 			const SShader & shader = *(material.m_hShader);
 			ASSERT(shader.m_shaderk == SHADERK_Ui);
-			switch (hUinode->m_typek)
+
+			const SMesh2D & mesh = *hUinode->m_hMesh;
+
+			m_pD3ddevicecontext->IASetInputLayout(shader.m_pD3dinputlayout);
+			m_pD3ddevicecontext->VSSetShader(shader.m_pD3dvertexshader, nullptr, 0);
+			m_pD3ddevicecontext->PSSetShader(shader.m_pD3dfragshader, nullptr, 0);
+
+			float blendFactor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+			UINT sampleMask   = 0xffffffff;
+			m_pD3ddevicecontext->OMSetBlendState(m_pD3dblendstatenoblend, blendFactor, sampleMask);
+
+			m_pD3ddevicecontext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+			ID3D11Buffer * aD3dbuffer[] = { m_cbufferUiNode, m_cbufferGlobals };
+			m_pD3ddevicecontext->VSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
+			m_pD3ddevicecontext->PSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
+
+			unsigned int cbVert = sizeof(SVertData2D);
+			unsigned int s_cbMeshOffset = 0;
+
+			m_pD3ddevicecontext->IASetVertexBuffers(0, 1, &m_cbufferVertex2D, &cbVert, &s_cbMeshOffset);	// BB don't constantly do this
+			m_pD3ddevicecontext->IASetIndexBuffer(m_cbufferIndex, DXGI_FORMAT_R16_UINT, 0);					//  ...
+
+			D3D11_MAPPED_SUBRESOURCE mappedSubresource;
+			m_pD3ddevicecontext->Map(m_cbufferUiNode, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
+			SUiNodeRenderConstants * pUinoderc = (SUiNodeRenderConstants *) (mappedSubresource.pData);
+			hUinode->GetRenderConstants(pUinoderc);
+			m_pD3ddevicecontext->Unmap(m_cbufferUiNode, 0);
+
+			std::vector<ID3D11ShaderResourceView *> arypD3dsrview;
+			std::vector<ID3D11SamplerState *> arypD3dsamplerstate;
+
+			for (int i = 0; i < shader.CNamedslot(); i++)
 			{
-				case TYPEK_Text:
-					{
-						const SMesh2D & mesh = *hUinode->m_hMesh;
-						const STexture & texture = *material.m_hTexture;
-
-						m_pD3ddevicecontext->IASetInputLayout(shader.m_pD3dinputlayout);
-						m_pD3ddevicecontext->VSSetShader(shader.m_pD3dvertexshader, nullptr, 0);
-						m_pD3ddevicecontext->PSSetShader(shader.m_pD3dfragshader, nullptr, 0);
-
-						//float blendFactor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-						float blendFactor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
-						UINT sampleMask   = 0xffffffff;
-						m_pD3ddevicecontext->OMSetBlendState(m_pD3dblendstatenoblend, blendFactor, sampleMask);
-
-						m_pD3ddevicecontext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-						ID3D11Buffer * aD3dbuffer[] = { m_cbufferUiNode, m_cbufferGlobals };
-						m_pD3ddevicecontext->VSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
-						m_pD3ddevicecontext->PSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
-
-						unsigned int cbVert = sizeof(SVertData2D);
-						unsigned int s_cbMeshOffset = 0;
-
-						m_pD3ddevicecontext->IASetVertexBuffers(0, 1, &m_cbufferVertex2D, &cbVert, &s_cbMeshOffset);	// BB don't constantly do this
-						m_pD3ddevicecontext->IASetIndexBuffer(m_cbufferIndex, DXGI_FORMAT_R16_UINT, 0);					//  ...
-
-						D3D11_MAPPED_SUBRESOURCE mappedSubresource;
-						m_pD3ddevicecontext->Map(m_cbufferUiNode, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
-						SUiNodeRenderConstants * pUinoderc = (SUiNodeRenderConstants *) (mappedSubresource.pData);
-						hUinode->GetRenderConstants(pUinoderc);
-						m_pD3ddevicecontext->Unmap(m_cbufferUiNode, 0);
-
-						ID3D11ShaderResourceView * aD3dsrview[] = { texture.m_pD3dsrview };
-						m_pD3ddevicecontext->PSSetShaderResources(0, DIM(aD3dsrview), aD3dsrview);
-
-						ID3D11SamplerState * aD3dsamplerstate[] = { texture.m_pD3dsamplerstate };
-						m_pD3ddevicecontext->PSSetSamplers(0, DIM(aD3dsamplerstate), aD3dsamplerstate);
-
-						m_pD3ddevicecontext->DrawIndexed(mesh.m_cIndicies, mesh.m_iIndexdata, mesh.m_iVertdata);
-						//m_pD3ddevicecontext->Draw(mesh.m_sliceVertex.m_cb / sizeof(SVertData2D), mesh.m_sliceVertex.m_ibStart / sizeof(SVertData2D));
-					}
-					break;
-				default:
-					{
-						const SMesh2D & mesh = *hUinode->m_hMesh;
-						const STexture & texture = *material.m_hTexture;
-
-						float blendFactor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
-						UINT sampleMask   = 0xffffffff;
-						m_pD3ddevicecontext->OMSetBlendState(nullptr, blendFactor, sampleMask);
-
-						m_pD3ddevicecontext->IASetInputLayout(shader.m_pD3dinputlayout);
-						m_pD3ddevicecontext->VSSetShader(shader.m_pD3dvertexshader, nullptr, 0);
-						m_pD3ddevicecontext->PSSetShader(shader.m_pD3dfragshader, nullptr, 0);
-
-						m_pD3ddevicecontext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-						ID3D11Buffer * aD3dbuffer[] = { m_cbufferUiNode, m_cbufferGlobals };
-						m_pD3ddevicecontext->VSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
-						m_pD3ddevicecontext->PSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
-
-						unsigned int cbVert = sizeof(SVertData2D);
-						unsigned int s_cbMeshOffset = 0;
-
-						m_pD3ddevicecontext->IASetVertexBuffers(0, 1, &m_cbufferVertex2D, &cbVert, &s_cbMeshOffset);	// BB don't constantly do this
-						m_pD3ddevicecontext->IASetIndexBuffer(m_cbufferIndex, DXGI_FORMAT_R16_UINT, 0);					//  ...
-
-						D3D11_MAPPED_SUBRESOURCE mappedSubresource;
-						m_pD3ddevicecontext->Map(m_cbufferUiNode, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
-						SUiNodeRenderConstants * pUinoderc = (SUiNodeRenderConstants *) (mappedSubresource.pData);
-						hUinode->GetRenderConstants(pUinoderc);
-						m_pD3ddevicecontext->Unmap(m_cbufferUiNode, 0);
-
-						ID3D11ShaderResourceView * aD3dsrview[] = { texture.m_pD3dsrview };
-						m_pD3ddevicecontext->PSSetShaderResources(0, DIM(aD3dsrview), aD3dsrview);
-
-						ID3D11SamplerState * aD3dsamplerstate[] = { texture.m_pD3dsamplerstate };
-						m_pD3ddevicecontext->PSSetSamplers(0, DIM(aD3dsamplerstate), aD3dsamplerstate);
-
-						m_pD3ddevicecontext->DrawIndexed(mesh.m_cIndicies, mesh.m_iIndexdata, mesh.m_iVertdata);
-						//m_pD3ddevicecontext->Draw(mesh.m_sliceVertex.m_cb / sizeof(SVertData2D), mesh.m_sliceVertex.m_ibStart / sizeof(SVertData2D));
-					}
-					break;
+				arypD3dsrview.push_back(nullptr);
+				arypD3dsamplerstate.push_back(nullptr);
 			}
+
+			for (const SNamedTexture & namedtexture : material.m_aryNamedtexture)
+			{
+				for (const SNamedTextureSlot & namedslot : shader.m_mpISlotStrName)
+				{
+					if (namedslot.m_strName == namedtexture.m_strName)
+					{
+						ASSERT(arypD3dsrview[namedslot.m_iSlot] == nullptr);
+						ASSERT(arypD3dsamplerstate[namedslot.m_iSlot] == nullptr);
+						arypD3dsrview[namedslot.m_iSlot] = namedtexture.m_hTexture->m_pD3dsrview;
+						arypD3dsamplerstate[namedslot.m_iSlot] = namedtexture.m_hTexture->m_pD3dsamplerstate;
+					}
+				}
+			}
+
+			m_pD3ddevicecontext->PSSetShaderResources(0, arypD3dsrview.size(), arypD3dsrview.data());
+			m_pD3ddevicecontext->PSSetSamplers(0, arypD3dsamplerstate.size(), arypD3dsamplerstate.data());
+
+			m_pD3ddevicecontext->DrawIndexed(mesh.m_cIndicies, mesh.m_iIndexdata, mesh.m_iVertdata);
 		}
 
 		for (int i = 0; i < DIM(m_mpVkFJustPressed); i++)
