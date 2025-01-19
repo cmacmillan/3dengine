@@ -35,7 +35,6 @@ struct SLineParser
 {
 	void						ParseLines(const std::string & str);
 	void						SetState(PARSE parse, const std::string & str);
-	void						SkipWhitespace(const std::string & str);
 	void						FindLines(const std::string & strKey, std::vector<const SParsedLine *> * parypLine) const;
 
 	std::vector<SParsedLine>	m_aryLine = {};
@@ -132,6 +131,7 @@ void SLineParser::SetState(PARSE parse, const std::string & str)
 			break;
 	}
 
+	PARSE parsePrev = m_parse;
 	m_parse = parse;
 
 	// Enter new State
@@ -159,7 +159,8 @@ void SLineParser::SetState(PARSE parse, const std::string & str)
 
 	}
 
-	SkipWhitespace(str);
+	for (; FIsWhitespace(str[m_iCh]); m_iCh++);
+
 	m_iChBuilder = 0;
 }
 
@@ -187,6 +188,25 @@ void SLineParser::ParseLines(const std::string & str)
 			PARSE parsePrev = m_parse;
 
 			char ch = str[m_iCh];
+
+			if (ch == ';')
+			{
+				for (; str[m_iCh] != '\n'; m_iCh++);
+
+				// Janky subtract since these will bump us forward when we leave them
+
+				switch (m_parse)
+				{
+					case PARSE_LineEnd:
+					case PARSE_Delimiter:
+					case PARSE_CommentStart:
+						m_iCh--;
+						break;
+				}
+
+				SetState(PARSE_LineEnd, str);
+				continue;
+			}
 
 			if (Matchres(m_aChBuilder, m_iChBuilder, pChzTerminator, strlen(pChzTerminator)) == MATCHRES_Match)
 			{
@@ -271,11 +291,6 @@ void SLineParser::ParseLines(const std::string & str)
 	SetState(PARSE_Nil, str);
 }
 
-void SLineParser::SkipWhitespace(const std::string & str)
-{
-	for (; FIsWhitespace(str[m_iCh]); m_iCh++);
-}
-
 SShader::SShader(const char * pChzFile) : super()
 {
 	m_typek = TYPEK_Shader;
@@ -329,10 +344,13 @@ SShader::SShader(const char * pChzFile) : super()
 		}
 
 		m_mpISlotStrName.resize(aryNamedslot.size());
+		int iSlotMax = -1;
 		for (int i = 0; i < aryNamedslot.size(); i++)
 		{
 			m_mpISlotStrName[i] = { {},-1 };
+			iSlotMax = NMax(iSlotMax, aryNamedslot[i].m_iSlot);
 		}
+		ASSERT(iSlotMax + 1 == aryNamedslot.size());
 
 		for (const SNamedTextureSlot & namedslot : aryNamedslot)
 		{

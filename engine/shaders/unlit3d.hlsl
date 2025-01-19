@@ -42,7 +42,6 @@ VS_Output vs_main(VS_Input input)
 
 float4 ps_main(VS_Output input) : SV_Target
 {
-    //return float4(input.uv.xy, 0.0f, 1.0f);
     float4 vecMain = mainTexture.Sample(mainSampler, input.uv);   
     float4 vecAlt = altTexture.Sample(mainSampler, input.uv);
     float alpha = vecAlt.a * (sin(time) + 1) * .5f;

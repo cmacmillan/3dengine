@@ -714,6 +714,8 @@ void SGame::MainLoop()
 
 				m_pD3ddevicecontext->Unmap(m_cbufferDrawnode3D, 0);
 
+				ASSERT(material.m_aryNamedtexture.size() == shader.m_mpISlotStrName.size());
+
 				std::vector<ID3D11ShaderResourceView *> arypD3dsrview;
 				std::vector<ID3D11SamplerState *> arypD3dsamplerstate;
 
@@ -790,6 +792,8 @@ void SGame::MainLoop()
 			SUiNodeRenderConstants * pUinoderc = (SUiNodeRenderConstants *) (mappedSubresource.pData);
 			hUinode->GetRenderConstants(pUinoderc);
 			m_pD3ddevicecontext->Unmap(m_cbufferUiNode, 0);
+
+			ASSERT(material.m_aryNamedtexture.size() == shader.m_mpISlotStrName.size());
 
 			std::vector<ID3D11ShaderResourceView *> arypD3dsrview;
 			std::vector<ID3D11SamplerState *> arypD3dsamplerstate;
