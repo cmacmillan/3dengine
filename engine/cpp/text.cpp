@@ -3,7 +3,7 @@
 #include "font.h"
 #include "texture.h"
 
-SText::SText(SFontHandle hFont, SNodeHandle hNodeParent) : super(hNodeParent)
+SText::SText(SFontHandle hFont, SNodeHandle hNodeParent, const std::string & str) : super(hNodeParent, str)
 {
 	m_typek = TYPEK_Text;
 

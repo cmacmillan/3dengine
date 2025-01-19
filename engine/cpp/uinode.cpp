@@ -1,6 +1,6 @@
 #include "uinode.h"
 
-SUiNode::SUiNode(SNodeHandle hNodeParent) : super(hNodeParent)
+SUiNode::SUiNode(SNodeHandle hNodeParent, const std::string & str) : super(hNodeParent, str)
 {
 	m_typek = TYPEK_UiNode;
 }

@@ -602,6 +602,27 @@ Mat operator*(float g, const Mat & mat)
 	return mat * g;
 }
 
+std::string StrFromPoint(Point pos)
+{
+	return StrPrintf("[%.2f,%.2f,%.2f]", pos.X(), pos.Y(), pos.Z());
+}
+
+std::string StrFromVector(Vector vec)
+{
+	return StrPrintf("[%.2f,%.2f,%.2f]", vec.X(), vec.Y(), vec.Z());
+}
+
+std::string StrFromMat(Mat mat)
+{
+	return StrPrintf(
+		"[%.2f,%.2f,%.2f,%.2f]\n[%.2f,%.2f,%.2f,%.2f]\n[%.2f,%.2f,%.2f,%.2f]\n[%.2f,%.2f,%.2f,%.2f]", 
+		mat.m_aVec[0].m_x,mat.m_aVec[0].m_y,mat.m_aVec[0].m_z,mat.m_aVec[0].m_w,
+		mat.m_aVec[1].m_x,mat.m_aVec[1].m_y,mat.m_aVec[1].m_z,mat.m_aVec[1].m_w,
+		mat.m_aVec[2].m_x,mat.m_aVec[2].m_y,mat.m_aVec[2].m_z,mat.m_aVec[2].m_w,
+		mat.m_aVec[3].m_x,mat.m_aVec[3].m_y,mat.m_aVec[3].m_z,mat.m_aVec[3].m_w);
+}
+
+
 void AuditVectors()
 {
 	Mat matA = Mat(

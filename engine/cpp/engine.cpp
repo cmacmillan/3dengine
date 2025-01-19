@@ -7,6 +7,7 @@
 #include "fpscounter.h"
 #include "texture.h"
 #include "shader.h"
+#include "flycam.h"
 
 #include <exception>
 
@@ -56,7 +57,7 @@ void SGame::Init(HINSTANCE hInstance)
 	AuditSlotheap();
 	AuditNFromStr();
 
-	m_hNodeRoot = (new SNode(-1))->HNode();
+	m_hNodeRoot = (new SNode(-1, "RootNode"))->HNode();
 
 	// Open a window
 	{
@@ -374,32 +375,35 @@ void SGame::Init(HINSTANCE hInstance)
 	//m_hMaterialText->m_hTexture = m_hFont->m_aryhTexture[0];
 	m_hMaterialText->m_aryNamedtexture.push_back({ m_hFont->m_aryhTexture[0], "fontTexture" });
 
-	m_hText = (new SText(m_hFont, m_hNodeRoot))->HText();
-	m_hText->m_hMaterial = m_hMaterialText;
-	m_hText->SetText("Score: joy");
-	m_hText->m_vecScale = float2(1.0f, 1.0f);
-	m_hText->m_gSort = 10.0f;
-	m_hText->m_pos = float2(0.0f, 0.0f);
-	m_hText->m_color = { 0.0f, 0.0f, 0.0f, 1.0f };
+	// Console text
+
+	m_hTextConsole = (new SText(m_hFont, m_hNodeRoot, "ConsoleText"))->HText();
+	m_hTextConsole->m_hMaterial = m_hMaterialText;
+	m_hTextConsole->m_vecScale = float2(0.2f, 0.2f);
+	m_hTextConsole->m_gSort = 10.0f;
+	m_hTextConsole->m_pos = float2(20.0f, 500.0f);
+	m_hTextConsole->m_color = { 0.0f, 0.0f, 0.0f, 1.0f };
 
 	// Fps counter
 
-	(new SFpsCounter(m_hNodeRoot));
+	(new SFpsCounter(m_hNodeRoot, "FpsCounter"));
 
 	// Camera
 
-	m_hCamera3DMain = (new SCamera3D(m_hNodeRoot, RadFromDeg(90.0f), 0.1, 100.0f))->HCamera3D();
+	//m_hCamera3DMain = (new SCamera3D(m_hNodeRoot, "CameraMain", RadFromDeg(90.0f), 0.1, 100.0f))->HCamera3D();
+
+	(new SFlyCam(m_hNodeRoot, "FlyCam"));
 
 	SMaterial * pMaterial3d = new SMaterial(hShader3D);
 	pMaterial3d->m_aryNamedtexture.push_back({ (new STexture("textures/testTexture1.png", false, false))->HTexture(),  "mainTexture"});
 	pMaterial3d->m_aryNamedtexture.push_back({ (new STexture("textures/testTexture2.png", false, false))->HTexture(),  "altTexture"});
 
-	m_hPlaneTest = (new SDrawNode3D(m_hNodeRoot))->HDrawnode3D();
+	m_hPlaneTest = (new SDrawNode3D(m_hNodeRoot, "PlaneTest1"))->HDrawnode3D();
 	m_hPlaneTest->m_hMaterial = pMaterial3d->HMaterial();
 	m_hPlaneTest->SetPosWorld(Point(10.0f, 0.0f, 0.0f));
 	m_hPlaneTest->m_hMesh = m_hMeshQuad;
 
-	m_hPlaneTest2 = (new SDrawNode3D(m_hPlaneTest->HNode()))->HDrawnode3D();
+	m_hPlaneTest2 = (new SDrawNode3D(m_hPlaneTest->HNode(), "PlaneTest2"))->HDrawnode3D();
 	m_hPlaneTest2->m_hMaterial = pMaterial3d->HMaterial();
 	m_hPlaneTest2->SetPosWorld(Point(10.0f, 2.0f, 0.0f));
 	m_hPlaneTest2->m_hMesh = m_hMeshQuad;
@@ -492,6 +496,8 @@ void SGame::MainLoop()
 
 		///////////////////////////////
 
+		m_strConsole = "";
+
 		// Run update functions on all nodes
 
 		// NOTE objects spawned by update will not update or render until the next frame
@@ -536,19 +542,23 @@ void SGame::MainLoop()
 
 		for (SNodeHandle hNode : aryhNode)
 		{
-			if (hNode != -1)
+			if (hNode == -1)
+				continue;
+
+			SNode * pNode = hNode.PT();
+			pNode->Update();
+
+			if (pNode->FIsDerivedFrom(TYPEK_UiNode))
 			{
-				hNode->Update();
-				if (hNode->FIsDerivedFrom(TYPEK_UiNode))
-				{
-					aryhUinodeToRender.push_back(SUiNodeHandle(hNode.m_id));
-				}
-				else if (hNode->FIsDerivedFrom(TYPEK_DrawNode3D))
-				{
-					aryhDrawnode3DToRender.push_back(SDrawNode3DHandle(hNode.m_id));
-				}
+				aryhUinodeToRender.push_back(SUiNodeHandle(hNode.m_id));
+			}
+			else if (pNode->FIsDerivedFrom(TYPEK_DrawNode3D))
+			{
+				aryhDrawnode3DToRender.push_back(SDrawNode3DHandle(hNode.m_id));
 			}
 		}
+		
+		m_hTextConsole->SetText(m_strConsole);
 
 		// Sort UI nodes
 
@@ -821,6 +831,11 @@ void SGame::VkReleased(int vk)
 	if (m_mpVkFDown[vk])
 		m_mpVkFJustReleased[vk] = true;
 	m_mpVkFDown[vk] = false;
+}
+
+void SGame::PrintConsole(const std::string & str)
+{
+	m_strConsole += str;
 }
 
 LRESULT SGame::LresultWindowProcedure(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)

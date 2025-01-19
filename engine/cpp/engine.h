@@ -89,13 +89,14 @@ struct SGame // game
 	float2 VecWinSize();
 	void VkPressed(int vk);
 	void VkReleased(int vk);
+	void PrintConsole(const std::string & str);
 
 	SNodeHandle	m_hNodeRoot = -1;
 
-	// Gameplay
+	STextHandle m_hTextConsole = -1;
+	std::string m_strConsole = "";
 
-	SMaterialHandle m_hMaterialTile = -1;
-	STextHandle m_hText = -1;
+	// Gameplay
 
 	SCamera3DHandle m_hCamera3DMain = -1;
 	SDrawNode3DHandle m_hPlaneTest = -1;

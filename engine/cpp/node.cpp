@@ -1,11 +1,12 @@
 #include "node.h"
 
-SNode::SNode(SNodeHandle hNodeParent) :
+SNode::SNode(SNodeHandle hNodeParent, const std::string & str) :
 	super()
 {
 	SetParent(hNodeParent);
 
 	m_typek = TYPEK_Node;
+	m_strName = str;
 }
 
 void SNode::SetParent(SNodeHandle hNodeParent)

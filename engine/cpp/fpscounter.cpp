@@ -2,9 +2,9 @@
 #include "fpscounter.h"
 #include "util.h"
 
-SFpsCounter::SFpsCounter(SHandle<SNode> hNodeParent) : super(hNodeParent)
+SFpsCounter::SFpsCounter(SHandle<SNode> hNodeParent, const std::string & str) : super(hNodeParent, str)
 {
-	m_hText = (new SText(g_game.m_hFont, HNode()))->HText();
+	m_hText = (new SText(g_game.m_hFont, HNode(), "FpsTextMain"))->HText();
 	m_hText->m_hMaterial = g_game.m_hMaterialText;
 	m_hText->SetText("FPS: ___");
 	m_hText->m_vecScale = float2(0.3f, 0.3f);
@@ -12,7 +12,7 @@ SFpsCounter::SFpsCounter(SHandle<SNode> hNodeParent) : super(hNodeParent)
 	m_hText->m_pos = float2(0.0f, 0.0f);
 	m_hText->m_color = { 0.0f, 0.0f, 0.0f, 1.0f };
 
-	m_hTextFps = (new SText(g_game.m_hFont, HNode()))->HText();
+	m_hTextFps = (new SText(g_game.m_hFont, HNode(), "FpsTextAlt"))->HText();
 	m_hTextFps->m_hMaterial = g_game.m_hMaterialText;
 	m_hTextFps->SetText("FPS: ___");
 	m_hTextFps->m_vecScale = float2(0.3f, 0.3f);

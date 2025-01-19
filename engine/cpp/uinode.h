@@ -15,7 +15,7 @@ struct SUiNode : SNode // uinode
 	typedef SNode super;
 	SUiNodeHandle HUinode() { return (SUiNodeHandle) m_nHandle; }
 
-	SUiNode(SNodeHandle hNodeParent);
+	SUiNode(SNodeHandle hNodeParent, const std::string & strName);
 	void GetRenderConstants(SUiNodeRenderConstants * pUinoderc);
 
 	float2 m_pos = { 0.0f, 0.0f };

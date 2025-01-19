@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 struct float2
 {
 	float2() : m_x(0.0f), m_y(0.0f) {}
@@ -132,6 +134,10 @@ struct Mat
 		m_aVec[2] = r2; 
 		m_aVec[3] = r3; 
 	}
+	Vector VecX() { return m_aVec[0]; }
+	Vector VecY() { return m_aVec[1]; }
+	Vector VecZ() { return m_aVec[2]; }
+	Point Pos() { return m_aVec[3]; }
 	float4 m_aVec[4];
 	Mat operator*(const Mat & mat) const;
 	Mat operator*(float g) const;
@@ -203,5 +209,9 @@ struct Transform // tag = transform
 };
 
 bool FIsNear(const Transform & transform1, const Transform & transform2);
+
+std::string StrFromPoint(Point pos);
+std::string StrFromVector(Vector vec);
+std::string StrFromMat(Mat mat);
 
 void AuditVectors();
