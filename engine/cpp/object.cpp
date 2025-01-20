@@ -13,12 +13,12 @@ TYPEK TypekSuper(TYPEK typek)
 			case TYPEK_Node:		return TYPEK_Object;
 				case TYPEK_UiNode:		return TYPEK_Node;
 					case TYPEK_Text:		return TYPEK_UiNode;
+					case TYPEK_Console:		return TYPEK_UiNode;
 				case TYPEK_Node3D:		return TYPEK_Node;
 					case TYPEK_DrawNode3D:	return TYPEK_Node3D;
 					case TYPEK_Camera3D:	return TYPEK_Node3D;
 					case TYPEK_FlyCam:		return TYPEK_Node3D;
 			case TYPEK_Font:		return TYPEK_Object;
-			case TYPEK_Mesh2D:		return TYPEK_Object;
 			case TYPEK_Mesh3D:		return TYPEK_Object;
 			case TYPEK_FpsCounter:	return TYPEK_Node;
 

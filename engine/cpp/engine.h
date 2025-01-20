@@ -76,6 +76,11 @@ struct ShaderGlobals
 	float2 m_vecWinSize;
 
 	float m_padding;
+
+	Mat		m_matCameraToWorld;
+    Mat		m_matWorldToCamera;
+	Mat		m_matClipToWorld;
+    Mat		m_matWorldToClip;
 };
 
 struct SGame // game 
@@ -89,17 +94,16 @@ struct SGame // game
 	float2 VecWinSize();
 	void VkPressed(int vk);
 	void VkReleased(int vk);
-	void PrintConsole(const std::string & str);
+	void PrintConsole(const std::string & str, float dT = 0.0);
 
 	// Misc
 
 	SNodeHandle	m_hNodeRoot = -1;
 
-	STextHandle m_hTextConsole = -1;
-	std::string m_strConsole = "";
+	SConsoleHandle m_hConsole = -1;
 
 	STextureHandle m_hTextureSkybox = -1;
-	SMesh2DHandle m_
+	//SMesh3DHandle m_
 
 	SCamera3DHandle m_hCamera3DMain = -1;
 	SDrawNode3DHandle m_hPlaneTest = -1;
@@ -139,7 +143,6 @@ struct SGame // game
 	ID3D11DepthStencilState * m_pD3ddepthstencilstate = nullptr;
 
 	ID3D11Buffer * m_cbufferVertex3D = nullptr;
-	ID3D11Buffer * m_cbufferVertex2D = nullptr;
 	ID3D11Buffer * m_cbufferIndex = nullptr;
 	ID3D11Buffer * m_cbufferUiNode = nullptr;
 	ID3D11Buffer * m_cbufferDrawnode3D = nullptr;

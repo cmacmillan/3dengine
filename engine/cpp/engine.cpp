@@ -8,6 +8,8 @@
 #include "texture.h"
 #include "shader.h"
 #include "flycam.h"
+#include "console.h"
+#include "timingcontext.h"
 
 #include <exception>
 
@@ -52,6 +54,8 @@ SGame::SGame()
 
 void SGame::Init(HINSTANCE hInstance)
 {
+	STimingContext timectx = STimingContext("Init", 15.0f);
+
 	AuditFixArray();
 	AuditVectors();
 	AuditSlotheap();
@@ -245,19 +249,6 @@ void SGame::Init(HINSTANCE hInstance)
 	}
 
 	{
-		const int cVertsMax = 100000;
-
-		D3D11_BUFFER_DESC descVertexBuffer = {};
-		descVertexBuffer.ByteWidth = cVertsMax * sizeof(SVertData2D);
-		descVertexBuffer.Usage = D3D11_USAGE_DYNAMIC;
-		descVertexBuffer.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-		descVertexBuffer.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-
-		HRESULT hResult = m_pD3ddevice->CreateBuffer(&descVertexBuffer, nullptr, &m_cbufferVertex2D);
-		assert(SUCCEEDED(hResult));
-	}
-
-	{
 		const int cIndexMax = 100000;
 
 		D3D11_BUFFER_DESC descIndexBuffer = {};
@@ -375,14 +366,9 @@ void SGame::Init(HINSTANCE hInstance)
 	//m_hMaterialText->m_hTexture = m_hFont->m_aryhTexture[0];
 	m_hMaterialText->m_aryNamedtexture.push_back({ m_hFont->m_aryhTexture[0], "fontTexture" });
 
-	// Console text
+	// Console
 
-	m_hTextConsole = (new SText(m_hFont, m_hNodeRoot, "ConsoleText"))->HText();
-	m_hTextConsole->m_hMaterial = m_hMaterialText;
-	m_hTextConsole->m_vecScale = float2(0.2f, 0.2f);
-	m_hTextConsole->m_gSort = 10.0f;
-	m_hTextConsole->m_pos = float2(20.0f, 500.0f);
-	m_hTextConsole->m_color = { 0.0f, 0.0f, 0.0f, 1.0f };
+	m_hConsole = (new SConsole(m_hNodeRoot, "Console"))->HConsole();
 
 	// Fps counter
 
@@ -394,7 +380,12 @@ void SGame::Init(HINSTANCE hInstance)
 
 	// Skybox
 
-	m_hTextureSkybox = (new STexture("textures/pretoria_gardens.jpg", false, false))->HTexture();
+	{
+		STimingContext timectx = STimingContext("Loading skybox texture", 15.0f);
+		// BB opening this texture is wildly slow
+		//m_hTextureSkybox = (new STexture("textures/pretoria_gardens.jpg", false, false))->HTexture();
+		m_hTextureSkybox = (new STexture("textures/pretoria_gardens_small.png", false, false))->HTexture();
+	}
 
 	SMaterial * pMaterial3d = new SMaterial(hShader3D);
 	pMaterial3d->m_aryNamedtexture.push_back({ (new STexture("textures/testTexture1.png", false, false))->HTexture(),  "mainTexture"});
@@ -498,8 +489,6 @@ void SGame::MainLoop()
 
 		///////////////////////////////
 
-		m_strConsole = "";
-
 		// Run update functions on all nodes
 
 		// NOTE objects spawned by update will not update or render until the next frame
@@ -560,7 +549,9 @@ void SGame::MainLoop()
 			}
 		}
 		
-		m_hTextConsole->SetText(m_strConsole);
+
+		SConsole * pConsole = m_hConsole.PT();
+		pConsole->m_hTextConsole->SetText(pConsole->StrPrint());
 
 		// Sort UI nodes
 
@@ -569,6 +560,11 @@ void SGame::MainLoop()
 		// Start rendering stuff
 
 		SCamera3D * pCamera3D = m_hCamera3DMain.PT();
+		Mat matCameraToWorld = pCamera3D->MatObjectToWorld();
+		Mat matWorldToCamera = matCameraToWorld.MatInverse();
+		Mat matCameraToClip = MatPerspective(pCamera3D->m_radFovHorizontal, vecWinSize.m_x / vecWinSize.m_y, pCamera3D->m_xNearClip, pCamera3D->m_xFarClip);
+		Mat matWorldToClip = matWorldToCamera * matCameraToClip;
+		Mat matClipToWorld = matWorldToClip.MatInverse();
 
 		FLOAT backgroundColor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 		m_pD3ddevicecontext->ClearRenderTargetView(m_pD3dframebufferview, backgroundColor);
@@ -582,6 +578,10 @@ void SGame::MainLoop()
 			ShaderGlobals * pShaderglobals = (ShaderGlobals *) (mappedSubresourceGlobals.pData);
 			pShaderglobals->m_t = m_dTSyst;
 			pShaderglobals->m_vecWinSize = vecWinSize;
+			pShaderglobals->m_matCameraToWorld = matCameraToWorld;
+			pShaderglobals->m_matWorldToCamera = matWorldToCamera;
+			pShaderglobals->m_matCameraToWorld = matCameraToWorld;
+			pShaderglobals->m_matWorldToCamera = matWorldToCamera;
 			m_pD3ddevicecontext->Unmap(m_cbufferGlobals, 0);
 		}
 
@@ -603,23 +603,25 @@ void SGame::MainLoop()
 
 		for (SUiNodeHandle hUinode : aryhUinodeToRender)
 		{
-			SMesh2D * pMesh = hUinode->m_hMesh.PT();
+			SMesh3D * pMesh = hUinode->m_hMesh.PT();
+
+			// Don't draw ui nodes that don't have meshes
+
+			if (!pMesh)
+				continue;
+
 			pMesh->m_iIndexdata = -1;
 			pMesh->m_iVertdata = -1;
 		}
 
 		int iBIndex = 0;
 		int iBVert3D = 0;
-		int iBVert2D = 0;
 
 		D3D11_MAPPED_SUBRESOURCE mappedSubresourceIndex;
 		g_game.m_pD3ddevicecontext->Map(m_cbufferIndex, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresourceIndex);
 
 		D3D11_MAPPED_SUBRESOURCE mappedSubresourceVerts3D;
 		g_game.m_pD3ddevicecontext->Map(m_cbufferVertex3D, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresourceVerts3D);
-
-		D3D11_MAPPED_SUBRESOURCE mappedSubresourceVerts2D;
-		g_game.m_pD3ddevicecontext->Map(m_cbufferVertex2D, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresourceVerts2D);
 
 		for (SDrawNode3DHandle hDrawnode3D : aryhDrawnode3DToRender)
 		{
@@ -643,18 +645,24 @@ void SGame::MainLoop()
 
 		for (SUiNodeHandle hUinode : aryhUinodeToRender)
 		{
-			SMesh2D * pMesh = hUinode->m_hMesh.PT();
+			SMesh3D * pMesh = hUinode->m_hMesh.PT();
+
+			// Again skip uinodes that don't have meshes
+
+			if (!pMesh)
+				continue;
+
 			if (pMesh->m_iVertdata != -1)
 				continue;
 
 			pMesh->m_cVerts = pMesh->m_aryVertdata.size();
-			pMesh->m_iVertdata = iBVert2D / sizeof(SVertData2D);
+			pMesh->m_iVertdata = iBVert3D / sizeof(SVertData3D);
 			pMesh->m_cIndicies = pMesh->m_aryIIndex.size();
 			pMesh->m_iIndexdata = iBIndex / sizeof(unsigned short);
 
-			unsigned int cBVert = sizeof(SVertData2D) * pMesh->m_aryVertdata.size();
-			memcpy((char *) mappedSubresourceVerts2D.pData + iBVert2D, pMesh->m_aryVertdata.data(), cBVert);
-			iBVert2D += cBVert;
+			unsigned int cBVert = sizeof(SVertData3D) * pMesh->m_aryVertdata.size();
+			memcpy((char *) mappedSubresourceVerts3D.pData + iBVert3D, pMesh->m_aryVertdata.data(), cBVert);
+			iBVert3D += cBVert;
 
 			unsigned int cBIndex = sizeof(unsigned short) * pMesh->m_aryIIndex.size();
 			memcpy((char *) mappedSubresourceIndex.pData + iBIndex, pMesh->m_aryIIndex.data(), cBIndex);
@@ -663,14 +671,13 @@ void SGame::MainLoop()
 
 		g_game.m_pD3ddevicecontext->Unmap(m_cbufferIndex, 0);
 		g_game.m_pD3ddevicecontext->Unmap(m_cbufferVertex3D, 0);
-		g_game.m_pD3ddevicecontext->Unmap(m_cbufferVertex2D, 0);
 
 		// Draw skybox
 		
 		// TODO consider grouping together into some sort of fullscreen pass system
 
 		{
-
+			// Our built-in quad mesh ranges from -1 to 1 in y and z
 		}
 
 		// Draw 3d nodes
@@ -718,13 +725,9 @@ void SGame::MainLoop()
 				m_pD3ddevicecontext->Map(m_cbufferDrawnode3D, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
 				SDrawNodeRenderConstants * pDrawnode3Drc = (SDrawNodeRenderConstants *) (mappedSubresource.pData);
 
-				// TODO don't constantly recompute
-
 				Mat matModel = hDrawnode3D->MatObjectToWorld();
-				Mat matCamera = pCamera3D->MatObjectToWorld().MatInverse();
-				Mat matPerspective = MatPerspective(pCamera3D->m_radFovHorizontal, vecWinSize.m_x / vecWinSize.m_y, pCamera3D->m_xNearClip, pCamera3D->m_xFarClip);
-				ASSERT(sizeof(Mat) == sizeof(float) * 16);
-				pDrawnode3Drc->m_matMVP = matModel * matCamera * matPerspective;
+				pDrawnode3Drc->m_matMVP = matModel * matWorldToClip;
+				pDrawnode3Drc->m_matObjectToWorld = matModel;
 
 				m_pD3ddevicecontext->Unmap(m_cbufferDrawnode3D, 0);
 
@@ -747,7 +750,7 @@ void SGame::MainLoop()
 			const SShader & shader = *(material.m_hShader);
 			ASSERT(shader.m_shaderk == SHADERK_Ui);
 
-			const SMesh2D & mesh = *hUinode->m_hMesh;
+			const SMesh3D & mesh = *hUinode->m_hMesh;
 
 			m_pD3ddevicecontext->IASetInputLayout(shader.m_pD3dinputlayout);
 			m_pD3ddevicecontext->VSSetShader(shader.m_pD3dvertexshader, nullptr, 0);
@@ -762,10 +765,10 @@ void SGame::MainLoop()
 			m_pD3ddevicecontext->VSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
 			m_pD3ddevicecontext->PSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
 
-			unsigned int cbVert = sizeof(SVertData2D);
+			unsigned int cbVert = sizeof(SVertData3D);
 			unsigned int s_cbMeshOffset = 0;
 
-			m_pD3ddevicecontext->IASetVertexBuffers(0, 1, &m_cbufferVertex2D, &cbVert, &s_cbMeshOffset);	// BB don't constantly do this
+			m_pD3ddevicecontext->IASetVertexBuffers(0, 1, &m_cbufferVertex3D, &cbVert, &s_cbMeshOffset);	// BB don't constantly do this
 			m_pD3ddevicecontext->IASetIndexBuffer(m_cbufferIndex, DXGI_FORMAT_R16_UINT, 0);					//  ...
 
 			D3D11_MAPPED_SUBRESOURCE mappedSubresource;
@@ -843,9 +846,9 @@ void SGame::VkReleased(int vk)
 	m_mpVkFDown[vk] = false;
 }
 
-void SGame::PrintConsole(const std::string & str)
+void SGame::PrintConsole(const std::string & str, float dT)
 {
-	m_strConsole += str;
+	m_hConsole->Print(str, g_game.m_dTSyst + dT);
 }
 
 LRESULT SGame::LresultWindowProcedure(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)

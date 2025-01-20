@@ -3,6 +3,7 @@
 #include "engine.h"
 #include "file.h"
 #include <vector>
+#include "linearmap.h"
 
 struct SPair
 {
@@ -300,36 +301,295 @@ SShader::SShader(const char * pChzFile) : super()
 
 	std::string strFile = file.StrGet();
 
+	static SLinearMap<std::string, BOOL, 2> mpStrBool = { {
+														{std::string("On"), TRUE},
+														{std::string("Off"), FALSE}} };
+
 	SLineParser parser;
 	parser.ParseLines(strFile);
 
-	static const std::string strShaderkKey = std::string("ShaderKind");
-	static const std::string strShaderkValue3D = std::string("3D");
-	static const std::string strShaderkValueUi = std::string("UI");
-
 	std::vector<const SParsedLine *> arypLine;
+
+
+	// Set up defaults:
+
+	m_d3ddepthstencildesc.DepthFunc = D3D11_COMPARISON_LESS;
+	m_d3ddepthstencildesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+	m_d3ddepthstencildesc.DepthEnable = FALSE;
+
+	m_d3drasterizerdesc.CullMode = D3D11_CULL_BACK;
+	m_d3drasterizerdesc.FillMode = D3D11_FILL_SOLID;
+	m_d3drasterizerdesc.FrontCounterClockwise = TRUE;
+
+	m_d3drtblenddesc.BlendEnable = FALSE;
+	m_d3drtblenddesc.SrcBlend = D3D11_BLEND_SRC_ALPHA;
+	m_d3drtblenddesc.DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+	m_d3drtblenddesc.BlendOp = D3D11_BLEND_OP_ADD;
+	m_d3drtblenddesc.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+	m_d3drtblenddesc.BlendOpAlpha = D3D11_BLEND_OP_ADD;
+	m_d3drtblenddesc.SrcBlendAlpha = D3D11_BLEND_SRC_ALPHA;
+	m_d3drtblenddesc.DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
+
+	m_d3drtblenddesc.LogicOpEnable = FALSE;
+	m_d3drtblenddesc.LogicOp = D3D11_LOGIC_OP_CLEAR;
+
+	// Shaderkind
 
 	{
 		parser.FindLines("ShaderKind", &arypLine);
+		static SLinearMap<std::string, SHADERK, 3> mpStrShaderk = {{
+																{std::string("3D"), SHADERK_3D}, 
+																{std::string("UI"), SHADERK_Ui}, 
+																{std::string("Skybox"), SHADERK_Skybox}}};
+			
 		ASSERT(arypLine.size() == 1); // Not exactly 1 shader kind
 
-		const SParsedLine & line = *arypLine.front();
+		VERIFY(mpStrShaderk.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &m_shaderk));
+		arypLine.clear();
+	}
 
-		if (FMatchCaseInsensitive(line.m_pairMain.m_strValue, strShaderkValue3D))
+	// Depth Enable
+
+	{
+		parser.FindLines("DepthEnable", &arypLine);
+		if (arypLine.size() > 0)
 		{
-			m_shaderk = SHADERK_3D;
-		}
-		else if (FMatchCaseInsensitive(line.m_pairMain.m_strValue, strShaderkValueUi))
-		{
-			m_shaderk = SHADERK_Ui;
-		}
-		else
-		{
-			ASSERT(false); // Couldn't resolve type
+			ASSERT(arypLine.size() == 1); // Not exactly 1
+
+			VERIFY(mpStrBool.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &m_d3ddepthstencildesc.DepthEnable));
+			arypLine.clear();
 		}
 	}
 
-	arypLine.clear();
+	// Depth Write
+
+	{	
+		parser.FindLines("DepthWrite", &arypLine);
+		static SLinearMap<std::string, D3D11_DEPTH_WRITE_MASK, 2> mpStrD3ddepthwritemask = { {
+															{std::string("On"), D3D11_DEPTH_WRITE_MASK_ALL},
+															{std::string("Off"), D3D11_DEPTH_WRITE_MASK_ZERO}} };
+		if (arypLine.size() > 0)
+		{
+			ASSERT(arypLine.size() == 1); // Not exactly 1
+
+			VERIFY(mpStrD3ddepthwritemask.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &m_d3ddepthstencildesc.DepthWriteMask));
+			arypLine.clear();
+		}
+	}
+
+	// Depth Function
+
+	{
+		parser.FindLines("DepthFunc", &arypLine);
+		// https://learn.microsoft.com/en-us/windows/win32/api/d3d11/ne-d3d11-d3d11_comparison_func
+
+		static SLinearMap<std::string, D3D11_COMPARISON_FUNC, 8> mpStrComparisonfunc = {{
+																{std::string("Never"), D3D11_COMPARISON_NEVER}, 
+																{std::string("Less"), D3D11_COMPARISON_LESS}, 
+																{std::string("Equal"), D3D11_COMPARISON_EQUAL},
+																{std::string("LessEqual"), D3D11_COMPARISON_LESS_EQUAL},
+																{std::string("Greater"), D3D11_COMPARISON_GREATER},
+																{std::string("NotEqual"), D3D11_COMPARISON_NOT_EQUAL},
+																{std::string("GreaterEqual"), D3D11_COMPARISON_GREATER_EQUAL},
+																{std::string("Always"), D3D11_COMPARISON_ALWAYS}}};
+		if (arypLine.size() > 0)
+		{
+			ASSERT(arypLine.size() == 1); // Not exactly 1
+
+			VERIFY(mpStrComparisonfunc.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &m_d3ddepthstencildesc.DepthFunc));
+			arypLine.clear();
+		}
+	}
+
+	// FillMode
+
+	{
+		parser.FindLines("FillMode", &arypLine);
+		static SLinearMap<std::string, D3D11_FILL_MODE, 2> mpStrFillmode = {{
+																{std::string("Wireframe"), D3D11_FILL_WIREFRAME}, 
+																{std::string("Solid"), D3D11_FILL_SOLID}}};
+		if (arypLine.size() > 0)
+		{
+			ASSERT(arypLine.size() == 1); // Not exactly 1
+
+			VERIFY(mpStrFillmode.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &m_d3drasterizerdesc.FillMode));
+			arypLine.clear();
+		}
+	}
+
+	// CullMode
+
+	{
+		parser.FindLines("CullMode", &arypLine);
+		static SLinearMap<std::string, D3D11_CULL_MODE, 3> mpStrCullmode = {{
+																{std::string("None"), D3D11_CULL_NONE}, 
+																{std::string("Front"), D3D11_CULL_FRONT},
+																{std::string("Back"), D3D11_CULL_BACK}}};
+		if (arypLine.size() > 0)
+		{
+			ASSERT(arypLine.size() == 1); // Not exactly 1
+
+			VERIFY(mpStrCullmode.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &m_d3drasterizerdesc.CullMode));
+			arypLine.clear();
+		}
+	}
+
+	static SLinearMap<std::string, D3D11_BLEND, 17> mpStrBlend = {{
+															{std::string("Zero"),			D3D11_BLEND_ZERO}, 
+															{std::string("One"),			D3D11_BLEND_ONE},
+															{std::string("SrcColor"),		D3D11_BLEND_SRC_COLOR},
+															{std::string("InvSrcColor"),	D3D11_BLEND_INV_SRC_COLOR},
+															{std::string("SrcAlpha"),		D3D11_BLEND_SRC_ALPHA},
+															{std::string("InvSrcAlpha"),	D3D11_BLEND_INV_SRC_ALPHA},
+															{std::string("DestAlpha"),		D3D11_BLEND_DEST_ALPHA},
+															{std::string("InvDestAlpha"),	D3D11_BLEND_INV_DEST_ALPHA},
+															{std::string("DestColor"),		D3D11_BLEND_DEST_COLOR},
+															{std::string("InvDestColor"),	D3D11_BLEND_INV_DEST_COLOR},
+															{std::string("SrcAlphaSat"),	D3D11_BLEND_SRC_ALPHA_SAT},
+															{std::string("BlendFactor"),	D3D11_BLEND_BLEND_FACTOR},
+															{std::string("InvBlendFactor"), D3D11_BLEND_INV_BLEND_FACTOR},
+															{std::string("Src1Color"),		D3D11_BLEND_SRC1_COLOR},
+															{std::string("InvSrc1Color"),	D3D11_BLEND_INV_SRC1_COLOR},
+															{std::string("Src1Alpha"),		D3D11_BLEND_SRC1_ALPHA},
+															{std::string("InvSrc1Alpha"),	D3D11_BLEND_INV_SRC1_ALPHA}}};
+
+	static SLinearMap<std::string, D3D11_BLEND_OP, 5> mpStrBlendop = {{
+															{std::string("Add"), D3D11_BLEND_OP_ADD}, 
+															{std::string("Subtract"), D3D11_BLEND_OP_SUBTRACT},
+															{std::string("RevSubtract"), D3D11_BLEND_OP_REV_SUBTRACT},
+															{std::string("Min"), D3D11_BLEND_OP_MIN},
+															{std::string("Max"), D3D11_BLEND_OP_MAX}}};
+
+	// BlendEnable
+
+	{
+		parser.FindLines("BlendEnable", &arypLine);
+
+		if (arypLine.size() > 0)
+		{
+			ASSERT(arypLine.size() == 1); // Not exactly 1
+
+			VERIFY(mpStrBool.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &m_d3drtblenddesc.BlendEnable));
+			arypLine.clear();
+		}
+	}
+
+	// SrcBlend 	
+
+	{
+		parser.FindLines("SrcBlend", &arypLine);
+
+		if (arypLine.size() > 0)
+		{
+			ASSERT(arypLine.size() == 1); // Not exactly 1
+
+			VERIFY(mpStrBlend.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &m_d3drtblenddesc.SrcBlend));
+			arypLine.clear();
+		}
+	}
+
+	// DestBlend
+
+	{
+		parser.FindLines("DestBlend", &arypLine);
+
+		if (arypLine.size() > 0)
+		{
+			ASSERT(arypLine.size() == 1); // Not exactly 1
+
+			VERIFY(mpStrBlend.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &m_d3drtblenddesc.DestBlend));
+			arypLine.clear();
+		}
+	}
+
+	// BlendOp
+
+	{
+		parser.FindLines("BlendOp", &arypLine);
+
+		if (arypLine.size() > 0)
+		{
+			ASSERT(arypLine.size() == 1); // Not exactly 1
+
+			VERIFY(mpStrBlendop.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &m_d3drtblenddesc.BlendOp));
+			arypLine.clear();
+		}
+	}
+
+	// RenderTargetWriteMask
+
+	{
+		parser.FindLines("RtWriteMask", &arypLine);
+		static SLinearMap<std::string, UINT8, 16> mpStrColorwriteenable = { {
+																{std::string("None"),	0},
+																{std::string("R"),		D3D11_COLOR_WRITE_ENABLE_RED },
+																{std::string("G"),		D3D11_COLOR_WRITE_ENABLE_GREEN },
+																{std::string("B"),		D3D11_COLOR_WRITE_ENABLE_BLUE },
+																{std::string("A"),		D3D11_COLOR_WRITE_ENABLE_ALPHA },
+																{std::string("RG"),		D3D11_COLOR_WRITE_ENABLE_RED | D3D11_COLOR_WRITE_ENABLE_GREEN },
+																{std::string("RB"),		D3D11_COLOR_WRITE_ENABLE_RED | D3D11_COLOR_WRITE_ENABLE_BLUE },
+																{std::string("RA"),		D3D11_COLOR_WRITE_ENABLE_RED | D3D11_COLOR_WRITE_ENABLE_ALPHA },
+																{std::string("GB"),		D3D11_COLOR_WRITE_ENABLE_GREEN | D3D11_COLOR_WRITE_ENABLE_BLUE},
+																{std::string("GA"),		D3D11_COLOR_WRITE_ENABLE_GREEN | D3D11_COLOR_WRITE_ENABLE_ALPHA},
+																{std::string("BA"),		D3D11_COLOR_WRITE_ENABLE_BLUE | D3D11_COLOR_WRITE_ENABLE_ALPHA},
+																{std::string("RGB"),	D3D11_COLOR_WRITE_ENABLE_RED | D3D11_COLOR_WRITE_ENABLE_GREEN | D3D11_COLOR_WRITE_ENABLE_BLUE},
+																{std::string("RBA"),    D3D11_COLOR_WRITE_ENABLE_RED | D3D11_COLOR_WRITE_ENABLE_BLUE | D3D11_COLOR_WRITE_ENABLE_ALPHA},
+																{std::string("RGA"),	D3D11_COLOR_WRITE_ENABLE_RED | D3D11_COLOR_WRITE_ENABLE_GREEN | D3D11_COLOR_WRITE_ENABLE_ALPHA},
+																{std::string("GBA"),	D3D11_COLOR_WRITE_ENABLE_GREEN | D3D11_COLOR_WRITE_ENABLE_BLUE | D3D11_COLOR_WRITE_ENABLE_ALPHA},
+																{std::string("RGBA"),	D3D11_COLOR_WRITE_ENABLE_ALL}} };
+
+		if (arypLine.size() > 0)
+		{
+			ASSERT(arypLine.size() == 1); // Not exactly 1
+
+			VERIFY(mpStrColorwriteenable.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &m_d3drtblenddesc.RenderTargetWriteMask));
+			arypLine.clear();
+		}
+	}
+
+	// BlendOpAlpha
+
+	{
+		parser.FindLines("BlendOpAlpha", &arypLine);
+
+		if (arypLine.size() > 0)
+		{
+			ASSERT(arypLine.size() == 1); // Not exactly 1
+
+			VERIFY(mpStrBlendop.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &m_d3drtblenddesc.BlendOpAlpha));
+			arypLine.clear();
+		}
+	}
+
+	// SrcBlendAlpha
+
+	{
+		parser.FindLines("SrcBlendAlpha", &arypLine);
+
+		if (arypLine.size() > 0)
+		{
+			ASSERT(arypLine.size() == 1); // Not exactly 1
+
+			VERIFY(mpStrBlend.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &m_d3drtblenddesc.SrcBlendAlpha));
+			arypLine.clear();
+		}
+	}
+
+	// DestBlendAlpha
+
+	{
+		parser.FindLines("DestBlendAlpha", &arypLine);
+
+		if (arypLine.size() > 0)
+		{
+			ASSERT(arypLine.size() == 1); // Not exactly 1
+
+			VERIFY(mpStrBlend.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &m_d3drtblenddesc.DestBlendAlpha));
+			arypLine.clear();
+		}
+	}
+
+	// Texture
 
 	{
 		parser.FindLines("Texture", &arypLine);
@@ -361,6 +621,8 @@ SShader::SShader(const char * pChzFile) : super()
 		{
 			ASSERT(namedslot.m_iSlot != -1);
 		}
+
+		arypLine.clear();
 	}
 
 	// Create Vertex Shader
@@ -411,30 +673,13 @@ SShader::SShader(const char * pChzFile) : super()
 
 	// BB force this to match with the input data
 
-	if (m_shaderk == SHADERK_3D)
+	D3D11_INPUT_ELEMENT_DESC inputElementDesc[] =
 	{
-		D3D11_INPUT_ELEMENT_DESC inputElementDesc[] =
-		{
-			{ "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }
-		};
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }
+	};
 
-		HRESULT hResult = g_game.m_pD3ddevice->CreateInputLayout(inputElementDesc, ARRAYSIZE(inputElementDesc), vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), &m_pD3dinputlayout);
-		assert(SUCCEEDED(hResult));
-		vsBlob->Release();
-	}
-	else
-	{
-		ASSERT(m_shaderk == SHADERK_Ui);
-
-		D3D11_INPUT_ELEMENT_DESC inputElementDesc[] =
-		{
-			{ "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-			{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }
-		};
-
-		HRESULT hResult = g_game.m_pD3ddevice->CreateInputLayout(inputElementDesc, ARRAYSIZE(inputElementDesc), vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), &m_pD3dinputlayout);
-		assert(SUCCEEDED(hResult));
-		vsBlob->Release();
-	}
+	HRESULT hResult = g_game.m_pD3ddevice->CreateInputLayout(inputElementDesc, ARRAYSIZE(inputElementDesc), vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), &m_pD3dinputlayout);
+	assert(SUCCEEDED(hResult));
+	vsBlob->Release();
 }

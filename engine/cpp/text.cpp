@@ -7,7 +7,7 @@ SText::SText(SFontHandle hFont, SNodeHandle hNodeParent, const std::string & str
 {
 	m_typek = TYPEK_Text;
 
-	m_hMesh = (new SMesh2D())->HMesh();
+	m_hMesh = (new SMesh3D())->HMesh();
 	m_hFont = hFont;
 }
 
@@ -28,7 +28,7 @@ void SText::SetText(const std::string & str)
 
 	m_hMesh->m_aryVertdata.clear();
 	m_hMesh->m_aryIIndex.clear();
-	std::vector<SVertData2D> & aryVertdata = m_hMesh->m_aryVertdata;
+	std::vector<SVertData3D> & aryVertdata = m_hMesh->m_aryVertdata;
 	std::vector<unsigned short> & aryIIndex = m_hMesh->m_aryIIndex;
 	
 	float x = 0;

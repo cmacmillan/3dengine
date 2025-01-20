@@ -1,6 +1,6 @@
 #include "mesh.h"
 
-void PushQuad2D(float2 posMin, float2 posMax, float2 uvMin, float2 uvMax, std::vector<SVertData2D> * paryVertdata, std::vector<unsigned short> * paryIIndex)
+void PushQuad2D(float2 posMin, float2 posMax, float2 uvMin, float2 uvMax, std::vector<SVertData3D> * paryVertdata, std::vector<unsigned short> * paryIIndex)
 {
 	int iVertexStart = paryVertdata->size();
 	paryIIndex->push_back(iVertexStart);
@@ -10,12 +10,12 @@ void PushQuad2D(float2 posMin, float2 posMax, float2 uvMin, float2 uvMax, std::v
 	paryIIndex->push_back(iVertexStart+4);
 	paryIIndex->push_back(iVertexStart+5);
 
-	paryVertdata->push_back({ {posMin.m_x, posMax.m_y}, {uvMin.m_x, uvMin.m_y} });
-	paryVertdata->push_back({ {posMax.m_x, posMin.m_y}, {uvMax.m_x, uvMax.m_y} });
-	paryVertdata->push_back({ {posMin.m_x,posMin.m_y},{uvMin.m_x,uvMax.m_y} });
-	paryVertdata->push_back({ {posMin.m_x, posMax.m_y}, {uvMin.m_x, uvMin.m_y} });
-	paryVertdata->push_back({ {posMax.m_x, posMax.m_y}, {uvMax.m_x, uvMin.m_y} });
-	paryVertdata->push_back({ {posMax.m_x, posMin.m_y}, {uvMax.m_x, uvMax.m_y} });
+	paryVertdata->push_back({ {Point(posMin.m_x, posMax.m_y,0)}, {uvMin.m_x, uvMin.m_y} });
+	paryVertdata->push_back({ {Point(posMax.m_x, posMin.m_y,0)}, {uvMax.m_x, uvMax.m_y} });
+	paryVertdata->push_back({ {Point(posMin.m_x, posMin.m_y,0)}, {uvMin.m_x, uvMax.m_y} });
+	paryVertdata->push_back({ {Point(posMin.m_x, posMax.m_y,0)}, {uvMin.m_x, uvMin.m_y} });
+	paryVertdata->push_back({ {Point(posMax.m_x, posMax.m_y,0)}, {uvMax.m_x, uvMin.m_y} });
+	paryVertdata->push_back({ {Point(posMax.m_x, posMin.m_y,0)}, {uvMax.m_x, uvMax.m_y} });
 }
 
 void PushVert(Point pos, float2 uv, std::vector<SVertData3D> * paryVertdata, int * pI)
@@ -51,9 +51,4 @@ void PushQuad3D(std::vector<SVertData3D> * paryVertdata, std::vector<unsigned sh
 SMesh3D::SMesh3D() : super()
 {
 	m_typek = TYPEK_Mesh3D;
-}
-
-SMesh2D::SMesh2D() : super()
-{
-	m_typek = TYPEK_Mesh2D;
 }

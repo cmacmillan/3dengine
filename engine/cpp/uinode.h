@@ -24,6 +24,6 @@ struct SUiNode : SNode // uinode
 	float4 m_color = { 1.0f, 1.0f, 1.0f, 1.0f };
 	float m_gSort = 0.0f; // Lower = drawn first
 	SMaterialHandle m_hMaterial = -1;
-	SMesh2DHandle m_hMesh = -1;
+	SMesh3DHandle m_hMesh = -1;
 };
 

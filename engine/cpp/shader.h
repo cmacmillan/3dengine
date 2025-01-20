@@ -7,6 +7,7 @@ enum SHADERK
 {
 	SHADERK_Ui = 0,
 	SHADERK_3D = 1,
+	SHADERK_Skybox = 2,
 
 	SHADERK_Nil = -1,
 };
@@ -26,6 +27,10 @@ struct SShader : SObject // shader
 
 	SHADERK							m_shaderk = SHADERK_Nil;
 	std::vector<SNamedTextureSlot>	m_mpISlotStrName = {};
+
+	D3D11_DEPTH_STENCIL_DESC		m_d3ddepthstencildesc = {};
+	D3D11_RASTERIZER_DESC			m_d3drasterizerdesc = {};
+	D3D11_RENDER_TARGET_BLEND_DESC1	m_d3drtblenddesc = {};
 
 	ID3D11VertexShader *			m_pD3dvertexshader = nullptr;
 	ID3D11PixelShader *				m_pD3dfragshader = nullptr;

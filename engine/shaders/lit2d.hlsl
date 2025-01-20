@@ -15,11 +15,15 @@ cbuffer globals : register(b1)
     float time;
     float2 vecWinSize;
     float padding;
+    float4x4 matCameraToWorld;
+    float4x4 matWorldToCamera;
+	float4x4 matClipToWorld;
+    float4x4 matWorldToClip;
 };
 
 struct VS_INPUT
 {
-    float2 pos : POSITION;
+    float4 pos : POSITION;
     float2 uv : TEXCOORD;
 };
 
@@ -38,7 +42,7 @@ SamplerState samplerstateNormal : register(s1);
 VS_Output vs_main(VS_INPUT vsinput)
 {
     VS_Output output;
-    output.pos = float4((vecScaleObject * vsinput.pos + posObject) / vecWinSize - 1.0f, 0.0f, 1.0f);
+    output.pos = float4((vecScaleObject * vsinput.pos.xy + posObject) / vecWinSize - 1.0f, 0.0f, 1.0f);
     output.color = uniformColor;
     output.uv = vsinput.uv;
     return output;

@@ -6,6 +6,7 @@
 struct SDrawNodeRenderConstants
 {
 	Mat m_matMVP;
+	Mat m_matObjectToWorld;
 };
 
 struct SDrawNode3D : SNode3D // drawnode3D
