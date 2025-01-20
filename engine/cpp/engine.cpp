@@ -297,44 +297,6 @@ void SGame::Init(HINSTANCE hInstance)
 		assert(SUCCEEDED(hResult));
 	}
 
-	{
-		D3D11_RASTERIZER_DESC rasterizerDesc = {};
-		rasterizerDesc.FillMode = D3D11_FILL_SOLID;
-		//rasterizerDesc.CullMode = D3D11_CULL_BACK;
-		rasterizerDesc.CullMode = D3D11_CULL_NONE;
-		rasterizerDesc.FrontCounterClockwise = TRUE;
-
-		m_pD3ddevice->CreateRasterizerState(&rasterizerDesc, &m_pD3drasterizerstate);
-	}
-
-	{
-		D3D11_DEPTH_STENCIL_DESC depthStencilDesc = {};
-		depthStencilDesc.DepthEnable = TRUE;
-		depthStencilDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-		depthStencilDesc.DepthFunc = D3D11_COMPARISON_LESS;
-
-		m_pD3ddevice->CreateDepthStencilState(&depthStencilDesc, &m_pD3ddepthstencilstate);
-	}
-
-	{
-		D3D11_BLEND_DESC1 BlendState;
-		ZeroMemory(&BlendState, sizeof(D3D11_BLEND_DESC1));
-		D3D11_RENDER_TARGET_BLEND_DESC1 * pD3drtbd = &BlendState.RenderTarget[0];
-		pD3drtbd->BlendEnable = TRUE;
-		pD3drtbd->SrcBlend = D3D11_BLEND_SRC_ALPHA;
-		pD3drtbd->DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
-		pD3drtbd->BlendOp = D3D11_BLEND_OP_ADD;
-		pD3drtbd->RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-		pD3drtbd->BlendOpAlpha = D3D11_BLEND_OP_ADD;
-		pD3drtbd->SrcBlendAlpha = D3D11_BLEND_SRC_ALPHA;
-		pD3drtbd->DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
-
-		pD3drtbd->LogicOpEnable = FALSE;
-		pD3drtbd->LogicOp = D3D11_LOGIC_OP_CLEAR;
-
-		m_pD3ddevice->CreateBlendState1(&BlendState, &m_pD3dblendstatenoblend);
-	}
-
 	// Timing
 	{
 		LARGE_INTEGER perfCount;
@@ -683,9 +645,6 @@ void SGame::MainLoop()
 		// Draw 3d nodes
 
 		{
-			m_pD3ddevicecontext->RSSetState(m_pD3drasterizerstate);
-			m_pD3ddevicecontext->OMSetDepthStencilState(m_pD3ddepthstencilstate, 0);
-
 			m_pD3ddevicecontext->OMSetRenderTargets(1, &m_pD3dframebufferview, m_pD3ddepthstencilview);
 
 			for (SDrawNode3DHandle hDrawnode3D : aryhDrawnode3DToRender)
@@ -702,6 +661,9 @@ void SGame::MainLoop()
 				const SShader & shader = *(material.m_hShader);
 				ASSERT(hDrawnode3D->m_typek == TYPEK_DrawNode3D);
 				ASSERT(shader.m_shaderk == SHADERK_3D);
+
+				m_pD3ddevicecontext->RSSetState(shader.m_pD3drasterizerstate);
+				m_pD3ddevicecontext->OMSetDepthStencilState(shader.m_pD3ddepthstencilstate, 0);
 
 				const SMesh3D & mesh = *hDrawnode3D->m_hMesh;
 
@@ -758,7 +720,9 @@ void SGame::MainLoop()
 
 			float blendFactor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 			UINT sampleMask   = 0xffffffff;
-			m_pD3ddevicecontext->OMSetBlendState(m_pD3dblendstatenoblend, blendFactor, sampleMask);
+			m_pD3ddevicecontext->OMSetBlendState(shader.m_pD3dblendstatenoblend, blendFactor, sampleMask);
+			m_pD3ddevicecontext->RSSetState(shader.m_pD3drasterizerstate);
+			m_pD3ddevicecontext->OMSetDepthStencilState(shader.m_pD3ddepthstencilstate, 0);
 
 			m_pD3ddevicecontext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 			ID3D11Buffer * aD3dbuffer[] = { m_cbufferUiNode, m_cbufferGlobals };

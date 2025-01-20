@@ -1,5 +1,16 @@
 // ShaderKind:Ui
 // Texture:fontTexture slot=0
+// BlendEnable:On
+// SrcBlend:SrcAlpha
+// DestBlend:InvSrcAlpha
+// BlendOp:Add
+// RtWriteMask:RGBA
+// BlendOpAlpha:Add
+// SrcBlendAlpha:SrcAlpha
+// DestBlendAlpha:InvSrcAlpha
+// DepthEnable: Off
+// DepthWrite: Off
+// DepthFunc: Always
 // END_INFO
 
 cbuffer constants : register(b0)

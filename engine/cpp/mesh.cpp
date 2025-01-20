@@ -11,11 +11,11 @@ void PushQuad2D(float2 posMin, float2 posMax, float2 uvMin, float2 uvMax, std::v
 	paryIIndex->push_back(iVertexStart+5);
 
 	paryVertdata->push_back({ {Point(posMin.m_x, posMax.m_y,0)}, {uvMin.m_x, uvMin.m_y} });
-	paryVertdata->push_back({ {Point(posMax.m_x, posMin.m_y,0)}, {uvMax.m_x, uvMax.m_y} });
 	paryVertdata->push_back({ {Point(posMin.m_x, posMin.m_y,0)}, {uvMin.m_x, uvMax.m_y} });
-	paryVertdata->push_back({ {Point(posMin.m_x, posMax.m_y,0)}, {uvMin.m_x, uvMin.m_y} });
-	paryVertdata->push_back({ {Point(posMax.m_x, posMax.m_y,0)}, {uvMax.m_x, uvMin.m_y} });
 	paryVertdata->push_back({ {Point(posMax.m_x, posMin.m_y,0)}, {uvMax.m_x, uvMax.m_y} });
+	paryVertdata->push_back({ {Point(posMin.m_x, posMax.m_y,0)}, {uvMin.m_x, uvMin.m_y} });
+	paryVertdata->push_back({ {Point(posMax.m_x, posMin.m_y,0)}, {uvMax.m_x, uvMax.m_y} });
+	paryVertdata->push_back({ {Point(posMax.m_x, posMax.m_y,0)}, {uvMax.m_x, uvMin.m_y} });
 }
 
 void PushVert(Point pos, float2 uv, std::vector<SVertData3D> * paryVertdata, int * pI)

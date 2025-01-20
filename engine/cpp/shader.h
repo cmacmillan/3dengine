@@ -35,4 +35,7 @@ struct SShader : SObject // shader
 	ID3D11VertexShader *			m_pD3dvertexshader = nullptr;
 	ID3D11PixelShader *				m_pD3dfragshader = nullptr;
 	ID3D11InputLayout *				m_pD3dinputlayout = nullptr;
+	ID3D11BlendState1 *				m_pD3dblendstatenoblend = nullptr;
+	ID3D11RasterizerState *			m_pD3drasterizerstate = nullptr;
+	ID3D11DepthStencilState *		m_pD3ddepthstencilstate = nullptr;
 };

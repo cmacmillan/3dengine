@@ -1,6 +1,10 @@
 // ShaderKind:3D
 // Texture:mainTexture slot = 0
 // Texture:altTexture slot = 1
+// CullMode:None
+// DepthEnable: On
+// DepthWrite: On
+// DepthFunc: Less
 // END_INFO
 
 #pragma pack_matrix(row_major)

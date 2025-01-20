@@ -333,10 +333,58 @@ SShader::SShader(const char * pChzFile) : super()
 	m_d3drtblenddesc.LogicOpEnable = FALSE;
 	m_d3drtblenddesc.LogicOp = D3D11_LOGIC_OP_CLEAR;
 
+	const char * pChzShaderKind		= "ShaderKind";
+	const char * pChzDepthEnable	= "DepthEnable";
+	const char * pChzDepthWrite		= "DepthWrite";
+	const char * pChzDepthFunc		= "DepthFunc";
+	const char * pChzFillMode		= "FillMode";
+	const char * pChzCullMode		= "CullMode";
+	const char * pChzBlendEnable	= "BlendEnable";
+	const char * pChzSrcBlend		= "SrcBlend";
+	const char * pChzDestBlend		= "DestBlend";
+	const char * pChzBlendOp		= "BlendOp";
+	const char * pChzRtWriteMask	= "RtWriteMask";
+	const char * pChzBlendOpAlpha	= "BlendOpAlpha";
+	const char * pChzSrcBlendAlpha	= "SrcBlendAlpha";
+	const char * pChzDestBlendAlpha = "DestBlendAlpha";
+	const char * pChzTexture		= "Texture";
+
+	const char * apChzKeys[] = { 
+								pChzShaderKind, 
+								pChzDepthEnable, 
+								pChzDepthWrite, 
+								pChzDepthFunc,
+								pChzFillMode,
+								pChzCullMode,
+								pChzBlendEnable,
+								pChzSrcBlend,
+								pChzDestBlend,
+								pChzBlendOp,
+								pChzRtWriteMask,
+								pChzBlendOpAlpha,
+								pChzSrcBlendAlpha,
+								pChzDestBlendAlpha,
+								pChzTexture};
+
+	for (const SParsedLine & line : parser.m_aryLine)
+	{
+		bool fFound = false;
+		for (int i = 0; i < DIM(apChzKeys); i++)
+		{
+			if (FMatchCaseInsensitive(line.m_pairMain.m_strKey, apChzKeys[i]))
+			{
+				fFound = true;
+				break;
+			}
+		}
+
+		VERIFY(fFound); // Unknown keyword
+	}
+
 	// Shaderkind
 
 	{
-		parser.FindLines("ShaderKind", &arypLine);
+		parser.FindLines(pChzShaderKind, &arypLine);
 		static SLinearMap<std::string, SHADERK, 3> mpStrShaderk = {{
 																{std::string("3D"), SHADERK_3D}, 
 																{std::string("UI"), SHADERK_Ui}, 
@@ -351,7 +399,7 @@ SShader::SShader(const char * pChzFile) : super()
 	// Depth Enable
 
 	{
-		parser.FindLines("DepthEnable", &arypLine);
+		parser.FindLines(pChzDepthEnable, &arypLine);
 		if (arypLine.size() > 0)
 		{
 			ASSERT(arypLine.size() == 1); // Not exactly 1
@@ -364,7 +412,7 @@ SShader::SShader(const char * pChzFile) : super()
 	// Depth Write
 
 	{	
-		parser.FindLines("DepthWrite", &arypLine);
+		parser.FindLines(pChzDepthWrite, &arypLine);
 		static SLinearMap<std::string, D3D11_DEPTH_WRITE_MASK, 2> mpStrD3ddepthwritemask = { {
 															{std::string("On"), D3D11_DEPTH_WRITE_MASK_ALL},
 															{std::string("Off"), D3D11_DEPTH_WRITE_MASK_ZERO}} };
@@ -380,7 +428,7 @@ SShader::SShader(const char * pChzFile) : super()
 	// Depth Function
 
 	{
-		parser.FindLines("DepthFunc", &arypLine);
+		parser.FindLines(pChzDepthFunc, &arypLine);
 		// https://learn.microsoft.com/en-us/windows/win32/api/d3d11/ne-d3d11-d3d11_comparison_func
 
 		static SLinearMap<std::string, D3D11_COMPARISON_FUNC, 8> mpStrComparisonfunc = {{
@@ -404,7 +452,7 @@ SShader::SShader(const char * pChzFile) : super()
 	// FillMode
 
 	{
-		parser.FindLines("FillMode", &arypLine);
+		parser.FindLines(pChzFillMode, &arypLine);
 		static SLinearMap<std::string, D3D11_FILL_MODE, 2> mpStrFillmode = {{
 																{std::string("Wireframe"), D3D11_FILL_WIREFRAME}, 
 																{std::string("Solid"), D3D11_FILL_SOLID}}};
@@ -420,7 +468,7 @@ SShader::SShader(const char * pChzFile) : super()
 	// CullMode
 
 	{
-		parser.FindLines("CullMode", &arypLine);
+		parser.FindLines(pChzCullMode, &arypLine);
 		static SLinearMap<std::string, D3D11_CULL_MODE, 3> mpStrCullmode = {{
 																{std::string("None"), D3D11_CULL_NONE}, 
 																{std::string("Front"), D3D11_CULL_FRONT},
@@ -463,7 +511,7 @@ SShader::SShader(const char * pChzFile) : super()
 	// BlendEnable
 
 	{
-		parser.FindLines("BlendEnable", &arypLine);
+		parser.FindLines(pChzBlendEnable, &arypLine);
 
 		if (arypLine.size() > 0)
 		{
@@ -477,7 +525,7 @@ SShader::SShader(const char * pChzFile) : super()
 	// SrcBlend 	
 
 	{
-		parser.FindLines("SrcBlend", &arypLine);
+		parser.FindLines(pChzSrcBlend, &arypLine);
 
 		if (arypLine.size() > 0)
 		{
@@ -491,7 +539,7 @@ SShader::SShader(const char * pChzFile) : super()
 	// DestBlend
 
 	{
-		parser.FindLines("DestBlend", &arypLine);
+		parser.FindLines(pChzDestBlend, &arypLine);
 
 		if (arypLine.size() > 0)
 		{
@@ -505,7 +553,7 @@ SShader::SShader(const char * pChzFile) : super()
 	// BlendOp
 
 	{
-		parser.FindLines("BlendOp", &arypLine);
+		parser.FindLines(pChzBlendOp, &arypLine);
 
 		if (arypLine.size() > 0)
 		{
@@ -519,7 +567,7 @@ SShader::SShader(const char * pChzFile) : super()
 	// RenderTargetWriteMask
 
 	{
-		parser.FindLines("RtWriteMask", &arypLine);
+		parser.FindLines(pChzRtWriteMask, &arypLine);
 		static SLinearMap<std::string, UINT8, 16> mpStrColorwriteenable = { {
 																{std::string("None"),	0},
 																{std::string("R"),		D3D11_COLOR_WRITE_ENABLE_RED },
@@ -550,7 +598,7 @@ SShader::SShader(const char * pChzFile) : super()
 	// BlendOpAlpha
 
 	{
-		parser.FindLines("BlendOpAlpha", &arypLine);
+		parser.FindLines(pChzBlendOpAlpha, &arypLine);
 
 		if (arypLine.size() > 0)
 		{
@@ -564,7 +612,7 @@ SShader::SShader(const char * pChzFile) : super()
 	// SrcBlendAlpha
 
 	{
-		parser.FindLines("SrcBlendAlpha", &arypLine);
+		parser.FindLines(pChzSrcBlendAlpha, &arypLine);
 
 		if (arypLine.size() > 0)
 		{
@@ -578,7 +626,7 @@ SShader::SShader(const char * pChzFile) : super()
 	// DestBlendAlpha
 
 	{
-		parser.FindLines("DestBlendAlpha", &arypLine);
+		parser.FindLines(pChzDestBlendAlpha, &arypLine);
 
 		if (arypLine.size() > 0)
 		{
@@ -592,7 +640,7 @@ SShader::SShader(const char * pChzFile) : super()
 	// Texture
 
 	{
-		parser.FindLines("Texture", &arypLine);
+		parser.FindLines(pChzTexture, &arypLine);
 
 		std::vector<SNamedTextureSlot> aryNamedslot;
 		for (const SParsedLine * pLine : arypLine)
@@ -682,4 +730,27 @@ SShader::SShader(const char * pChzFile) : super()
 	HRESULT hResult = g_game.m_pD3ddevice->CreateInputLayout(inputElementDesc, ARRAYSIZE(inputElementDesc), vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), &m_pD3dinputlayout);
 	assert(SUCCEEDED(hResult));
 	vsBlob->Release();
+
+	// Create rasterizer state
+
+	g_game.m_pD3ddevice->CreateRasterizerState(&m_d3drasterizerdesc, &m_pD3drasterizerstate);
+
+	// Create depth stencil state
+
+	g_game.m_pD3ddevice->CreateDepthStencilState(&m_d3ddepthstencildesc, &m_pD3ddepthstencilstate);
+
+	// Create blend state
+
+	{
+		D3D11_BLEND_DESC1 BlendState;
+		ZeroMemory(&BlendState, sizeof(D3D11_BLEND_DESC1));
+		D3D11_RENDER_TARGET_BLEND_DESC1 * pD3drtbd = &BlendState.RenderTarget[0];
+
+		*pD3drtbd = m_d3drtblenddesc;
+
+		pD3drtbd->LogicOpEnable = FALSE;
+		pD3drtbd->LogicOp = D3D11_LOGIC_OP_CLEAR;
+
+		g_game.m_pD3ddevice->CreateBlendState1(&BlendState, &m_pD3dblendstatenoblend);
+	}
 }

@@ -138,10 +138,6 @@ struct SGame // game
 	ID3D11RenderTargetView * m_pD3dframebufferview = nullptr;
 	ID3D11DepthStencilView * m_pD3ddepthstencilview = nullptr;
 
-	ID3D11BlendState1 * m_pD3dblendstatenoblend = nullptr;
-	ID3D11RasterizerState * m_pD3drasterizerstate = nullptr;
-	ID3D11DepthStencilState * m_pD3ddepthstencilstate = nullptr;
-
 	ID3D11Buffer * m_cbufferVertex3D = nullptr;
 	ID3D11Buffer * m_cbufferIndex = nullptr;
 	ID3D11Buffer * m_cbufferUiNode = nullptr;
