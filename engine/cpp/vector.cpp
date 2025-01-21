@@ -218,6 +218,16 @@ Vector VecComponentwiseMultiply(const Vector & vec1, const Vector & vec2)
 				vec1.Z() * vec2.Z());
 }
 
+Vector VecPerpendicular(const Vector & vec)
+{
+	if (GAbs(GDot(vec, g_vecXAxis)) < 0.9f)
+	{
+		return VecCross(vec, g_vecXAxis);
+	}
+
+	return VecCross(vec, g_vecYAxis);
+}
+
 // Point
 
 Point PosZero() { return Point(0, 0, 0); }
@@ -572,9 +582,9 @@ Quat QuatFromTo(const Vector & vecFrom, const Vector & vecTo)
 	}
 	else if (gDot < -1.0f + gEpsilon)
 	{
-		// 180 degree rotation about any axis
+		// Rotate about perp axis
 
-		return QuatAxisAngle(g_vecYAxis, PI);
+		return QuatAxisAngle(VecNormalize(VecPerpendicular(vecFrom)), PI);
 	}
 	else
 	{

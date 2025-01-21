@@ -91,6 +91,8 @@ struct Vector
 
 Vector VecComponentwiseMultiply(const Vector & vec1, const Vector & vec2);
 
+Vector VecPerpendicular(const Vector & vec);
+
 Vector operator*(float g, const Vector & vec);
 Vector operator/(float g, const Vector & vec);
 float GDot(const Vector & vec0, const Vector & vec1);

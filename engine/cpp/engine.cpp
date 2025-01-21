@@ -346,6 +346,7 @@ void SGame::Init(HINSTANCE hInstance)
 		m_hTextureSkybox = (new STexture("textures/pretoria_gardens_small.png", false, false))->HTexture();
 		m_hShaderSkybox = (new SShader("shaders/skybox.hlsl"))->HShader();
 		m_hMaterialSkybox = (new SMaterial(m_hShaderSkybox))->HMaterial();
+		m_hMaterialSkybox->m_aryNamedtexture.push_back({ m_hTextureSkybox, "skyTexture" });
 	}
 
 	SMaterial * pMaterial3d = new SMaterial(hShader3D);
@@ -646,7 +647,6 @@ void SGame::MainLoop()
 
 		// Draw skybox
 		
-		if (false) 
 		{
 			// TODO consider grouping together into some sort of fullscreen pass system
 		
@@ -680,11 +680,16 @@ void SGame::MainLoop()
 
 			// Our built-in quad mesh ranges from -1 to 1 in y and z, x=0
 			// Positiong quad midway between near and far clip
-			Mat mat = MatTranslate(Lerp(pCamera3D->m_xNearClip, pCamera3D->m_xFarClip, 0.5f) * pCamera3D->MatObjectToWorld().VecX());
+			float x = Lerp(pCamera3D->m_xNearClip, pCamera3D->m_xFarClip, 0.1f);
+			Mat matTranslate = MatTranslate(x * pCamera3D->MatObjectToWorld().VecX() + pCamera3D->MatObjectToWorld().Pos());
+			Mat matRot = MatRotate(QuatLookAt(-pCamera3D->MatObjectToWorld().VecX(),pCamera3D->MatObjectToWorld().VecZ()));
+			float w = x * GTan(pCamera3D->m_radFovHorizontal * 0.5f);
+			float h = w * vecWinSize.m_y / vecWinSize.m_x;
+			Mat matScale = MatScale(Vector(1.0f, w, h));
 
-			//Mat matModel = hDrawnode3D->MatObjectToWorld();
-			//pDrawnode3Drc->m_matMVP = matModel * matWorldToClip;
-			//pDrawnode3Drc->m_matObjectToWorld = matModel;
+			Mat matModel = matScale * matRot * matTranslate;
+			pDrawnode3Drc->m_matMVP = matModel * matWorldToClip;
+			pDrawnode3Drc->m_matObjectToWorld = matModel;
 
 			m_pD3ddevicecontext->Unmap(m_cbufferDrawnode3D, 0);
 
