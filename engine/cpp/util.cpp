@@ -51,6 +51,8 @@ float GSqrt(float g)
 	return sqrtf(g);
 }
 
+void DoNothing() { }
+
 float GPow(float gBase, float gExponent)
 {
 	return float(std::pow(gBase, gExponent));

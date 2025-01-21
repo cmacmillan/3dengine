@@ -17,6 +17,8 @@
 #define DIM(a) sizeof(a)/sizeof(a[0])
 #define PI 3.141592653589793f
 
+void DoNothing();
+
 inline float GMin(float g1, float g2)
 {
 	if (g1 < g2)

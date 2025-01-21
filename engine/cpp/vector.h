@@ -75,8 +75,8 @@ struct Vector
 	Vector(const float4 & vec);
 	Vector(const Point & pos);
 	Vector(float x, float y, float z) : m_vec(x, y, z, 0.0f) {}
-	float	SLength();
-	Vector	VecNormalized();
+	float	SLength() const;
+	Vector	VecNormalized() const;
 	float	X() const { return m_vec.m_x; }
 	float	Y() const { return m_vec.m_y; }
 	float	Z() const { return m_vec.m_z; }
@@ -218,6 +218,7 @@ bool FIsNear(const Transform & transform1, const Transform & transform2);
 
 std::string StrFromPoint(Point pos);
 std::string StrFromVector(Vector vec);
+std::string StrFromQuat(Quat quat);
 std::string StrFromMat(Mat mat);
 
 void AuditVectors();

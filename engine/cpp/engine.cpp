@@ -517,16 +517,10 @@ void SGame::MainLoop()
 				aryhDrawnode3DToRender.push_back(SDrawNode3DHandle(hNode.m_id));
 			}
 		}
-		
-
-		SConsole * pConsole = m_hConsole.PT();
-		pConsole->m_hTextConsole->SetText(pConsole->StrPrint());
 
 		// Sort UI nodes
 
 		std::qsort(aryhUinodeToRender.data(), aryhUinodeToRender.size(), sizeof(SUiNodeHandle), SortUinodeRenderOrder);
-
-		// Start rendering stuff
 
 		SCamera3D * pCamera3D = m_hCamera3DMain.PT();
 		Mat matCameraToWorld = pCamera3D->MatObjectToWorld();
@@ -534,6 +528,27 @@ void SGame::MainLoop()
 		Mat matCameraToClip = MatPerspective(pCamera3D->m_radFovHorizontal, vecWinSize.m_x / vecWinSize.m_y, pCamera3D->m_xNearClip, pCamera3D->m_xFarClip);
 		Mat matWorldToClip = matWorldToCamera * matCameraToClip;
 		Mat matClipToWorld = matWorldToClip.MatInverse();
+
+		Mat matModelSkybox;
+		{
+			// Our built-in quad mesh ranges from -1 to 1 in y and z, x=0
+			// Positiong quad midway between near and far clip
+			float x = Lerp(pCamera3D->m_xNearClip, pCamera3D->m_xFarClip, 0.1f);
+			Mat matTranslate = MatTranslate(x * pCamera3D->MatObjectToWorld().VecX() + pCamera3D->MatObjectToWorld().Pos());
+			Quat quat = QuatLookAt(-pCamera3D->MatObjectToWorld().VecX(), pCamera3D->MatObjectToWorld().VecZ());
+			Mat matRot = MatRotate(quat);
+			float w = x * GTan(pCamera3D->m_radFovHorizontal * 0.5f);
+			float h = w * vecWinSize.m_y / vecWinSize.m_x;
+			Mat matScale = MatScale(Vector(1.0f, w, h));
+			matModelSkybox = matScale * matRot * matTranslate;
+			PrintConsole(StrPrintf("%s\n",StrFromMat(matRot).c_str()));
+			PrintConsole(StrPrintf("%s\n",StrFromQuat(quat).c_str()));
+		}
+
+		SConsole * pConsole = m_hConsole.PT();
+		pConsole->m_hTextConsole->SetText(pConsole->StrPrint());
+
+		// Start rendering stuff
 
 		FLOAT backgroundColor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 		m_pD3ddevicecontext->ClearRenderTargetView(m_pD3dframebufferview, backgroundColor);
@@ -678,18 +693,8 @@ void SGame::MainLoop()
 			m_pD3ddevicecontext->Map(m_cbufferDrawnode3D, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
 			SDrawNodeRenderConstants * pDrawnode3Drc = (SDrawNodeRenderConstants *) (mappedSubresource.pData);
 
-			// Our built-in quad mesh ranges from -1 to 1 in y and z, x=0
-			// Positiong quad midway between near and far clip
-			float x = Lerp(pCamera3D->m_xNearClip, pCamera3D->m_xFarClip, 0.1f);
-			Mat matTranslate = MatTranslate(x * pCamera3D->MatObjectToWorld().VecX() + pCamera3D->MatObjectToWorld().Pos());
-			Mat matRot = MatRotate(QuatLookAt(-pCamera3D->MatObjectToWorld().VecX(),pCamera3D->MatObjectToWorld().VecZ()));
-			float w = x * GTan(pCamera3D->m_radFovHorizontal * 0.5f);
-			float h = w * vecWinSize.m_y / vecWinSize.m_x;
-			Mat matScale = MatScale(Vector(1.0f, w, h));
-
-			Mat matModel = matScale * matRot * matTranslate;
-			pDrawnode3Drc->m_matMVP = matModel * matWorldToClip;
-			pDrawnode3Drc->m_matObjectToWorld = matModel;
+			pDrawnode3Drc->m_matMVP = matModelSkybox * matWorldToClip;
+			pDrawnode3Drc->m_matObjectToWorld = matModelSkybox;
 
 			m_pD3ddevicecontext->Unmap(m_cbufferDrawnode3D, 0);
 

@@ -346,12 +346,12 @@ Vector VecNormalize(const Vector & vec)
 	return vec / SLength(vec);
 }
 
-float Vector::SLength()
+float Vector::SLength() const
 {
 	return ::SLength(*this);
 }
 
-Vector Vector::VecNormalized()
+Vector Vector::VecNormalized() const
 {
 	return VecNormalize(*this);
 }
@@ -556,7 +556,7 @@ Quat QuatAxisAngle(const Vector & normal, float radAngle)
 {
 	// NOTE a positive radAngle = clockwise rotation about the normal since our coordinate system is right handed
 
-	ASSERT(FIsNear(SLength(normal), 1.0f));
+	ASSERT(FIsNear(SLength(normal), 1.0f, .0001f));
 
 	// Constructs a quat such that when a vec is rotated using the rotate function the appropriate axis angle will have been applied
 
@@ -567,24 +567,33 @@ Quat QuatAxisAngle(const Vector & normal, float radAngle)
 
 Quat QuatFromTo(const Vector & vecFrom, const Vector & vecTo)
 {
-	ASSERT(FIsNear(SLength(vecFrom), 1.0f));
-	ASSERT(FIsNear(SLength(vecTo), 1.0f));
+#if 0
+	// https://stackoverflow.com/questions/1171849/finding-quaternion-representing-the-rotation-from-one-vector-to-another
+
+	Vector vecCross = VecCross(vecFrom, vecTo);
+	float sFrom = vecFrom.SLength();
+	float sTo = vecTo.SLength();
+	return Quat(GSqrt((sFrom * sFrom) * (sTo * sTo)) + GDot(vecFrom, vecTo), vecCross.X(), vecCross.Y(), vecCross.Z());
+#else
+	ASSERT(FIsNear(SLength(vecFrom), 1.0f, .0001f));
+	ASSERT(FIsNear(SLength(vecTo), 1.0f, .0001f));
 
 	float gDot = GDot(vecFrom, vecTo);
 
-	const float gEpsilon = .000001f;
+	const float gEpsilon = .01f;
 
+	Quat quat;
 	if (gDot > 1.0f - gEpsilon)
 	{
 		// Already match
 
-		return g_quatIdentity;
+		quat = g_quatIdentity;
 	}
 	else if (gDot < -1.0f + gEpsilon)
 	{
 		// Rotate about perp axis
 
-		return QuatAxisAngle(VecNormalize(VecPerpendicular(vecFrom)), PI);
+		quat = QuatAxisAngle(VecNormalize(VecPerpendicular(vecFrom)), PI);
 	}
 	else
 	{
@@ -596,25 +605,44 @@ Quat QuatFromTo(const Vector & vecFrom, const Vector & vecTo)
 		{
 			rad = PI - rad;
 		}
-		return QuatAxisAngle(vecCrossRotateForward, rad);
+		quat = QuatAxisAngle(vecCrossRotateForward, rad);
 	}
+
+	Vector vecRotated = VecRotate(vecFrom, quat);
+	//ASSERT(FIsNear(vecRotated, vecTo));
+	return quat;
+#endif
 }
 
 Quat QuatLookAt(const Vector & vecForward, const Vector & vecUp)
 {
+	Vector vecLeft = VecCross(vecUp, vecForward);
+	float g0 = 0.5f * GSqrt(1.0f + vecForward.X() + vecLeft.Y() + vecUp.Z());
+	if (g0 == 0.0f)
+	{
+		return g_quatIdentity;
+	}
+	return Quat(
+		g0,
+		(vecLeft.Z() - vecUp.Y()) / (4.0f * g0),
+		(vecUp.X() - vecForward.Z()) / (4.0f * g0),
+		(vecForward.Y() - vecLeft.X()) / (4.0f * g0));
+	/*
 	// There might be a better algorithm for this
-
-	ASSERT(FIsNear(SLength(vecForward), 1.0f));
-	ASSERT(FIsNear(SLength(vecUp), 1.0f));
+	ASSERT(FIsNear(SLength(vecForward), 1.0f,.0001f));
+	ASSERT(FIsNear(SLength(vecUp), 1.0f, .0001f));
 
 	Vector vecRight = VecCross(vecForward, vecUp);
 	Vector vecUpAdjusted = VecNormalize(VecCross(vecRight, vecForward));
 
 	Quat quatInitial = QuatFromTo(g_vecXAxis, vecForward);
+	return quatInitial;
 	Vector vecZ = VecRotate(g_vecZAxis, quatInitial);
 	Quat quatSecondary = QuatFromTo(vecZ, vecUpAdjusted);
 
-	return quatSecondary * quatInitial;
+	Quat quatResult = quatSecondary * quatInitial;
+	return quatResult;
+	*/
 }
 
 float4 VecRotate(const float4 & vec, const Quat & quat)
@@ -695,6 +723,11 @@ std::string StrFromPoint(Point pos)
 std::string StrFromVector(Vector vec)
 {
 	return StrPrintf("[%.2f,%.2f,%.2f]", vec.X(), vec.Y(), vec.Z());
+}
+
+std::string StrFromQuat(Quat quat)
+{
+	return StrPrintf("[%.4f,%.4f,%.4f,%.4f]", quat.m_a, quat.m_b, quat.m_c, quat.m_d);
 }
 
 std::string StrFromMat(Mat mat)

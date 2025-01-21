@@ -13,6 +13,9 @@ void SFlyCam::Update()
 {
 	super::Update();
 
+	// DBG REMOVE ME!!!!
+	//SetQuatWorld(Quat(0.0f, 1.0f, 0.0f, 0.0f)));
+
 	float gMoveSpeed = g_game.m_mpVkFDown[VK_SHIFT] ? 50.0f : 5.0f;
 
 	if (g_game.m_mpVkFDown[VK_UP])
