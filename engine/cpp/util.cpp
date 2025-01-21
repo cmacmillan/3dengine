@@ -8,19 +8,34 @@ float GMapRange(float a1, float a2, float b1, float b2, float g)
 	return Lerp(b1, b2, gLerp);
 }
 
-float GSin(float g)
+float GSin(float rad)
 {
-	return float(std::sin(g));
+	return float(std::sin(rad));
 }
 
-float GCos(float g)
+float GCos(float rad)
 {
-	return float(std::cos(g));
+	return float(std::cos(rad));
 }
 
-float GTan(float g)
+float GTan(float rad)
 {
-	return float(std::tan(g));
+	return float(std::tan(rad));
+}
+
+float RadAsin(float g)
+{
+	return float(std::asin(g));
+}
+
+float RadAcos(float g)
+{
+	return float(std::acos(g));
+}
+
+float RadAtan(float g)
+{
+	return float(std::atan(g));
 }
 
 float GAbs(float g)

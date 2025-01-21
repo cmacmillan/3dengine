@@ -13,6 +13,32 @@ void SFlyCam::Update()
 {
 	super::Update();
 
+	float gMoveSpeed = g_game.m_mpVkFDown[VK_SHIFT] ? 50.0f : 5.0f;
+
+	if (g_game.m_mpVkFDown[VK_UP])
+	{
+		SetPosWorld(PosWorld() + MatObjectToWorld().VecX() * gMoveSpeed * g_game.m_dT);
+	}
+
+	if (g_game.m_mpVkFDown[VK_DOWN])
+	{
+		SetPosWorld(PosWorld() + MatObjectToWorld().VecX() * gMoveSpeed * -g_game.m_dT);
+	}
+
+	if (g_game.m_mpVkFDown[VK_LEFT])
+	{
+		SetPosWorld(PosWorld() + MatObjectToWorld().VecY() * gMoveSpeed * g_game.m_dT);
+	}
+
+	if (g_game.m_mpVkFDown[VK_RIGHT])
+	{
+		SetPosWorld(PosWorld() + MatObjectToWorld().VecY() * gMoveSpeed * -g_game.m_dT);
+	}
+
+#define FLYCAM_LOOKAT 0
+#if FLYCAM_LOOKAT
+	SetQuatWorld(QuatLookAt(VecNormalize(g_game.m_hPlaneTest->PosWorld() - PosWorld()), g_vecZAxis));
+#else
 	if (g_game.m_mpVkFDown[VK_A])
 	{
 		SetQuatWorld(QuatWorld() * QuatAxisAngle(g_vecZAxis, g_game.m_dT));
@@ -42,26 +68,5 @@ void SFlyCam::Update()
 	{
 		SetQuatWorld(QuatWorld() * QuatAxisAngle(g_vecXAxis, -g_game.m_dT));
 	}
-
-	float gMoveSpeed = g_game.m_mpVkFDown[VK_SHIFT] ? 50.0f : 5.0f;
-
-	if (g_game.m_mpVkFDown[VK_UP])
-	{
-		SetPosWorld(PosWorld() + MatObjectToWorld().VecX() * gMoveSpeed * g_game.m_dT);
-	}
-
-	if (g_game.m_mpVkFDown[VK_DOWN])
-	{
-		SetPosWorld(PosWorld() + MatObjectToWorld().VecX() * gMoveSpeed * -g_game.m_dT);
-	}
-
-	if (g_game.m_mpVkFDown[VK_LEFT])
-	{
-		SetPosWorld(PosWorld() + MatObjectToWorld().VecY() * gMoveSpeed * g_game.m_dT);
-	}
-
-	if (g_game.m_mpVkFDown[VK_RIGHT])
-	{
-		SetPosWorld(PosWorld() + MatObjectToWorld().VecY() * gMoveSpeed * -g_game.m_dT);
-	}
+#endif
 }

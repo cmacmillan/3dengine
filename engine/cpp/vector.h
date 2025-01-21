@@ -94,6 +94,7 @@ Vector VecComponentwiseMultiply(const Vector & vec1, const Vector & vec2);
 Vector operator*(float g, const Vector & vec);
 Vector operator/(float g, const Vector & vec);
 float GDot(const Vector & vec0, const Vector & vec1);
+Vector VecCross(const Vector & vec0, const Vector & vec1);
 bool FIsNear(const Vector & vec0, const Vector & vec1);
 
 struct Point
@@ -110,6 +111,9 @@ struct Point
 	Point operator-(const Vector & vec) const;
 	Vector operator-(const Point & pos) const;
 };
+
+Point PosLerp(const Point & pos1, const Point pos2, float uLerp);
+Vector VecLerp(const Vector & vec1, const Vector vec2, float uLerp);
 
 Point PosZero();
 
@@ -151,8 +155,6 @@ extern Vector g_vecYAxis;
 extern Vector g_vecZAxis;
 extern Vector g_vecZero;
 
-//Mat MatLookAt(Vector normalForward, Vector normalUp);
-
 Mat operator*(float g, const Mat & mat);
 
 float4 operator*(const float4 & vec, const Mat & mat);
@@ -180,6 +182,8 @@ extern Quat g_quatIdentity;
 // NOTE a positive radAngle = clockwise rotation about the normal since our coordinate system is right handed
 
 Quat QuatAxisAngle(const Vector & normal, float radAngle);
+Quat QuatFromTo(const Vector & vecFrom, const Vector & vecTo);
+Quat QuatLookAt(const Vector & vecForward, const Vector & vecUp);
 
 bool FIsNear(const Quat & quat1, const Quat & quat2);
 

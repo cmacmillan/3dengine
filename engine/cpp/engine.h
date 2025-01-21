@@ -103,7 +103,8 @@ struct SGame // game
 	SConsoleHandle m_hConsole = -1;
 
 	STextureHandle m_hTextureSkybox = -1;
-	//SMesh3DHandle m_
+	SMaterialHandle m_hMaterialSkybox = -1;
+	SShaderHandle m_hShaderSkybox = -1;
 
 	SCamera3DHandle m_hCamera3DMain = -1;
 	SDrawNode3DHandle m_hPlaneTest = -1;

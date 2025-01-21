@@ -56,11 +56,6 @@ void SGame::Init(HINSTANCE hInstance)
 {
 	STimingContext timectx = STimingContext("Init", 15.0f);
 
-	AuditFixArray();
-	AuditVectors();
-	AuditSlotheap();
-	AuditNFromStr();
-
 	m_hNodeRoot = (new SNode(-1, "RootNode"))->HNode();
 
 	// Open a window
@@ -343,10 +338,14 @@ void SGame::Init(HINSTANCE hInstance)
 	// Skybox
 
 	{
-		STimingContext timectx = STimingContext("Loading skybox texture", 15.0f);
-		// BB opening this texture is wildly slow
+		STimingContext timectx = STimingContext("Loading skybox texture & shader", 15.0f);
+
+		// BB opening this texture is wildly slow (I think it's a big texture problem, not a jpeg problem)
 		//m_hTextureSkybox = (new STexture("textures/pretoria_gardens.jpg", false, false))->HTexture();
+
 		m_hTextureSkybox = (new STexture("textures/pretoria_gardens_small.png", false, false))->HTexture();
+		m_hShaderSkybox = (new SShader("shaders/skybox.hlsl"))->HShader();
+		m_hMaterialSkybox = (new SMaterial(m_hShaderSkybox))->HMaterial();
 	}
 
 	SMaterial * pMaterial3d = new SMaterial(hShader3D);
@@ -362,6 +361,13 @@ void SGame::Init(HINSTANCE hInstance)
 	m_hPlaneTest2->m_hMaterial = pMaterial3d->HMaterial();
 	m_hPlaneTest2->SetPosWorld(Point(10.0f, 2.0f, 0.0f));
 	m_hPlaneTest2->m_hMesh = m_hMeshQuad;
+
+	// Run audits
+
+	AuditFixArray();
+	AuditVectors();
+	AuditSlotheap();
+	AuditNFromStr();
 }
 
 int SortUinodeRenderOrder(const void * pVa, const void * pVb)
@@ -445,7 +451,7 @@ void SGame::MainLoop()
 		////////// GAMEPLAY CODE (JANK)
 	
 		//m_hPlaneTest->m_transformLocal.m_quat = QuatAxisAngle(g_vecZAxis, m_dT*10.0f) * m_hPlaneTest->m_transformLocal.m_quat;
-		m_hPlaneTest->SetQuatLocal(QuatAxisAngle(g_vecZAxis, m_dT) * m_hPlaneTest->QuatLocal());
+		//m_hPlaneTest->SetQuatLocal(QuatAxisAngle(g_vecZAxis, m_dT) * m_hPlaneTest->QuatLocal());
 		m_hPlaneTest2->SetQuatLocal(QuatAxisAngle(g_vecYAxis, m_dT * 10.0f) * m_hPlaneTest2->QuatLocal());
 		//m_hPlaneTest->m_transformLocal.m_quat = QuatAxisAngle(g_vecZAxis, *m_dT) * m_hPlaneTest->m_transformLocal.m_quat;
 
@@ -634,19 +640,62 @@ void SGame::MainLoop()
 		g_game.m_pD3ddevicecontext->Unmap(m_cbufferIndex, 0);
 		g_game.m_pD3ddevicecontext->Unmap(m_cbufferVertex3D, 0);
 
+		// Set render target
+
+		m_pD3ddevicecontext->OMSetRenderTargets(1, &m_pD3dframebufferview, m_pD3ddepthstencilview);
+
 		// Draw skybox
 		
-		// TODO consider grouping together into some sort of fullscreen pass system
-
+		if (false) 
 		{
-			// Our built-in quad mesh ranges from -1 to 1 in y and z
+			// TODO consider grouping together into some sort of fullscreen pass system
+		
+			const SMaterial & material = *(m_hMaterialSkybox.PT());
+			const SShader & shader = *(m_hShaderSkybox.PT());
+
+			m_pD3ddevicecontext->RSSetState(shader.m_pD3drasterizerstate);
+			m_pD3ddevicecontext->OMSetDepthStencilState(shader.m_pD3ddepthstencilstate, 0);
+
+			const SMesh3D & mesh = *(m_hMeshQuad.PT());
+
+			m_pD3ddevicecontext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+			m_pD3ddevicecontext->IASetInputLayout(shader.m_pD3dinputlayout);
+
+			m_pD3ddevicecontext->VSSetShader(shader.m_pD3dvertexshader, nullptr, 0);
+			m_pD3ddevicecontext->PSSetShader(shader.m_pD3dfragshader, nullptr, 0);
+
+			ID3D11Buffer * aD3dbuffer[] = { m_cbufferDrawnode3D, m_cbufferGlobals };
+			m_pD3ddevicecontext->VSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
+			m_pD3ddevicecontext->PSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
+
+			unsigned int cbVert = sizeof(SVertData3D);
+			unsigned int s_cbMeshOffset = 0;
+
+			m_pD3ddevicecontext->IASetVertexBuffers(0, 1, &m_cbufferVertex3D, &cbVert, &s_cbMeshOffset);	// BB don't constantly do this
+			m_pD3ddevicecontext->IASetIndexBuffer(m_cbufferIndex, DXGI_FORMAT_R16_UINT, 0);					//  ...
+
+			D3D11_MAPPED_SUBRESOURCE mappedSubresource;
+			m_pD3ddevicecontext->Map(m_cbufferDrawnode3D, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
+			SDrawNodeRenderConstants * pDrawnode3Drc = (SDrawNodeRenderConstants *) (mappedSubresource.pData);
+
+			// Our built-in quad mesh ranges from -1 to 1 in y and z, x=0
+			// Positiong quad midway between near and far clip
+			Mat mat = MatTranslate(Lerp(pCamera3D->m_xNearClip, pCamera3D->m_xFarClip, 0.5f) * pCamera3D->MatObjectToWorld().VecX());
+
+			//Mat matModel = hDrawnode3D->MatObjectToWorld();
+			//pDrawnode3Drc->m_matMVP = matModel * matWorldToClip;
+			//pDrawnode3Drc->m_matObjectToWorld = matModel;
+
+			m_pD3ddevicecontext->Unmap(m_cbufferDrawnode3D, 0);
+
+			BindMaterialTextures(&material, &shader);
+
+			m_pD3ddevicecontext->DrawIndexed(mesh.m_cIndicies, mesh.m_iIndexdata, mesh.m_iVertdata);
 		}
 
 		// Draw 3d nodes
 
 		{
-			m_pD3ddevicecontext->OMSetRenderTargets(1, &m_pD3dframebufferview, m_pD3ddepthstencilview);
-
 			for (SDrawNode3DHandle hDrawnode3D : aryhDrawnode3DToRender)
 			{
 				if (!hDrawnode3D.PT())

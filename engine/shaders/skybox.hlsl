@@ -1,5 +1,8 @@
 // ShaderKind:Skybox
 // Texture:skyTexture slot=0
+// DepthEnable: Off
+// DepthWrite: Off
+// DepthFunc: Always
 // END_INFO
 
 #pragma pack_matrix(row_major)
@@ -45,8 +48,9 @@ VS_Output vs_main(VS_Input input)
 
 float4 ps_main(VS_Output input) : SV_Target
 {
+    return float4(1, 1, 1, 1);
     /*
-    float4 vecMain = mainTexture.Sample(mainSampler, input.uv);   
+    float4 vecMain =
     float4 vecAlt = altTexture.Sample(mainSampler, input.uv);
     float alpha = vecAlt.a * (sin(time) + 1) * .5f;
     return float4(vecMain.rgb * (1.0 - alpha) + alpha * vecAlt.rgb, 1.0);

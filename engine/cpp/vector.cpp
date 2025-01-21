@@ -2,6 +2,7 @@
 #include "vector.h"
 #include "string.h" // for memset
 #include "util.h"
+#include "engine.h"
 
 // float 2
 
@@ -160,6 +161,14 @@ float GDot(const Vector & vec0, const Vector & vec1)
 	return GDot(vec0.m_vec, vec1.m_vec);
 }
 
+Vector VecCross(const Vector & vec0, const Vector & vec1)
+{
+	return Vector(
+		vec0.Y() * vec1.Z() - vec0.Z() * vec1.Y(),
+		-(vec0.X() * vec1.Z() - vec0.Z() * vec1.X()),
+		vec0.X() * vec1.Y() - vec0.Y() * vec1.X());
+}
+
 Vector::Vector(const float4 & vec) : 
 	m_vec(vec) 
 { 
@@ -245,6 +254,18 @@ Point PosComponentwiseMultiply(const Point & pos, const Vector & vec)
 				pos.X() * vec.X(),
 				pos.Y() * vec.Y(),
 				pos.Z() * vec.Z());
+}
+
+Point PosLerp(const Point & pos1, const Point pos2, float uLerp)
+{
+	uLerp = GMax(GMin(uLerp, 1.0f), 0.0f);
+	return (1.0f - uLerp) * pos1 + uLerp * pos2;
+}
+
+Vector VecLerp(const Vector & vec1, const Vector vec2, float uLerp)
+{
+	uLerp = GMax(GMin(uLerp, 1.0f), 0.0f);
+	return (1.0f - uLerp) * vec1 + uLerp * vec2;
 }
 
 // Mat
@@ -523,6 +544,8 @@ Quat Quat::Inverse() const
 
 Quat QuatAxisAngle(const Vector & normal, float radAngle)
 {
+	// NOTE a positive radAngle = clockwise rotation about the normal since our coordinate system is right handed
+
 	ASSERT(FIsNear(SLength(normal), 1.0f));
 
 	// Constructs a quat such that when a vec is rotated using the rotate function the appropriate axis angle will have been applied
@@ -530,6 +553,58 @@ Quat QuatAxisAngle(const Vector & normal, float radAngle)
 	float4 vec = normal.m_vec * GSin(radAngle * .5f);
 
 	return Quat(GCos(radAngle * 0.5f), vec.m_x, vec.m_y, vec.m_z);
+}
+
+Quat QuatFromTo(const Vector & vecFrom, const Vector & vecTo)
+{
+	ASSERT(FIsNear(SLength(vecFrom), 1.0f));
+	ASSERT(FIsNear(SLength(vecTo), 1.0f));
+
+	float gDot = GDot(vecFrom, vecTo);
+
+	const float gEpsilon = .000001f;
+
+	if (gDot > 1.0f - gEpsilon)
+	{
+		// Already match
+
+		return g_quatIdentity;
+	}
+	else if (gDot < -1.0f + gEpsilon)
+	{
+		// 180 degree rotation about any axis
+
+		return QuatAxisAngle(g_vecYAxis, PI);
+	}
+	else
+	{
+		Vector vecCrossRotateForward = VecCross(vecFrom, vecTo);
+		float s = vecCrossRotateForward.SLength();
+		vecCrossRotateForward = vecCrossRotateForward / s;
+		float rad = RadAsin(s);
+		if (gDot < 0)
+		{
+			rad = PI - rad;
+		}
+		return QuatAxisAngle(vecCrossRotateForward, rad);
+	}
+}
+
+Quat QuatLookAt(const Vector & vecForward, const Vector & vecUp)
+{
+	// There might be a better algorithm for this
+
+	ASSERT(FIsNear(SLength(vecForward), 1.0f));
+	ASSERT(FIsNear(SLength(vecUp), 1.0f));
+
+	Vector vecRight = VecCross(vecForward, vecUp);
+	Vector vecUpAdjusted = VecNormalize(VecCross(vecRight, vecForward));
+
+	Quat quatInitial = QuatFromTo(g_vecXAxis, vecForward);
+	Vector vecZ = VecRotate(g_vecZAxis, quatInitial);
+	Quat quatSecondary = QuatFromTo(vecZ, vecUpAdjusted);
+
+	return quatSecondary * quatInitial;
 }
 
 float4 VecRotate(const float4 & vec, const Quat & quat)
@@ -733,4 +808,8 @@ void AuditVectors()
 	ASSERT(FIsNear(VecRotate(vecTest, quatTest), vecTest * MatRotate(quatTest)));
 
 	ASSERT(FIsNear(MatRotate(quatTest) * MatInverse(MatRotate(quatTest)), g_matIdentity));
+
+	ASSERT(FIsNear(VecCross(g_vecXAxis, g_vecYAxis), g_vecZAxis));
+	ASSERT(FIsNear(VecCross(-g_vecYAxis, g_vecXAxis), g_vecZAxis));
+	ASSERT(FIsNear(VecRotate(g_vecXAxis, QuatFromTo(g_vecXAxis, g_vecYAxis)), g_vecYAxis));
 }
