@@ -42,34 +42,36 @@ void SFlyCam::Update()
 #if FLYCAM_LOOKAT
 	SetQuatWorld(QuatLookAt(VecNormalize(g_game.m_hPlaneTest->PosWorld() - PosWorld()), g_vecZAxis));
 #else
+	float gRotSpeed = g_game.m_mpVkFDown[VK_M] ? 0.1f : 1.0f;
+
 	if (g_game.m_mpVkFDown[VK_A])
 	{
-		SetQuatWorld(QuatWorld() * QuatAxisAngle(g_vecZAxis, g_game.m_dT));
+		SetQuatWorld(QuatWorld() * QuatAxisAngle(g_vecZAxis, gRotSpeed*g_game.m_dT));
 	}
 
 	if (g_game.m_mpVkFDown[VK_D])
 	{
-		SetQuatWorld(QuatWorld() * QuatAxisAngle(g_vecZAxis, -g_game.m_dT));
+		SetQuatWorld(QuatWorld() * QuatAxisAngle(g_vecZAxis, gRotSpeed*-g_game.m_dT));
 	}
 
 	if (g_game.m_mpVkFDown[VK_W])
 	{
-		SetQuatWorld(QuatWorld() * QuatAxisAngle(g_vecYAxis, -g_game.m_dT));
+		SetQuatWorld(QuatWorld() * QuatAxisAngle(g_vecYAxis, gRotSpeed*-g_game.m_dT));
 	}
 
 	if (g_game.m_mpVkFDown[VK_S])
 	{
-		SetQuatWorld(QuatWorld() * QuatAxisAngle(g_vecYAxis, g_game.m_dT));
+		SetQuatWorld(QuatWorld() * QuatAxisAngle(g_vecYAxis, gRotSpeed*g_game.m_dT));
 	}
 
 	if (g_game.m_mpVkFDown[VK_E])
 	{
-		SetQuatWorld(QuatWorld() * QuatAxisAngle(g_vecXAxis, g_game.m_dT));
+		SetQuatWorld(QuatWorld() * QuatAxisAngle(g_vecXAxis, gRotSpeed*g_game.m_dT));
 	}
 
 	if (g_game.m_mpVkFDown[VK_Q])
 	{
-		SetQuatWorld(QuatWorld() * QuatAxisAngle(g_vecXAxis, -g_game.m_dT));
+		SetQuatWorld(QuatWorld() * QuatAxisAngle(g_vecXAxis, gRotSpeed*-g_game.m_dT));
 	}
 #endif
 }
