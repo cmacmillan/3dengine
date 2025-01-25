@@ -616,6 +616,7 @@ Quat QuatFromTo(const Vector & vecFrom, const Vector & vecTo)
 
 Quat QuatLookAt(const Vector & vecForward, const Vector & vecUp)
 {
+#if 0
 	Vector vecLeft = VecCross(vecUp, vecForward);
 	float g0 = 0.5f * GSqrt(1.0f + vecForward.X() + vecLeft.Y() + vecUp.Z());
 	if (g0 == 0.0f)
@@ -627,7 +628,7 @@ Quat QuatLookAt(const Vector & vecForward, const Vector & vecUp)
 		(vecLeft.Z() - vecUp.Y()) / (4.0f * g0),
 		(vecUp.X() - vecForward.Z()) / (4.0f * g0),
 		(vecForward.Y() - vecLeft.X()) / (4.0f * g0));
-	/*
+#else
 	// There might be a better algorithm for this
 	ASSERT(FIsNear(SLength(vecForward), 1.0f,.0001f));
 	ASSERT(FIsNear(SLength(vecUp), 1.0f, .0001f));
@@ -642,7 +643,7 @@ Quat QuatLookAt(const Vector & vecForward, const Vector & vecUp)
 
 	Quat quatResult = quatSecondary * quatInitial;
 	return quatResult;
-	*/
+#endif
 }
 
 float4 VecRotate(const float4 & vec, const Quat & quat)
