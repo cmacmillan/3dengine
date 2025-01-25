@@ -285,6 +285,7 @@ Vector g_vecXAxis = Vector(1.0f, 0.0f, 0.0f);
 Vector g_vecYAxis = Vector(0.0f, 1.0f, 0.0f);
 Vector g_vecZAxis = Vector(0.0f, 0.0f, 1.0f);
 Vector g_vecZero = Vector(0.0f, 0.0f, 0.0f);
+Point g_posZero = Point(0.0f, 0.0f, 0.0f);
 Quat g_quatIdentity = Quat(1.0f, 0.0f, 0.0f, 0.0f);
 
 Mat::Mat()
@@ -628,24 +629,17 @@ Quat QuatFromTo(const Vector & vecFrom, const Vector & vecTo)
 #endif
 }
 
-Quat QuatLookAt(const Vector & vecForward, const Vector & vecUp)
+Quat QuatFromMatRot(const Mat & matRot)
 {
-	ASSERT(FIsNear(SLength(vecForward), 1.0f,.0001f));
-	ASSERT(FIsNear(SLength(vecUp), 1.0f, .0001f));
-
-	Vector vecRight = VecNormalize(VecCross(vecForward, vecUp));
-	Vector vecUpAdjusted = VecNormalize(VecCross(vecRight, vecForward));
-	Vector vecLeft = -vecRight;
-
-	// NOTE My initial implementation of this attempted to first rotate x to forward, then rotate the rotated z to up
-	//  This mostly worked but had some precision issues. So just using this implementation instead, which essentially just constructs
-	//  A quat from a rotation matrix. Should probably factor this into a QuatFromMat function or something
+	ASSERT(FIsNear(SLength(matRot.m_aVec[0]),1.0f));
+	ASSERT(FIsNear(SLength(matRot.m_aVec[1]),1.0f));
+	ASSERT(FIsNear(SLength(matRot.m_aVec[2]),1.0f));
 
 	// From https://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToQuaternion/
 
-	Vector vec0 = vecForward;
-	Vector vec1 = vecLeft;
-	Vector vec2 = vecUpAdjusted;
+	Vector vec0 = matRot.m_aVec[0];
+	Vector vec1 = matRot.m_aVec[1];
+	Vector vec2 = matRot.m_aVec[2];
 
 	float g00 = vec0.X();
 	float g10 = vec0.Y();
@@ -695,17 +689,22 @@ Quat QuatLookAt(const Vector & vecForward, const Vector & vecUp)
 			(g12 + g21) / gS,
 			.25f * gS);
 	}
+}
 
-	/*
-	Quat quatInitial = QuatFromTo(g_vecXAxis, vecForward);
-	Vector vecZ = VecRotate(g_vecZAxis, quatInitial);
-	Quat quatSecondary = QuatFromTo(vecZ, vecUpAdjusted);
-	Quat quatResult = quatSecondary * quatInitial;
-	g_game.PrintConsole(StrPrintf("quatSecondary:%s\n", StrFromQuat(quatSecondary).c_str()).c_str());
-	g_game.PrintConsole(StrPrintf("vecZ:%s\n", StrFromVector(vecZ).c_str()).c_str());
-	g_game.PrintConsole(StrPrintf("vecUpAdj:%s\n", StrFromVector(vecUpAdjusted).c_str()).c_str());
-	return quatResult;
-	*/
+Quat QuatLookAt(const Vector & vecForward, const Vector & vecUp)
+{
+	ASSERT(FIsNear(SLength(vecForward), 1.0f));
+	ASSERT(FIsNear(SLength(vecUp), 1.0f));
+
+	// NOTE My initial implementation of this attempted to first rotate x to forward, then rotate the rotated z to up
+	//  This mostly worked but had some precision issues. So just using this implementation instead, which essentially just constructs
+	//  A quat from a rotation matrix. Should probably factor this into a QuatFromMat function or something
+
+	Vector vecRight = VecNormalize(VecCross(vecForward, vecUp));
+	Vector vecUpAdjusted = VecNormalize(VecCross(vecRight, vecForward));
+	Vector vecLeft = -vecRight;
+
+	return QuatFromMatRot(Mat(vecForward, vecLeft, vecUpAdjusted, g_posZero));
 }
 
 float4 VecRotate(const float4 & vec, const Quat & quat)

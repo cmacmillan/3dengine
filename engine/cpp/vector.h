@@ -140,6 +140,13 @@ struct Mat
 		m_aVec[2] = r2; 
 		m_aVec[3] = r3; 
 	}
+	Mat(Vector vecX, Vector vecY, Vector vecZ, Point pos)
+	{
+		m_aVec[0] = vecX.m_vec;
+		m_aVec[1] = vecY.m_vec;
+		m_aVec[2] = vecZ.m_vec; 
+		m_aVec[3] = pos.m_vec; 
+	}
 	Vector VecX() { return m_aVec[0]; }
 	Vector VecY() { return m_aVec[1]; }
 	Vector VecZ() { return m_aVec[2]; }
@@ -156,6 +163,7 @@ extern Vector g_vecXAxis;
 extern Vector g_vecYAxis;
 extern Vector g_vecZAxis;
 extern Vector g_vecZero;
+extern Point g_posZero;
 
 Mat operator*(float g, const Mat & mat);
 
@@ -200,6 +208,8 @@ Mat MatTranslate(Vector vec);
 Mat MatScale(Vector vec);
 Mat MatRotate(Quat quat);
 Mat MatInverse(const Mat & mat);
+
+Quat QuatFromMatRot(const Mat & matRot);
 
 Mat MatPerspective(float radFovHorizontal, float rAspectWidthOverHeight, float dXNearClip, float dXFarClip);
 
