@@ -171,6 +171,7 @@ struct Quat
 	Quat(float a, float b, float c, float d) : m_a(a), m_b(b), m_c(c), m_d(d) {}
 
 	Quat Inverse() const;
+	float SLength() const;
 
 	// Quaternion = a + bi + cj + dk
 

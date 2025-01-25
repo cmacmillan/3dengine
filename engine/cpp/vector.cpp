@@ -552,6 +552,12 @@ Quat Quat::Inverse() const
 	return Quat(m_a, -m_b, -m_c, -m_d);
 }
 
+
+float Quat::SLength() const
+{
+	return GSqrt(m_a * m_a + m_b * m_b + m_c * m_c + m_d * m_d);
+}
+
 Quat QuatAxisAngle(const Vector & normal, float radAngle)
 {
 	// NOTE a positive radAngle = clockwise rotation about the normal since our coordinate system is right handed
@@ -580,7 +586,7 @@ Quat QuatFromTo(const Vector & vecFrom, const Vector & vecTo)
 
 	float gDot = GDot(vecFrom, vecTo);
 
-	const float gEpsilon = .0001f;
+	const float gEpsilon = .00001f;
 
 	Quat quat;
 	if (gDot > 1.0f - gEpsilon)
@@ -624,62 +630,82 @@ Quat QuatFromTo(const Vector & vecFrom, const Vector & vecTo)
 
 Quat QuatLookAt(const Vector & vecForward, const Vector & vecUp)
 {
-	// TODO https://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToQuaternion/
-	Vector vecLeft = VecCross(vecUp, vecForward);
-	//Vector vecUpAdjusted = VecCross(vecUp, vecForward);
-	//Vector vecLeftAdjusted = VecCross(vecUp, vecForward);
-
-	/*
-#if 0
-	Vector vecLeft = VecCross(vecUp, vecForward);
-	float g0 = 0.5f * GSqrt(1.0f + vecForward.X() + vecLeft.Y() + vecUp.Z());
-	if (g0 == 0.0f)
-	{
-		return g_quatIdentity;
-	}
-	return Quat(
-		g0,
-		(vecLeft.Z() - vecUp.Y()) / (4.0f * g0),
-		(vecUp.X() - vecForward.Z()) / (4.0f * g0),
-		(vecForward.Y() - vecLeft.X()) / (4.0f * g0));
-#else
-	// There might be a better algorithm for this
 	ASSERT(FIsNear(SLength(vecForward), 1.0f,.0001f));
 	ASSERT(FIsNear(SLength(vecUp), 1.0f, .0001f));
 
-	Vector vecRight = VecCross(vecForward, vecUp);
+	Vector vecRight = VecNormalize(VecCross(vecForward, vecUp));
 	Vector vecUpAdjusted = VecNormalize(VecCross(vecRight, vecForward));
+	Vector vecLeft = -vecRight;
 
-	Quat quatInitial = QuatFromTo(g_vecXAxis, vecForward);
-	Vector vecZ = VecRotate(g_vecZAxis, quatInitial);
-	
-#if 1
-	Vector vecCross = VecCross(vecZ, vecUpAdjusted);
-	float s = vecCross.SLength();
-	g_game.PrintConsole(StrPrintf("s:%f\n",s));
-	g_game.PrintConsole(StrPrintf("GDot:%f\n",GDot(g_vecZAxis,vecForward)));
-	float rad = RadAsin(s);
-	Quat quatSecondary;
-	if (GDot(vecForward, vecCross) < 0)
+	// NOTE My initial implementation of this attempted to first rotate x to forward, then rotate the rotated z to up
+	//  This mostly worked but had some precision issues. So just using this implementation instead, which essentially just constructs
+	//  A quat from a rotation matrix. Should probably factor this into a QuatFromMat function or something
+
+	// From https://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToQuaternion/
+
+	Vector vec0 = vecForward;
+	Vector vec1 = vecLeft;
+	Vector vec2 = vecUpAdjusted;
+
+	float g00 = vec0.X();
+	float g10 = vec0.Y();
+	float g20 = vec0.Z();
+	float g01 = vec1.X();
+	float g11 = vec1.Y();
+	float g21 = vec1.Z();
+	float g02 = vec2.X();
+	float g12 = vec2.Y();
+	float g22 = vec2.Z();
+
+	float gTr = g00 + g11 + g22;
+
+	if (gTr > 0.0f)
 	{
-		quatSecondary = QuatAxisAngle(vecForward, rad);
+		float gS = GSqrt(gTr + 1.0f) * 2.0f;
+		return Quat(
+			.25f * gS, 
+			(g21 - g12) / gS, 
+			(g02 - g20) / gS,
+			(g10 - g01) / gS);
+	}
+	else if ((g00 > g11) && (g00 > g22))
+	{
+		float gS = GSqrt(1.0f + g00 - g11 - g22) * 2.0f;
+		return Quat(
+			(g21 - g12) / gS,
+			.25f * gS,
+			(g01 + g10) / gS,
+			(g02 + g20) / gS);
+	}
+	else if (g11 > g22)
+	{
+		float gS = GSqrt(1.0f + g11 - g00 - g22) * 2.0f;
+		return Quat(
+			(g02 - g20) / gS,
+			(g01 + g10) / gS,
+			.25f * gS,
+			(g12 + g21) / gS);
 	}
 	else
 	{
-		quatSecondary = QuatAxisAngle(-vecForward, rad);
+		float gS = GSqrt(1.0f + g22 - g00 - g11) * 2.0f;
+		return Quat(
+			(g10 - g01) / gS,
+			(g02 + g20) / gS,
+			(g12 + g21) / gS,
+			.25f * gS);
 	}
-#else
-	Quat quatSecondary = QuatFromTo(vecZ, vecUpAdjusted);
-#endif
 
-	//g_game.PrintConsole(StrPrintf("vecForward:%s\n",StrFromVector(vecForward).c_str()));
-	//g_game.PrintConsole(StrPrintf("vecUp:%s\n",StrFromVector(vecUp).c_str()));
-	//g_game.PrintConsole(StrPrintf("quatInitial:%s\n",StrFromQuat(quatInitial).c_str()));
-	//g_game.PrintConsole(StrPrintf("quatSecondary:%s\n",StrFromQuat(quatSecondary).c_str()));
+	/*
+	Quat quatInitial = QuatFromTo(g_vecXAxis, vecForward);
+	Vector vecZ = VecRotate(g_vecZAxis, quatInitial);
+	Quat quatSecondary = QuatFromTo(vecZ, vecUpAdjusted);
 	Quat quatResult = quatSecondary * quatInitial;
+	g_game.PrintConsole(StrPrintf("quatSecondary:%s\n", StrFromQuat(quatSecondary).c_str()).c_str());
+	g_game.PrintConsole(StrPrintf("vecZ:%s\n", StrFromVector(vecZ).c_str()).c_str());
+	g_game.PrintConsole(StrPrintf("vecUpAdj:%s\n", StrFromVector(vecUpAdjusted).c_str()).c_str());
 	return quatResult;
-#endif
-*/
+	*/
 }
 
 float4 VecRotate(const float4 & vec, const Quat & quat)
