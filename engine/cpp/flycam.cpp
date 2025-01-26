@@ -40,7 +40,12 @@ void SFlyCam::Update()
 
 	if (g_game.m_mpVkFDown[VK_SPACE])
 	{
-		SetPosWorld(PosWorld() + Vector(0,0,1) * gMoveSpeed * -g_game.m_dT);
+		SetPosWorld(PosWorld() + Vector(0,0,1) * gMoveSpeed * g_game.m_dT);
+	}
+
+	if (g_game.m_mpVkFDown[VK_BACK])
+	{
+		SetPosWorld(PosWorld() - Vector(0,0,1) * gMoveSpeed * g_game.m_dT);
 	}
 
 #define FLYCAM_LOOKAT 0

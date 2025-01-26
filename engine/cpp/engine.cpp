@@ -54,7 +54,7 @@ SGame::SGame()
 
 void SGame::Init(HINSTANCE hInstance)
 {
-	STimingContext timectx = STimingContext("Init", 15.0f);
+	//STimingContext timectx = STimingContext("Init", 15.0f);
 
 	m_hNodeRoot = (new SNode(-1, "RootNode"))->HNode();
 
@@ -338,7 +338,7 @@ void SGame::Init(HINSTANCE hInstance)
 	// Skybox
 
 	{
-		STimingContext timectx = STimingContext("Loading skybox texture & shader", 15.0f);
+		//STimingContext timectx = STimingContext("Loading skybox texture & shader", 15.0f);
 
 		// BB opening this texture is wildly slow (I think it's a big texture problem, not a jpeg problem)
 		//m_hTextureSkybox = (new STexture("textures/pretoria_gardens.jpg", false, false))->HTexture();
@@ -542,9 +542,11 @@ void SGame::MainLoop()
 			float h = w * vecWinSize.m_y / vecWinSize.m_x;
 			Mat matScale = MatScale(Vector(1.0f, w, h));
 			matModelSkybox = matScale * matRot * matTranslate;
-			PrintConsole(StrPrintf("%s\n",StrFromMat(matRot).c_str()));
 			//PrintConsole(StrPrintf("%s\n",StrFromQuat(quat).c_str()));
 		}
+		PrintConsole(StrPrintf("MatCamera:\n%s\n",StrFromMat(matCameraToWorld).c_str()));
+		PrintConsole(StrPrintf("PosQuad:\n%s\n",StrFromPoint(m_hPlaneTest->PosWorld() * matWorldToCamera).c_str()));
+		PrintConsole(StrPrintf("PosQuadProj:\n%s\n",StrFromPoint(m_hPlaneTest->PosWorld() * matWorldToClip).c_str()));
 
 		SConsole * pConsole = m_hConsole.PT();
 		pConsole->m_hTextConsole->SetText(pConsole->StrPrint());

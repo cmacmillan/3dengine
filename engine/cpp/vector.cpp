@@ -574,14 +574,6 @@ Quat QuatAxisAngle(const Vector & normal, float radAngle)
 
 Quat QuatFromTo(const Vector & vecFrom, const Vector & vecTo)
 {
-#if 0
-	// https://stackoverflow.com/questions/1171849/finding-quaternion-representing-the-rotation-from-one-vector-to-another
-
-	Vector vecCross = VecCross(vecFrom, vecTo);
-	float sFrom = vecFrom.SLength();
-	float sTo = vecTo.SLength();
-	return Quat(GSqrt((sFrom * sFrom) * (sTo * sTo)) + GDot(vecFrom, vecTo), vecCross.X(), vecCross.Y(), vecCross.Z());
-#else
 	ASSERT(FIsNear(SLength(vecFrom), 1.0f, .0001f));
 	ASSERT(FIsNear(SLength(vecTo), 1.0f, .0001f));
 
@@ -598,17 +590,7 @@ Quat QuatFromTo(const Vector & vecFrom, const Vector & vecTo)
 	}
 	else if (gDot < -1.0f + gEpsilon)
 	{
-		//quat = g_quatIdentity;
-
-		//ASSERT(false); // Method does not work for opposite rotations?
-
 		quat = QuatAxisAngle(VecNormalize(VecPerpendicular(vecFrom)), PI);
-		//g_game.PrintConsole("Blah\n");
-		//quat = QuatAxisAngle(VecNormalize(VecPerpendicular(vecFrom)), 0.0f);
-		//quat = QuatAxisAngle(), 0.0f);
-		//Vector normalPerpendicular = VecNormalize(VecPerpendicular(vecFrom));
-		//quat = Quat(0.0f, normalPerpendicular.X(), normalPerpendicular.Y(), normalPerpendicular.Z());
-		//ASSERT(FIsNear(Quat(0.0f, normalPerpendicular.X(), normalPerpendicular.Y(), normalPerpendicular.Z()), QuatAxisAngle(VecNormalize(VecPerpendicular(vecFrom)), PI)));
 	}
 	else
 	{
@@ -623,10 +605,7 @@ Quat QuatFromTo(const Vector & vecFrom, const Vector & vecTo)
 		quat = QuatAxisAngle(vecCrossRotateForward, rad);
 	}
 
-	Vector vecRotated = VecRotate(vecFrom, quat);
-	//ASSERT(FIsNear(vecRotated, vecTo));
 	return quat;
-#endif
 }
 
 Quat QuatFromMatRot(const Mat & matRot)
@@ -756,11 +735,36 @@ Mat MatPerspective(float radFovHorizontal, float rAspectWidthOverHeight, float x
 	float gCotan = 1.0f / GTan(radFovHorizontal / 2.0f);
 	float gDXClip = 1.0f / (xFarClip - xNearClip);
 
+
+#if 0
+	// inverted z
+	return Mat(
+		float4(0.0f, 0.0f, -xFarClip * gDXClip, 1.0f),
+		float4(-gCotan, 0.0f, 0.0f, 0.0f),
+		float4(0.0f, rAspectWidthOverHeight * gCotan, 0.0f, 0.0f),
+		float4(0.0f, 0.0f, -xFarClip * xNearClip * gDXClip, 0.0f));
+#elseif 0
+	// Inverted y, inverted z
+	return Mat(
+		float4(0.0f, 0.0f, -xNearClip * gDXClip, 1.0f),
+		float4(-gCotan, 0.0f, 0.0f, 0.0f),
+		float4(0.0f, -rAspectWidthOverHeight * gCotan, 0.0f, 0.0f),
+		float4(0.0f, 0.0f, xFarClip * xNearClip * gDXClip, 0.0f));
+#elseif 0
+	// inverted y
+	return Mat(
+		float4(0.0f, 0.0f, xFarClip * gDXClip, 1.0f),
+		float4(-gCotan, 0.0f, 0.0f, 0.0f),
+		float4(0.0f, -rAspectWidthOverHeight * gCotan, 0.0f, 0.0f),
+		float4(0.0f, 0.0f, -xFarClip * xNearClip * gDXClip, 0.0f));
+#else
+	// OG
 	return Mat(
 		float4(0.0f, 0.0f, xFarClip * gDXClip, 1.0f),
 		float4(-gCotan, 0.0f, 0.0f, 0.0f),
 		float4(0.0f, rAspectWidthOverHeight * gCotan, 0.0f, 0.0f),
 		float4(0.0f, 0.0f, -xFarClip * xNearClip * gDXClip, 0.0f));
+#endif
 }
 
 Mat Mat::operator*(float g) const
@@ -917,4 +921,7 @@ void AuditVectors()
 	ASSERT(FIsNear(VecCross(g_vecXAxis, g_vecYAxis), g_vecZAxis));
 	ASSERT(FIsNear(VecCross(-g_vecYAxis, g_vecXAxis), g_vecZAxis));
 	ASSERT(FIsNear(VecRotate(g_vecXAxis, QuatFromTo(g_vecXAxis, g_vecYAxis)), g_vecYAxis));
+
+	ASSERT(FIsNear(VecRotate(g_vecZAxis, QuatAxisAngle(g_vecXAxis, -PI / 2.0f)), g_vecYAxis));
+	ASSERT(FIsNear(VecRotate(g_vecXAxis, QuatAxisAngle(g_vecZAxis, PI / 2.0f)), g_vecYAxis));
 }
