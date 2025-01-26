@@ -736,29 +736,15 @@ Mat MatPerspective(float radFovHorizontal, float rAspectWidthOverHeight, float x
 	float gDXClip = 1.0f / (xFarClip - xNearClip);
 
 
-#if 0
+#if 1
 	// inverted z
-	return Mat(
-		float4(0.0f, 0.0f, -xFarClip * gDXClip, 1.0f),
-		float4(-gCotan, 0.0f, 0.0f, 0.0f),
-		float4(0.0f, rAspectWidthOverHeight * gCotan, 0.0f, 0.0f),
-		float4(0.0f, 0.0f, -xFarClip * xNearClip * gDXClip, 0.0f));
-#elseif 0
-	// Inverted y, inverted z
 	return Mat(
 		float4(0.0f, 0.0f, -xNearClip * gDXClip, 1.0f),
 		float4(-gCotan, 0.0f, 0.0f, 0.0f),
-		float4(0.0f, -rAspectWidthOverHeight * gCotan, 0.0f, 0.0f),
+		float4(0.0f, rAspectWidthOverHeight * gCotan, 0.0f, 0.0f),
 		float4(0.0f, 0.0f, xFarClip * xNearClip * gDXClip, 0.0f));
-#elseif 0
-	// inverted y
-	return Mat(
-		float4(0.0f, 0.0f, xFarClip * gDXClip, 1.0f),
-		float4(-gCotan, 0.0f, 0.0f, 0.0f),
-		float4(0.0f, -rAspectWidthOverHeight * gCotan, 0.0f, 0.0f),
-		float4(0.0f, 0.0f, -xFarClip * xNearClip * gDXClip, 0.0f));
 #else
-	// OG
+	// og
 	return Mat(
 		float4(0.0f, 0.0f, xFarClip * gDXClip, 1.0f),
 		float4(-gCotan, 0.0f, 0.0f, 0.0f),

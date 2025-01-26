@@ -313,7 +313,7 @@ SShader::SShader(const char * pChzFile) : super()
 
 	// Set up defaults:
 
-	m_d3ddepthstencildesc.DepthFunc = D3D11_COMPARISON_LESS;
+	m_d3ddepthstencildesc.DepthFunc = D3D11_COMPARISON_GREATER; // default to greater since our clip space znear=1.0, zfar=0.0
 	m_d3ddepthstencildesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
 	m_d3ddepthstencildesc.DepthEnable = FALSE;
 

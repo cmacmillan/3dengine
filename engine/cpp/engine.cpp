@@ -558,7 +558,10 @@ void SGame::MainLoop()
 		m_pD3ddevicecontext->ClearRenderTargetView(m_pD3dframebufferview, backgroundColor);
 		m_pD3ddevicecontext->RSSetViewports(1, &viewport);
 		m_pD3ddevicecontext->OMSetRenderTargets(1, &m_pD3dframebufferview, nullptr);
-		m_pD3ddevicecontext->ClearDepthStencilView(m_pD3ddepthstencilview, D3D11_CLEAR_DEPTH, 1.0f, 0);
+
+		// Clear depth to 0 since 0=far 1=near in our clip space
+
+		m_pD3ddevicecontext->ClearDepthStencilView(m_pD3ddepthstencilview, D3D11_CLEAR_DEPTH, 0.0f, 0);
 
 		{
 			D3D11_MAPPED_SUBRESOURCE mappedSubresourceGlobals;
