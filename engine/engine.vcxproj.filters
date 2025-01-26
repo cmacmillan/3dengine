@@ -89,9 +89,6 @@
     <ClInclude Include="cpp\engine.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="cpp\stb_image.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="cpp\util.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -159,6 +156,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="cpp\linearmap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cpp\external\stb_image.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

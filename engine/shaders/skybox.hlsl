@@ -76,6 +76,10 @@ float4 ps_main(VS_Output input) : SV_Target
 
     float y = maprange(-1.0,1.0,0.0,1.0f,gDotUp);
 
+    // flip y (d3d sux)
+    
+    y = 1.0f - y;
+
     return skyTexture.Sample(skySampler, float2(x,y));
 }
 

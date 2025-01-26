@@ -24,12 +24,7 @@
 #include <vector>
 #include <string>
 #include <d3d11_1.h>
-#pragma comment(lib, "d3d11.lib")
-#include <d3dcompiler.h>
-#pragma comment(lib, "d3dcompiler.lib")
 #include "vector.h"
-
-//#include "stb_image.h"
 
 // https://learn.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
 

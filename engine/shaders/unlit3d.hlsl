@@ -4,7 +4,7 @@
 // CullMode:None
 // DepthEnable: On
 // DepthWrite: On
-// DepthFunc: Less
+// DepthFunc: Greater
 // END_INFO
 
 #pragma pack_matrix(row_major)
@@ -45,7 +45,7 @@ VS_Output vs_main(VS_Input input)
 {
     VS_Output output;
     output.pos = mul(input.pos, matMVP);
-    output.uv = input.uv; // BB
+    output.uv = float2(input.uv.x, 1.0f - input.uv.y);
     return output;
 }
 

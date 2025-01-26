@@ -151,6 +151,7 @@
     <ClInclude Include="cpp\coordinatesystem.h" />
     <ClInclude Include="cpp\drawnode3d.h" />
     <ClInclude Include="cpp\engine.h" />
+    <ClInclude Include="cpp\external\stb_image.h" />
     <ClInclude Include="cpp\file.h" />
     <ClInclude Include="cpp\flycam.h" />
     <ClInclude Include="cpp\font.h" />
@@ -163,7 +164,6 @@
     <ClInclude Include="cpp\object.h" />
     <ClInclude Include="cpp\shader.h" />
     <ClInclude Include="cpp\slotheap.h" />
-    <ClInclude Include="cpp\stb_image.h" />
     <ClInclude Include="cpp\text.h" />
     <ClInclude Include="cpp\texture.h" />
     <ClInclude Include="cpp\timingcontext.h" />

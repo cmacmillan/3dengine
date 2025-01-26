@@ -1,7 +1,7 @@
 #include "texture.h"
 
 #include "engine.h"
-#include "stb_image.h"
+#include "external/stb_image.h"
 
 STexture::STexture(const char * pChzFilename, bool fIsNormal, bool fGenerateMips) : super()
 {

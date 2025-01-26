@@ -11,6 +11,7 @@
 // DepthEnable: Off
 // DepthWrite: Off
 // DepthFunc: Always
+// CullMode: Front ; BB wonky cull mode because in the 3d pipeline we invert when we go from the x->z dimension (flopping the winding order)
 // END_INFO
 
 cbuffer constants : register(b0)

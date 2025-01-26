@@ -1,7 +1,7 @@
 // Uses some d3d api code from https://github.com/kevinmoran/BeginnerDirect3D11
 
 #define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
+#include "external/stb_image.h"
 
 #include "engine.h"
 #include "fpscounter.h"
@@ -12,6 +12,10 @@
 #include "timingcontext.h"
 
 #include <exception>
+
+#pragma comment(lib, "d3d11.lib")
+#include <d3dcompiler.h>
+#pragma comment(lib, "d3dcompiler.lib")
 
 SGame g_game;
 
@@ -54,7 +58,7 @@ SGame::SGame()
 
 void SGame::Init(HINSTANCE hInstance)
 {
-	//STimingContext timectx = STimingContext("Init", 15.0f);
+	STimingContext timectx = STimingContext("Init", 15.0f);
 
 	m_hNodeRoot = (new SNode(-1, "RootNode"))->HNode();
 
@@ -338,7 +342,7 @@ void SGame::Init(HINSTANCE hInstance)
 	// Skybox
 
 	{
-		//STimingContext timectx = STimingContext("Loading skybox texture & shader", 15.0f);
+		STimingContext timectx = STimingContext("Loading skybox texture & shader", 15.0f);
 
 		// BB opening this texture is wildly slow (I think it's a big texture problem, not a jpeg problem)
 		//m_hTextureSkybox = (new STexture("textures/pretoria_gardens.jpg", false, false))->HTexture();
