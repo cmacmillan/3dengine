@@ -96,6 +96,8 @@ struct SGame // game
 	void VkReleased(int vk);
 	void PrintConsole(const std::string & str, float dT = 0.0);
 
+	// TODO add QueuePrintConsole for debugging rendering stuff
+
 	// Misc
 
 	SNodeHandle	m_hNodeRoot = -1;

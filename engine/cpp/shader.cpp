@@ -319,7 +319,7 @@ SShader::SShader(const char * pChzFile) : super()
 
 	m_d3drasterizerdesc.CullMode = D3D11_CULL_BACK;
 	m_d3drasterizerdesc.FillMode = D3D11_FILL_SOLID;
-	m_d3drasterizerdesc.FrontCounterClockwise = TRUE;
+	m_d3drasterizerdesc.FrontCounterClockwise = FALSE; // NOTE the front IS clockwise (not counter-clockwise), but because go from small x = near to big x = near going from 3d to clip we have to flip this
 
 	m_d3drtblenddesc.BlendEnable = FALSE;
 	m_d3drtblenddesc.SrcBlend = D3D11_BLEND_SRC_ALPHA;

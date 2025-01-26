@@ -82,7 +82,7 @@ bool FIsNear(float a, float b, float gEpsilon)
 
 bool FIsNear(float a, float b)
 {
-	const float s_gEpsilon = .00001f;
+	const float s_gEpsilon = .0001f;
 	return FIsNear(a, b, s_gEpsilon);
 }
 

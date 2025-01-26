@@ -408,6 +408,9 @@ void SGame::MainLoop()
 			DispatchMessageW(&msg);
 		}
 
+		if (!isRunning)
+			break;
+
 		if (m_fDidWindowResize)
 		{
 			m_pD3ddevicecontext->OMSetRenderTargets(0, 0, 0);
@@ -529,25 +532,23 @@ void SGame::MainLoop()
 		Mat matWorldToClip = matWorldToCamera * matCameraToClip;
 		Mat matClipToWorld = matWorldToClip.MatInverse();
 
+		// Update skybox transform
+
+		// NOTE if this was a node that did this work in update, it would have to update after the camera
+
 		Mat matModelSkybox;
 		{
-			// Our built-in quad mesh ranges from -1 to 1 in y and z, x=0
-			// Positiong quad midway between near and far clip
 			float x = Lerp(pCamera3D->m_xNearClip, pCamera3D->m_xFarClip, 0.1f);
 			Mat matTranslate = MatTranslate(x * pCamera3D->MatObjectToWorld().VecX() + pCamera3D->MatObjectToWorld().Pos());
-			//Quat quat = QuatLookAt(-pCamera3D->MatObjectToWorld().VecX(), pCamera3D->MatObjectToWorld().VecZ());
-			Quat quat = QuatLookAt(pCamera3D->MatObjectToWorld().VecX(), pCamera3D->MatObjectToWorld().VecZ()); // BAD fix the quad instead
-			//Quat quat = QuatAxisAngle(pCamera3D->MatObjectToWorld().VecY(), PI) * pCamera3D->QuatWorld();
+			Quat quat = QuatLookAt(-pCamera3D->MatObjectToWorld().VecX(), pCamera3D->MatObjectToWorld().VecZ());
 			Mat matRot = MatRotate(quat);
 			float w = x * GTan(pCamera3D->m_radFovHorizontal * 0.5f);
 			float h = w * vecWinSize.m_y / vecWinSize.m_x;
 			Mat matScale = MatScale(Vector(1.0f, w, h));
 			matModelSkybox = matScale * matRot * matTranslate;
-			//PrintConsole(StrPrintf("%s\n",StrFromQuat(quat).c_str()));
 		}
-		PrintConsole(StrPrintf("MatCamera:\n%s\n",StrFromMat(matCameraToWorld).c_str()));
-		PrintConsole(StrPrintf("PosQuad:\n%s\n",StrFromPoint(m_hPlaneTest->PosWorld() * matWorldToCamera).c_str()));
-		PrintConsole(StrPrintf("PosQuadProj:\n%s\n",StrFromPoint(m_hPlaneTest->PosWorld() * matWorldToClip).c_str()));
+
+		// Update console text
 
 		SConsole * pConsole = m_hConsole.PT();
 		pConsole->m_hTextConsole->SetText(pConsole->StrPrint());

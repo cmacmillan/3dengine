@@ -31,19 +31,17 @@ void PushQuad3D(std::vector<SVertData3D> * paryVertdata, std::vector<unsigned sh
 	paryIIndex->push_back(iVertexStart);
 	paryIIndex->push_back(iVertexStart+1);
 	paryIIndex->push_back(iVertexStart+2);
+	paryIIndex->push_back(iVertexStart);
+	paryIIndex->push_back(iVertexStart+2);
 	paryIIndex->push_back(iVertexStart+3);
-	paryIIndex->push_back(iVertexStart+4);
-	paryIIndex->push_back(iVertexStart+5);
 
 	Point posLowerRight = Point(0.0f, -1.0f, -1.0f);
 	Point posLowerLeft = Point(0.0f, 1.0f, -1.0f);
 	Point posUpperRight = Point(0.0f, -1.0f, 1.0f);
 	Point posUpperLeft = Point(0.0f, 1.0f, 1.0f);
 
-	paryVertdata->push_back({ posUpperRight, float2(1.0f, 1.0f) });
 	paryVertdata->push_back({ posLowerLeft, float2(0.0f, 0.0f) });
 	paryVertdata->push_back({ posLowerRight, float2(1.0f, 0.0f) });
-	paryVertdata->push_back({ posLowerLeft, float2(0.0f, 0.0f) });
 	paryVertdata->push_back({ posUpperRight, float2(1.0f, 1.0f) });
 	paryVertdata->push_back({ posUpperLeft, float2(0.0f, 1.0f) });
 }

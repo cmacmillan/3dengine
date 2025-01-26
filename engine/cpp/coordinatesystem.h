@@ -8,3 +8,4 @@
 //  Our 2d coordinate system is x=right, y=up, z=back
 //  Remember d3d texture coordinates are top left corner = (0,0), so we have to flip the y
 //  For a skybox image x axis = center of the image, 
+//  Triagles wind counter clockwise
