@@ -5,6 +5,8 @@
 #include <vector>
 #include "linearmap.h"
 
+#pragma comment(lib, "dxguid.lib") // For shader reflection
+
 struct SPair
 {
 	std::string m_strKey;
@@ -694,9 +696,9 @@ SShader::SShader(const char * pChzFile) : super()
 	}
 
 	// Create Pixel Shader
-	{
-		// BB Omitting 3rd argument to D3DCompile will prevent shader #includes from working
+	// BB Omitting 3rd argument to D3DCompile will prevent shader #includes from working
 
+	{
 		ID3DBlob * psBlob;
 		ID3DBlob * shaderCompileErrorsBlob;
 		HRESULT hResult = D3DCompile(file.m_pB, file.m_cBytesFile, nullptr, nullptr, nullptr, "ps_main", "ps_5_0", 0, 0, &psBlob, &shaderCompileErrorsBlob);
@@ -716,19 +718,35 @@ SShader::SShader(const char * pChzFile) : super()
 		assert(SUCCEEDED(hResult));
 		psBlob->Release();
 	}
+	
+#if 0 // BB force this to match with the input data
+	ID3D11ShaderReflection* pReflector = NULL;
+	D3DReflect(vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), IID_ID3D11ShaderReflection, (void**) &pReflector);
+
+	D3D11_SHADER_DESC shaderdesc;
+	pReflector->GetDesc(&shaderdesc);
+
+	std::vector<D3D11_INPUT_ELEMENT_DESC> aryInputele;
+	for (int iInput = 0; iInput < shaderdesc.InputParameters; iInput++)
+	{
+		D3D11_SIGNATURE_PARAMETER_DESC sigdesc;
+		pReflector->GetInputParameterDesc(iInput, &sigdesc);
+		DoNothing();
+	}
+#endif
 
 	// Create Input Layout
-
-	// BB force this to match with the input data
 
 	D3D11_INPUT_ELEMENT_DESC inputElementDesc[] =
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "NORMAL", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }
 	};
 
-	HRESULT hResult = g_game.m_pD3ddevice->CreateInputLayout(inputElementDesc, ARRAYSIZE(inputElementDesc), vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), &m_pD3dinputlayout);
-	assert(SUCCEEDED(hResult));
+	HRESULT hResultInputLayout = g_game.m_pD3ddevice->CreateInputLayout(inputElementDesc, ARRAYSIZE(inputElementDesc), vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), &m_pD3dinputlayout);
+	assert(SUCCEEDED(hResultInputLayout));
+
 	vsBlob->Release();
 
 	// Create rasterizer state

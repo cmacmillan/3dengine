@@ -27,6 +27,7 @@ cbuffer globals : register(b1)
 
 struct VS_Input {
     float4 pos : POSITION;
+    float4 normal : NORMAL;
     float2 uv : TEXCOORD;
 };
 

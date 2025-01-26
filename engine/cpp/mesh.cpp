@@ -10,19 +10,12 @@ void PushQuad2D(float2 posMin, float2 posMax, float2 uvMin, float2 uvMax, std::v
 	paryIIndex->push_back(iVertexStart+4);
 	paryIIndex->push_back(iVertexStart+5);
 
-	paryVertdata->push_back({ {Point(posMin.m_x, posMax.m_y,0)}, {uvMin.m_x, uvMin.m_y} });
-	paryVertdata->push_back({ {Point(posMin.m_x, posMin.m_y,0)}, {uvMin.m_x, uvMax.m_y} });
-	paryVertdata->push_back({ {Point(posMax.m_x, posMin.m_y,0)}, {uvMax.m_x, uvMax.m_y} });
-	paryVertdata->push_back({ {Point(posMin.m_x, posMax.m_y,0)}, {uvMin.m_x, uvMin.m_y} });
-	paryVertdata->push_back({ {Point(posMax.m_x, posMin.m_y,0)}, {uvMax.m_x, uvMax.m_y} });
-	paryVertdata->push_back({ {Point(posMax.m_x, posMax.m_y,0)}, {uvMax.m_x, uvMin.m_y} });
-}
-
-void PushVert(Point pos, float2 uv, std::vector<SVertData3D> * paryVertdata, int * pI)
-{
-	SVertData3D * vertdata = &(*paryVertdata)[(*pI)++];
-	vertdata->m_pos = pos;
-	vertdata->m_uv = uv;
+	paryVertdata->push_back({ {Point(posMin.m_x, posMax.m_y,0)}, g_vecZAxis, {uvMin.m_x, uvMin.m_y} });
+	paryVertdata->push_back({ {Point(posMin.m_x, posMin.m_y,0)}, g_vecZAxis, {uvMin.m_x, uvMax.m_y} });
+	paryVertdata->push_back({ {Point(posMax.m_x, posMin.m_y,0)}, g_vecZAxis, {uvMax.m_x, uvMax.m_y} });
+	paryVertdata->push_back({ {Point(posMin.m_x, posMax.m_y,0)}, g_vecZAxis, {uvMin.m_x, uvMin.m_y} });
+	paryVertdata->push_back({ {Point(posMax.m_x, posMin.m_y,0)}, g_vecZAxis, {uvMax.m_x, uvMax.m_y} });
+	paryVertdata->push_back({ {Point(posMax.m_x, posMax.m_y,0)}, g_vecZAxis, {uvMax.m_x, uvMin.m_y} });
 }
 
 void PushQuad3D(std::vector<SVertData3D> * paryVertdata, std::vector<unsigned short> * paryIIndex)
@@ -40,10 +33,10 @@ void PushQuad3D(std::vector<SVertData3D> * paryVertdata, std::vector<unsigned sh
 	Point posUpperRight = Point(0.0f, -1.0f, 1.0f);
 	Point posUpperLeft = Point(0.0f, 1.0f, 1.0f);
 
-	paryVertdata->push_back({ posLowerLeft, float2(0.0f, 0.0f) });
-	paryVertdata->push_back({ posLowerRight, float2(1.0f, 0.0f) });
-	paryVertdata->push_back({ posUpperRight, float2(1.0f, 1.0f) });
-	paryVertdata->push_back({ posUpperLeft, float2(0.0f, 1.0f) });
+	paryVertdata->push_back({ posLowerLeft,  -g_vecXAxis, float2(0.0f, 0.0f) });
+	paryVertdata->push_back({ posLowerRight, -g_vecXAxis, float2(1.0f, 0.0f) });
+	paryVertdata->push_back({ posUpperRight, -g_vecXAxis ,float2(1.0f, 1.0f) });
+	paryVertdata->push_back({ posUpperLeft, -g_vecXAxis ,float2(0.0f, 1.0f) });
 }
 
 SMesh3D::SMesh3D() : super()

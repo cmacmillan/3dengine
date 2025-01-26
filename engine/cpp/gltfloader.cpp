@@ -41,25 +41,38 @@ SMesh3D * PMeshLoad(const char * pChzPath)
 	ASSERT(pPrim->mode == TINYGLTF_MODE_TRIANGLES);
 
 	{
-		int iAccessor = pPrim->attributes["POSITION"];
-		const tinygltf::Accessor * pAccessorVerts = &model.accessors[iAccessor];
+		int iAccessorVerts = pPrim->attributes["POSITION"];
+		int iAccessorNormals = pPrim->attributes["NORMAL"];
+
+		const tinygltf::Accessor * pAccessorVerts = &model.accessors[iAccessorVerts];
+		const tinygltf::Accessor * pAccessorNormals = &model.accessors[iAccessorNormals];
 
 		tinygltf::BufferView * pBufferviewVerts = &model.bufferViews[pAccessorVerts->bufferView];
+		tinygltf::BufferView * pBufferviewNormals = &model.bufferViews[pAccessorNormals->bufferView];
+
 		tinygltf::Buffer * pBufferVerts = &model.buffers[pBufferviewVerts->buffer];
+		tinygltf::Buffer * pBufferNormals = &model.buffers[pBufferviewNormals->buffer];
+
 		unsigned char * pBVert = pBufferVerts->data.data() + pBufferviewVerts->byteOffset + pAccessorVerts->byteOffset;
+		unsigned char * pBNormal = pBufferNormals->data.data() + pBufferviewNormals->byteOffset + pAccessorNormals->byteOffset;
 		ASSERT(pAccessorVerts->componentType == TINYGLTF_COMPONENT_TYPE_FLOAT);
+		ASSERT(pAccessorNormals->componentType == TINYGLTF_COMPONENT_TYPE_FLOAT);
 		ASSERT(pAccessorVerts->type == TINYGLTF_TYPE_VEC3);
+		ASSERT(pAccessorNormals->type == TINYGLTF_TYPE_VEC3);
 
 		struct SVec3
 		{
 			float m_x, m_y, m_z;
 		};
 
-		SVec3 * pVec3 = reinterpret_cast<SVec3 *>(pBVert);
+		SVec3 * pVec3Vert = reinterpret_cast<SVec3 *>(pBVert);
+		SVec3 * pVec3Normal = reinterpret_cast<SVec3 *>(pBNormal);
 		for (int iVec3 = 0; iVec3 < pAccessorVerts->count; iVec3++)
 		{
-			SVec3 & vec3 = pVec3[iVec3];
-			pMesh->m_aryVertdata.push_back({ Point(vec3.m_x,vec3.m_y, vec3.m_z),float2(0.0f, 0.0f) });
+			SVec3 & vec3Vert = pVec3Vert[iVec3];
+			SVec3 & vec3Normal = pVec3Normal[iVec3];
+
+			pMesh->m_aryVertdata.push_back({ Point(vec3Vert.m_x,vec3Vert.m_y, vec3Vert.m_z), Vector(vec3Normal.m_x,vec3Normal.m_y, vec3Normal.m_z), float2(0.0f, 0.0f)});
 		}
 	}
 

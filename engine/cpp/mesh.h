@@ -5,9 +5,10 @@
 struct SVertData3D
 {
 	Point	m_pos;
+	Vector	m_normal;
 	float2	m_uv;
 };
-CASSERT(sizeof(SVertData3D) == 24);
+CASSERT(sizeof(SVertData3D) == 40); // Update shaders & input layout
 
 void PushQuad2D(float2 posMin, float2 posMax, float2 uvMin, float2 uvMax, std::vector<SVertData3D> * paryVertdata, std::vector<unsigned short> * paryIIndex);
 void PushQuad3D(std::vector<SVertData3D> * paryVertdata, std::vector<unsigned short> * paryIIndex);
