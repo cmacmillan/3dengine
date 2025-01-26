@@ -151,7 +151,10 @@
     <ClInclude Include="cpp\coordinatesystem.h" />
     <ClInclude Include="cpp\drawnode3d.h" />
     <ClInclude Include="cpp\engine.h" />
+    <ClInclude Include="cpp\external\json.hpp" />
     <ClInclude Include="cpp\external\stb_image.h" />
+    <ClInclude Include="cpp\external\stb_image_write.h" />
+    <ClInclude Include="cpp\external\tiny_gltf.h" />
     <ClInclude Include="cpp\file.h" />
     <ClInclude Include="cpp\flycam.h" />
     <ClInclude Include="cpp\font.h" />
