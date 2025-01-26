@@ -535,7 +535,8 @@ void SGame::MainLoop()
 			// Positiong quad midway between near and far clip
 			float x = Lerp(pCamera3D->m_xNearClip, pCamera3D->m_xFarClip, 0.1f);
 			Mat matTranslate = MatTranslate(x * pCamera3D->MatObjectToWorld().VecX() + pCamera3D->MatObjectToWorld().Pos());
-			Quat quat = QuatLookAt(-pCamera3D->MatObjectToWorld().VecX(), pCamera3D->MatObjectToWorld().VecZ());
+			//Quat quat = QuatLookAt(-pCamera3D->MatObjectToWorld().VecX(), pCamera3D->MatObjectToWorld().VecZ());
+			Quat quat = QuatLookAt(pCamera3D->MatObjectToWorld().VecX(), pCamera3D->MatObjectToWorld().VecZ()); // BAD fix the quad instead
 			//Quat quat = QuatAxisAngle(pCamera3D->MatObjectToWorld().VecY(), PI) * pCamera3D->QuatWorld();
 			Mat matRot = MatRotate(quat);
 			float w = x * GTan(pCamera3D->m_radFovHorizontal * 0.5f);
