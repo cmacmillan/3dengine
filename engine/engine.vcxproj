@@ -130,6 +130,7 @@
     <ClCompile Include="cpp\flycam.cpp" />
     <ClCompile Include="cpp\font.cpp" />
     <ClCompile Include="cpp\fpscounter.cpp" />
+    <ClCompile Include="cpp\gltfloader.cpp" />
     <ClCompile Include="cpp\material.cpp" />
     <ClCompile Include="cpp\mesh.cpp" />
     <ClCompile Include="cpp\node.cpp" />
@@ -159,6 +160,7 @@
     <ClInclude Include="cpp\flycam.h" />
     <ClInclude Include="cpp\font.h" />
     <ClInclude Include="cpp\fpscounter.h" />
+    <ClInclude Include="cpp\gltfloader.h" />
     <ClInclude Include="cpp\linearmap.h" />
     <ClInclude Include="cpp\material.h" />
     <ClInclude Include="cpp\mesh.h" />

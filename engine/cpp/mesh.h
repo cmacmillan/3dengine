@@ -18,8 +18,10 @@ struct SMesh3D : SObject // mesh
 	SMesh3D();
 	SMesh3DHandle HMesh() { return (SMesh3DHandle) m_nHandle; }
 
-	std::vector<SVertData3D>		m_aryVertdata;
-	std::vector<unsigned short>		m_aryIIndex;
+	std::string						m_strName = "";
+
+	std::vector<SVertData3D>		m_aryVertdata = {};
+	std::vector<unsigned short>		m_aryIIndex = {};
 
 	// Data used while rendering only
 	//  This could potentially be factored out and stored as a pointer or something

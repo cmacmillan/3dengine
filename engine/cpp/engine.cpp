@@ -10,6 +10,7 @@
 #include "flycam.h"
 #include "console.h"
 #include "timingcontext.h"
+#include "gltfloader.h"
 
 #include <exception>
 
@@ -314,6 +315,8 @@ void SGame::Init(HINSTANCE hInstance)
 		PushQuad3D(&m_hMeshQuad->m_aryVertdata, &m_hMeshQuad->m_aryIIndex);
 	}
 
+	SMesh3D * pMeshSuzzane = PMeshLoad("models\\suzanne.gltf");
+
 	SShaderHandle hShaderUnlit = (new SShader("shaders\\unlit2d.hlsl"))->HShader();
 	SShaderHandle hShaderText = (new SShader("shaders\\text2d.hlsl"))->HShader();
 
@@ -365,7 +368,8 @@ void SGame::Init(HINSTANCE hInstance)
 	m_hPlaneTest2 = (new SDrawNode3D(m_hPlaneTest->HNode(), "PlaneTest2"))->HDrawnode3D();
 	m_hPlaneTest2->m_hMaterial = pMaterial3d->HMaterial();
 	m_hPlaneTest2->SetPosWorld(Point(10.0f, 2.0f, 0.0f));
-	m_hPlaneTest2->m_hMesh = m_hMeshQuad;
+	//m_hPlaneTest2->m_hMesh = m_hMeshQuad;
+	m_hPlaneTest2->m_hMesh = pMeshSuzzane->HMesh();
 
 	// Run audits
 

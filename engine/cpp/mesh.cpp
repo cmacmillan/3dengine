@@ -50,3 +50,4 @@ SMesh3D::SMesh3D() : super()
 {
 	m_typek = TYPEK_Mesh3D;
 }
+

@@ -87,6 +87,9 @@
     <ClCompile Include="cpp\timingcontext.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="cpp\gltfloader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cpp\engine.h">
@@ -172,6 +175,9 @@
     </ClInclude>
     <ClInclude Include="cpp\external\tiny_gltf.h">
       <Filter>External</Filter>
+    </ClInclude>
+    <ClInclude Include="cpp\gltfloader.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
