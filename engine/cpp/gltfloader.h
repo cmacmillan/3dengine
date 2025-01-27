@@ -4,4 +4,5 @@
 
 struct SMesh3D;
 
-SMesh3D * PMeshLoad(const char * pChzPath);
+SMesh3D * PMeshLoadSingle(const char * pChzPath);
+void SpawnScene(const char * pChzPath);

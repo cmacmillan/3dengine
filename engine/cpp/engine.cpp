@@ -315,8 +315,6 @@ void SGame::Init(HINSTANCE hInstance)
 		PushQuad3D(&m_hMeshQuad->m_aryVertdata, &m_hMeshQuad->m_aryIIndex);
 	}
 
-	SMesh3D * pMeshSuzzane = PMeshLoad("models\\suzanne.gltf");
-
 	SShaderHandle hShaderText = (new SShader("shaders\\text2d.hlsl"))->HShader();
 	SShaderHandle hShader3D = (new SShader("shaders\\unlit3d.hlsl"))->HShader();
 	SShaderHandle hShader3DNDotL = (new SShader("shaders\\litndotl.hlsl"))->HShader();
@@ -355,6 +353,11 @@ void SGame::Init(HINSTANCE hInstance)
 		m_hMaterialSkybox->m_aryNamedtexture.push_back({ m_hTextureSkybox, "skyTexture" });
 	}
 
+	// Default 3D material
+
+	SMaterial * pMaterial3dNDotL = new SMaterial(hShader3DNDotL);
+	g_game.m_hMaterialDefault3d = pMaterial3dNDotL->HMaterial();
+
 	SMaterial * pMaterial3d = new SMaterial(hShader3D);
 	pMaterial3d->m_aryNamedtexture.push_back({ (new STexture("textures/testTexture1.png", false, false))->HTexture(),  "mainTexture"});
 	pMaterial3d->m_aryNamedtexture.push_back({ (new STexture("textures/testTexture2.png", false, false))->HTexture(),  "altTexture"});
@@ -364,13 +367,19 @@ void SGame::Init(HINSTANCE hInstance)
 	m_hPlaneTest->SetPosWorld(Point(10.0f, 0.0f, 0.0f));
 	m_hPlaneTest->m_hMesh = m_hMeshQuad;
 
-	SMaterial * pMaterial3dNDotL = new SMaterial(hShader3DNDotL);
-
 	m_hPlaneTest2 = (new SDrawNode3D(m_hPlaneTest->HNode(), "PlaneTest2"))->HDrawnode3D();
-	m_hPlaneTest2->m_hMaterial = pMaterial3dNDotL->HMaterial();
+	m_hPlaneTest2->m_hMaterial = pMaterial3d->HMaterial();
 	m_hPlaneTest2->SetPosWorld(Point(10.0f, 2.0f, 0.0f));
-	//m_hPlaneTest2->m_hMesh = m_hMeshQuad;
-	m_hPlaneTest2->m_hMesh = pMeshSuzzane->HMesh();
+	m_hPlaneTest2->m_hMesh = m_hMeshQuad;
+
+	SMesh3D * pMeshSuzzane = PMeshLoadSingle("models/suzanne.gltf");
+	SDrawNode3DHandle hDrawnode3dSuzanne = (new SDrawNode3D(m_hPlaneTest->HNode(), "PlaneTest2"))->HDrawnode3D();
+	hDrawnode3dSuzanne->m_hMaterial = pMaterial3dNDotL->HMaterial();
+	hDrawnode3dSuzanne->m_hMaterial->m_aryNamedtexture.push_back({ (new STexture("textures/uvchecker.jpg",false,false))->HTexture(), "mainTexture" });
+	hDrawnode3dSuzanne->m_hMesh = pMeshSuzzane->HMesh();
+	hDrawnode3dSuzanne->SetPosWorld(Point(10.0f, -2.0f, 0.0f));
+
+	SpawnScene("models/fakelevel.gltf");
 
 	// Run audits
 
@@ -463,10 +472,7 @@ void SGame::MainLoop()
 
 		////////// GAMEPLAY CODE (JANK)
 	
-		//m_hPlaneTest->m_transformLocal.m_quat = QuatAxisAngle(g_vecZAxis, m_dT*10.0f) * m_hPlaneTest->m_transformLocal.m_quat;
-		//m_hPlaneTest->SetQuatLocal(QuatAxisAngle(g_vecZAxis, m_dT) * m_hPlaneTest->QuatLocal());
 		m_hPlaneTest2->SetQuatLocal(QuatAxisAngle(g_vecYAxis, m_dT * 10.0f) * m_hPlaneTest2->QuatLocal());
-		//m_hPlaneTest->m_transformLocal.m_quat = QuatAxisAngle(g_vecZAxis, *m_dT) * m_hPlaneTest->m_transformLocal.m_quat;
 
 		///////////////////////////////
 
@@ -709,9 +715,7 @@ void SGame::MainLoop()
 			D3D11_MAPPED_SUBRESOURCE mappedSubresource;
 			m_pD3ddevicecontext->Map(m_cbufferDrawnode3D, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
 			SDrawNodeRenderConstants * pDrawnode3Drc = (SDrawNodeRenderConstants *) (mappedSubresource.pData);
-
-			pDrawnode3Drc->m_matMVP = matModelSkybox * matWorldToClip;
-			pDrawnode3Drc->m_matObjectToWorld = matModelSkybox;
+			pDrawnode3Drc->FillOut(matModelSkybox, matWorldToClip);
 
 			m_pD3ddevicecontext->Unmap(m_cbufferDrawnode3D, 0);
 
@@ -764,8 +768,7 @@ void SGame::MainLoop()
 				SDrawNodeRenderConstants * pDrawnode3Drc = (SDrawNodeRenderConstants *) (mappedSubresource.pData);
 
 				Mat matModel = hDrawnode3D->MatObjectToWorld();
-				pDrawnode3Drc->m_matMVP = matModel * matWorldToClip;
-				pDrawnode3Drc->m_matObjectToWorld = matModel;
+				pDrawnode3Drc->FillOut(matModel, matWorldToClip);
 
 				m_pD3ddevicecontext->Unmap(m_cbufferDrawnode3D, 0);
 

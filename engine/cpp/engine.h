@@ -107,6 +107,8 @@ struct SGame // game
 	SDrawNode3DHandle m_hPlaneTest = -1;
 	SDrawNode3DHandle m_hPlaneTest2 = -1;
 
+	SMaterialHandle m_hMaterialDefault3d = -1;
+
 	// Fonts
 
 	SFontHandle m_hFont = -1;

@@ -5,8 +5,11 @@
 
 struct SDrawNodeRenderConstants
 {
+	void FillOut(Mat matObjectToWorld, Mat matWorldToClip);
+
 	Mat m_matMVP;
 	Mat m_matObjectToWorld;
+	Mat m_matObjectToWorldInverseTranspose;
 };
 
 struct SDrawNode3D : SNode3D // drawnode3D

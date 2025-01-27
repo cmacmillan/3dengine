@@ -5,3 +5,12 @@ SDrawNode3D::SDrawNode3D(SNodeHandle hNodeParent, const std::string & str) :
 {
 	m_typek = TYPEK_DrawNode3D;
 }
+
+void SDrawNodeRenderConstants::FillOut(Mat matObjectToWorld, Mat matWorldToClip)
+{
+	m_matMVP = matObjectToWorld * matWorldToClip;
+	m_matObjectToWorld = matObjectToWorld;
+	Mat matObjectToWorldNoTranslate = matObjectToWorld;
+	matObjectToWorldNoTranslate.m_aVec[3] = float4(0.0f, 0.0f, 0.0f, 1.0f);
+	m_matObjectToWorldInverseTranspose = matObjectToWorldNoTranslate.MatInverse().MatTranspose();
+}
