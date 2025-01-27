@@ -203,6 +203,9 @@ Vector VecRotate(const Vector & vec, const Quat & quat);
 Point PosRotate(const Point & pos, const Quat & quat);
 Vector VecNormalize(const Vector & vec);
 
+Vector VecProjectOnNormal(const Vector & vec, const Vector & normal);
+Vector VecProjectOnTangent(const Vector & vec, const Vector & normal);
+
 Mat MatTranslate(Point pos);
 Mat MatTranslate(Vector vec);
 Mat MatScale(Vector vec);

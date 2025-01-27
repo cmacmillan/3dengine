@@ -5,7 +5,7 @@ SFlyCam::SFlyCam(SNodeHandle hNodeParent, const std::string & strName) : super(h
 {
 	m_typek = TYPEK_FlyCam;
 
-	m_hCamera3D = (new SCamera3D(HNode(), "FlyCamCamera", RadFromDeg(90.0f), 0.1, 100.0f))->HCamera3D();
+	m_hCamera3D = (new SCamera3D(HNode(), "FlyCamCamera", RadFromDeg(90.0f), 0.1, 700.0f))->HCamera3D();
 	g_game.m_hCamera3DMain = m_hCamera3D;
 }
 
@@ -13,75 +13,51 @@ void SFlyCam::Update()
 {
 	super::Update();
 
-	// DBG REMOVE ME!!!!
-	//SetQuatWorld(Quat(0.0f, 1.0f, 0.0f, 0.0f)));
+	float gMoveSpeed = g_game.m_mpVkFDown[VK_SHIFT] ? 40.0f : (g_game.m_mpVkFDown[VK_M] ? 2.0f : 10.0f);
+	float gRotSpeed = 1.0f;
 
-	float gMoveSpeed = g_game.m_mpVkFDown[VK_SHIFT] ? 50.0f : 5.0f;
+	Vector vecObjForward = VecProjectOnTangent(MatObjectToWorld().VecX(), g_vecZAxis);
+	if (g_game.m_mpVkFDown[VK_W])
+		SetPosWorld(PosWorld() + vecObjForward * gMoveSpeed * g_game.m_dT);
 
-	if (g_game.m_mpVkFDown[VK_UP])
-	{
-		SetPosWorld(PosWorld() + MatObjectToWorld().VecX() * gMoveSpeed * g_game.m_dT);
-	}
+	if (g_game.m_mpVkFDown[VK_S])
+		SetPosWorld(PosWorld() - vecObjForward * gMoveSpeed * g_game.m_dT);
 
-	if (g_game.m_mpVkFDown[VK_DOWN])
-	{
-		SetPosWorld(PosWorld() + MatObjectToWorld().VecX() * gMoveSpeed * -g_game.m_dT);
-	}
+	Vector vecObjLeft = VecProjectOnTangent(MatObjectToWorld().VecY(), g_vecZAxis);
+	if (g_game.m_mpVkFDown[VK_A])
+		SetPosWorld(PosWorld() + vecObjLeft * gMoveSpeed * g_game.m_dT);
 
-	if (g_game.m_mpVkFDown[VK_LEFT])
-	{
-		SetPosWorld(PosWorld() + MatObjectToWorld().VecY() * gMoveSpeed * g_game.m_dT);
-	}
-
-	if (g_game.m_mpVkFDown[VK_RIGHT])
-	{
-		SetPosWorld(PosWorld() + MatObjectToWorld().VecY() * gMoveSpeed * -g_game.m_dT);
-	}
+	if (g_game.m_mpVkFDown[VK_D])
+		SetPosWorld(PosWorld() - vecObjLeft * gMoveSpeed * g_game.m_dT);
 
 	if (g_game.m_mpVkFDown[VK_SPACE])
-	{
-		SetPosWorld(PosWorld() + Vector(0,0,1) * gMoveSpeed * g_game.m_dT);
-	}
+		SetPosWorld(PosWorld() + g_vecZAxis * gMoveSpeed * g_game.m_dT);
 
-	if (g_game.m_mpVkFDown[VK_BACK])
-	{
-		SetPosWorld(PosWorld() - Vector(0,0,1) * gMoveSpeed * g_game.m_dT);
-	}
+	if (g_game.m_mpVkFDown[VK_CONTROL])
+		SetPosWorld(PosWorld() - g_vecZAxis * gMoveSpeed * g_game.m_dT);
 
 #define FLYCAM_LOOKAT 0
 #if FLYCAM_LOOKAT
 	SetQuatWorld(QuatLookAt(VecNormalize(g_game.m_hPlaneTest->PosWorld() - PosWorld()), g_vecZAxis));
 #else
-	float gRotSpeed = g_game.m_mpVkFDown[VK_M] ? 0.1f : 1.0f;
-
-	if (g_game.m_mpVkFDown[VK_A])
+	if (g_game.m_mpVkFDown[VK_LEFT])
 	{
-		SetQuatWorld(QuatWorld() * QuatAxisAngle(g_vecZAxis, gRotSpeed*g_game.m_dT));
+		SetQuatWorld(QuatAxisAngle(g_vecZAxis, gRotSpeed*g_game.m_dT) * QuatWorld());
 	}
 
-	if (g_game.m_mpVkFDown[VK_D])
+	if (g_game.m_mpVkFDown[VK_RIGHT])
 	{
-		SetQuatWorld(QuatWorld() * QuatAxisAngle(g_vecZAxis, gRotSpeed*-g_game.m_dT));
+		SetQuatWorld(QuatAxisAngle(g_vecZAxis, gRotSpeed*-g_game.m_dT) * QuatWorld());
 	}
 
-	if (g_game.m_mpVkFDown[VK_W])
+	if (g_game.m_mpVkFDown[VK_UP])
 	{
 		SetQuatWorld(QuatWorld() * QuatAxisAngle(g_vecYAxis, gRotSpeed*-g_game.m_dT));
 	}
 
-	if (g_game.m_mpVkFDown[VK_S])
+	if (g_game.m_mpVkFDown[VK_DOWN])
 	{
 		SetQuatWorld(QuatWorld() * QuatAxisAngle(g_vecYAxis, gRotSpeed*g_game.m_dT));
-	}
-
-	if (g_game.m_mpVkFDown[VK_E])
-	{
-		SetQuatWorld(QuatWorld() * QuatAxisAngle(g_vecXAxis, gRotSpeed*g_game.m_dT));
-	}
-
-	if (g_game.m_mpVkFDown[VK_Q])
-	{
-		SetQuatWorld(QuatWorld() * QuatAxisAngle(g_vecXAxis, gRotSpeed*-g_game.m_dT));
 	}
 #endif
 }

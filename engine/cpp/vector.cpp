@@ -278,6 +278,16 @@ Vector VecLerp(const Vector & vec1, const Vector vec2, float uLerp)
 	return (1.0f - uLerp) * vec1 + uLerp * vec2;
 }
 
+Vector VecProjectOnNormal(const Vector & vec, const Vector & normal)
+{
+	return GDot(normal, vec) * normal;
+}
+
+Vector VecProjectOnTangent(const Vector & vec, const Vector & normal)
+{
+	return vec - VecProjectOnNormal(vec, normal);
+}
+
 // Mat
 
 Mat g_matIdentity = Mat(float4(1, 0, 0, 0), float4(0, 1, 0, 0), float4(0, 0, 1, 0), float4(0, 0, 0, 1));
