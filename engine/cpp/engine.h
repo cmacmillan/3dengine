@@ -68,14 +68,16 @@
 struct ShaderGlobals
 {
 	float m_t;
+	float m_dT;
 	float2 m_vecWinSize;
-
-	float m_padding;
 
 	Mat		m_matCameraToWorld;
     Mat		m_matWorldToCamera;
 	Mat		m_matClipToWorld;
     Mat		m_matWorldToClip;
+	float	m_xClipNear;
+	float	m_xClipFar;
+	float2	m_vecPadding;
 };
 
 struct SGame // game 

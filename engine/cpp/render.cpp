@@ -13,8 +13,8 @@ void Draw3D(std::vector<SDrawNode3D *> * parypDrawnode3DToRender, SCamera3D * pC
 		if (pDrawnode3D->m_hMaterial == nullptr)
 			continue;
 
-		//const SMaterial & material = *g_game.m_hMaterialShadowcaster;//*pDrawnode3D->m_hMaterial;
-		const SMaterial & material = *pDrawnode3D->m_hMaterial;
+		const SMaterial & material = *g_game.m_hMaterialShadowcaster;
+		//const SMaterial & material = *pDrawnode3D->m_hMaterial;
 		const SShader & shader = *(material.m_hShader);
 		ASSERT(pDrawnode3D->FIsDerivedFrom(TYPEK_DrawNode3D));
 		ASSERT(shader.m_shaderk == SHADERK_3D);
@@ -93,5 +93,24 @@ void BindMaterialTextures(const SMaterial * pMaterial, const SShader * pShader)
 
 	pD3ddevicecontext->PSSetShaderResources(0, arypD3dsrview.size(), arypD3dsrview.data());
 	pD3ddevicecontext->PSSetSamplers(0, arypD3dsamplerstate.size(), arypD3dsamplerstate.data());
+}
+
+void BindGlobalsForCamera(SCamera3D * pCamera)
+{
+	ID3D11DeviceContext1 * pD3ddevicecontext = g_game.m_pD3ddevicecontext;
+
+	D3D11_MAPPED_SUBRESOURCE mappedSubresourceGlobals;
+	pD3ddevicecontext->Map(g_game.m_cbufferGlobals, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresourceGlobals);
+	ShaderGlobals * pShaderglobals = (ShaderGlobals *) (mappedSubresourceGlobals.pData);
+	pShaderglobals->m_t = g_game.m_dTSyst;
+	pShaderglobals->m_dT = g_game.m_dT;
+	pShaderglobals->m_vecWinSize = g_game.VecWinSize();
+	pShaderglobals->m_matCameraToWorld = pCamera->MatObjectToWorld();
+	pShaderglobals->m_matWorldToCamera = pCamera->MatObjectToWorld().MatInverse();
+	pShaderglobals->m_matClipToWorld = pCamera->MatClipToWorld();
+	pShaderglobals->m_matWorldToClip = pCamera->MatWorldToClip();
+	pShaderglobals->m_xClipNear = pCamera->m_xNearClip;
+	pShaderglobals->m_xClipFar = pCamera->m_xFarClip;
+	pD3ddevicecontext->Unmap(g_game.m_cbufferGlobals, 0);
 }
 

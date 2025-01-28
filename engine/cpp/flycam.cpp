@@ -6,9 +6,9 @@ SFlyCam::SFlyCam(SNodeHandle hNodeParent, const std::string & strName) : super(h
 	m_typek = TYPEK_FlyCam;
 
 	m_hCamera3D = (new SCamera3D(HNode(), "FlyCamCamera", RadFromDeg(90.0f), 0.1, 700.0f))->HCamera3D();
+	m_hCamera3D->m_xNearClip = 5.0f;
+	m_hCamera3D->m_xFarClip = 100;
 	g_game.m_hCamera3DMain = m_hCamera3D;
-	m_hCamera3D->m_xNearClip = -100;
-	m_hCamera3D->SetOrthographic(100.0f);
 }
 
 void SFlyCam::Update()
@@ -17,6 +17,15 @@ void SFlyCam::Update()
 
 	float gMoveSpeed = g_game.m_mpVkFDown[VK_SHIFT] ? 40.0f : (g_game.m_mpVkFDown[VK_M] ? 1.0f : 10.0f);
 	float gRotSpeed = 1.0f;
+
+	if (g_game.m_mpVkFDown[VK_H])
+	{
+		m_hCamera3D->SetOrthographic(100.0f);
+	}
+	else
+	{
+		m_hCamera3D->m_fOrthographic = false;
+	}
 
 	Vector vecObjForward = VecProjectOnTangent(MatObjectToWorld().VecX(), g_vecZAxis);
 	if (g_game.m_mpVkFDown[VK_W])

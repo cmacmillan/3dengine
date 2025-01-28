@@ -615,18 +615,7 @@ void SGame::MainLoop()
 
 		m_pD3ddevicecontext->ClearDepthStencilView(m_pD3ddepthstencilview, D3D11_CLEAR_DEPTH, 0.0f, 0);
 
-		{
-			D3D11_MAPPED_SUBRESOURCE mappedSubresourceGlobals;
-			m_pD3ddevicecontext->Map(m_cbufferGlobals, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresourceGlobals);
-			ShaderGlobals * pShaderglobals = (ShaderGlobals *) (mappedSubresourceGlobals.pData);
-			pShaderglobals->m_t = m_dTSyst;
-			pShaderglobals->m_vecWinSize = vecWinSize;
-			pShaderglobals->m_matCameraToWorld = pCamera3D->MatObjectToWorld();
-			pShaderglobals->m_matWorldToCamera = pCamera3D->MatObjectToWorld().MatInverse();
-			pShaderglobals->m_matClipToWorld = pCamera3D->MatClipToWorld();
-			pShaderglobals->m_matWorldToClip = pCamera3D->MatWorldToClip();
-			m_pD3ddevicecontext->Unmap(m_cbufferGlobals, 0);
-		}
+		BindGlobalsForCamera(pCamera3D);
 
 		// Pack all the meshes into a big index and vertex buffer
 		//  See https://learn.microsoft.com/en-us/windows/win32/api/d3d11/ne-d3d11-d3d11_map

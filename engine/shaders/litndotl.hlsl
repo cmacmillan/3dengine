@@ -17,12 +17,15 @@ cbuffer constants : register(b0)
 cbuffer globals : register(b1)
 {
     float time;
+    float deltaTime;
     float2 vecWinSize;
-    float padding;
     float4x4 matCameraToWorld;
     float4x4 matWorldToCamera;
 	float4x4 matClipToWorld;
     float4x4 matWorldToClip;
+	float	xClipNear;
+	float	xClipFar;
+	float2	vecPadding;
 };
 
 struct VS_Input {
@@ -56,7 +59,7 @@ VS_Output vs_main(VS_Input input)
 float4 ps_main(VS_Output input) : SV_Target
 {
     float light = dot(input.normal, normalize(float3(-1, -.3, 1)));
-    //float3 color = light * mainTexture.Sample(mainSampler, input.uv);
-    float3 color = light.xxx; // temp
+    float3 color = light * mainTexture.Sample(mainSampler, input.uv);
+    //float3 color = light.xxx; // temp
     return float4(color, 1.0);
 }
