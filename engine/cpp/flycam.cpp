@@ -7,6 +7,8 @@ SFlyCam::SFlyCam(SNodeHandle hNodeParent, const std::string & strName) : super(h
 
 	m_hCamera3D = (new SCamera3D(HNode(), "FlyCamCamera", RadFromDeg(90.0f), 0.1, 700.0f))->HCamera3D();
 	g_game.m_hCamera3DMain = m_hCamera3D;
+	m_hCamera3D->m_xNearClip = -100;
+	m_hCamera3D->SetOrthographic(100.0f);
 }
 
 void SFlyCam::Update()

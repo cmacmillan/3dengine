@@ -756,8 +756,17 @@ Mat MatPerspective(float radFovHorizontal, float rAspectWidthOverHeight, float x
 
 Mat MatOrthographic(float gScale, float rAspectWidthOverHeight, float xNearClip, float xFarClip)
 {
-	ASSERT(false);
-	return g_matIdentity;
+	// Derived in a simliar fashion to MatPerspective
+
+	// Where gScale is the horizontal width  (not 2*gScale)
+
+	float dX = xFarClip - xNearClip;
+
+	return Mat(
+		float4(0.0f, 0.0f, -1.0f / xFarClip, 0.0f),
+		float4(-2 * dX / (xFarClip * gScale), 0.0f, 0.0f, 0.0f),
+		float4(0.0f, 2.0f * rAspectWidthOverHeight * dX / (xFarClip * gScale), 0.0f, 0.0f),
+		float4(0.0f, 0.0f, 1.0f, dX / xFarClip));
 }
 
 Mat Mat::operator*(float g) const

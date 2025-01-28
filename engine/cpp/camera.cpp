@@ -19,7 +19,10 @@ void SCamera3D::SetOrthographic(float gScaleOrthographic)
 Mat SCamera3D::MatCameraToClip()
 {
 	float2 vecWinSize = g_game.VecWinSize();
-	return MatPerspective(m_radFovHorizontal, vecWinSize.m_x / vecWinSize.m_y, m_xNearClip, m_xFarClip);
+	if (m_fOrthographic)
+		return MatOrthographic(m_gScaleOrthographic, vecWinSize.m_x / vecWinSize.m_y, m_xNearClip, m_xFarClip);
+	else
+		return MatPerspective(m_radFovHorizontal, vecWinSize.m_x / vecWinSize.m_y, m_xNearClip, m_xFarClip);
 }
 
 Mat SCamera3D::MatWorldToClip()

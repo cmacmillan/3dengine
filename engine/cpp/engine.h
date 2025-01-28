@@ -106,7 +106,7 @@ struct SGame // game
 	SShaderHandle m_hShaderShadowcaster = -1;
 
 	SCamera3DHandle m_hCamera3DMain = -1;
-	SCamera3DHandle m_hCamera3DAlt = -1;
+	//SCamera3DHandle m_hCamera3DAlt = -1;
 
 	SDrawNode3DHandle m_hPlaneTest = -1;
 	SDrawNode3DHandle m_hPlaneTest2 = -1;

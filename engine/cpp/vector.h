@@ -215,6 +215,7 @@ Mat MatInverse(const Mat & mat);
 Quat QuatFromMatRot(const Mat & matRot);
 
 Mat MatPerspective(float radFovHorizontal, float rAspectWidthOverHeight, float dXNearClip, float dXFarClip);
+Mat MatOrthographic(float gScale, float rAspectWidthOverHeight, float xNearClip, float xFarClip);
 
 struct Transform // tag = transform
 {

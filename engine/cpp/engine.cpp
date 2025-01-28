@@ -339,7 +339,7 @@ void SGame::Init(HINSTANCE hInstance)
 	// Camera
 
 	(new SFlyCam(m_hNodeRoot, "FlyCam"));
-	m_hCamera3DAlt = (new SCamera3D(m_hNodeRoot, "AltCam", RadFromDeg(90.0f), 0.1, 700.0f))->HCamera3D();
+	//m_hCamera3DAlt = (new SCamera3D(m_hNodeRoot, "AltCam", RadFromDeg(90.0f), 0.1, 700.0f))->HCamera3D();
 
 	// Skybox
 
