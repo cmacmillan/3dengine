@@ -103,6 +103,11 @@ struct SGame // game
 	SShaderHandle m_hShaderSkybox = -1;
 
 	SCamera3DHandle m_hCamera3DMain = -1;
+	SCamera3DHandle m_hCamera3DAlt = -1;
+	std::vector<SCamera3DHandle> m_aryhCam;
+	std::vector<Quat> m_aryQuatDumb;
+	std::vector<Point> m_aryPosDumb;
+
 	SDrawNode3DHandle m_hPlaneTest = -1;
 	SDrawNode3DHandle m_hPlaneTest2 = -1;
 
