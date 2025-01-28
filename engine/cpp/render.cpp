@@ -13,7 +13,7 @@ void Draw3D(std::vector<SDrawNode3D *> * parypDrawnode3DToRender, SCamera3D * pC
 		if (pDrawnode3D->m_hMaterial == nullptr)
 			continue;
 
-		const SMaterial & material = *pDrawnode3D->m_hMaterial;
+		const SMaterial & material = *g_game.m_hMaterialShadowcaster;//*pDrawnode3D->m_hMaterial;
 		const SShader & shader = *(material.m_hShader);
 		ASSERT(pDrawnode3D->FIsDerivedFrom(TYPEK_DrawNode3D));
 		ASSERT(shader.m_shaderk == SHADERK_3D);

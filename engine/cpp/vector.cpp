@@ -745,22 +745,19 @@ Mat MatPerspective(float radFovHorizontal, float rAspectWidthOverHeight, float x
 	float gCotan = 1.0f / GTan(radFovHorizontal / 2.0f);
 	float gDXClip = 1.0f / (xFarClip - xNearClip);
 
-
-#if 1
 	// inverted z
+
 	return Mat(
 		float4(0.0f, 0.0f, -xNearClip * gDXClip, 1.0f),
 		float4(-gCotan, 0.0f, 0.0f, 0.0f),
 		float4(0.0f, rAspectWidthOverHeight * gCotan, 0.0f, 0.0f),
 		float4(0.0f, 0.0f, xFarClip * xNearClip * gDXClip, 0.0f));
-#else
-	// og
-	return Mat(
-		float4(0.0f, 0.0f, xFarClip * gDXClip, 1.0f),
-		float4(-gCotan, 0.0f, 0.0f, 0.0f),
-		float4(0.0f, rAspectWidthOverHeight * gCotan, 0.0f, 0.0f),
-		float4(0.0f, 0.0f, -xFarClip * xNearClip * gDXClip, 0.0f));
-#endif
+}
+
+Mat MatOrthographic(float gScale, float rAspectWidthOverHeight, float xNearClip, float xFarClip)
+{
+	ASSERT(false);
+	return g_matIdentity;
 }
 
 Mat Mat::operator*(float g) const

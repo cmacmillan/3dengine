@@ -205,5 +205,8 @@
     <FxCompile Include="shaders\litndotl.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>
+    <FxCompile Include="shaders\shadowcaster.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

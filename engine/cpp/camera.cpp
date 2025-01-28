@@ -10,6 +10,12 @@ SCamera3D::SCamera3D(SNodeHandle hNodeParent,  const std::string & strName, floa
 	m_typek = TYPEK_Camera3D;
 }
 
+void SCamera3D::SetOrthographic(float gScaleOrthographic)
+{
+	m_fOrthographic = true;
+	m_gScaleOrthographic = gScaleOrthographic;
+}
+
 Mat SCamera3D::MatCameraToClip()
 {
 	float2 vecWinSize = g_game.VecWinSize();

@@ -10,6 +10,8 @@ struct SCamera3D : SNode3D // camera3D
 
 	SCamera3D(SNodeHandle hNodeParent, const std::string & strName, float radFovHorizontal, float xNearClip, float xFarClip);
 
+	void SetOrthographic(float gScaleOrthographic);
+
 	Mat MatCameraToClip();
 	Mat MatWorldToClip();
 	Mat MatClipToCamera();
@@ -18,4 +20,7 @@ struct SCamera3D : SNode3D // camera3D
 	float m_radFovHorizontal = -1;
 	float m_xNearClip = -1;
 	float m_xFarClip = -1;
+
+	bool m_fOrthographic = false;
+	float m_gScaleOrthographic = -1.0f;
 };

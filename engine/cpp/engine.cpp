@@ -3,8 +3,6 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "external/stb_image.h"
 
-#define dumbcount 40
-
 #include "engine.h"
 #include "fpscounter.h"
 #include "texture.h"
@@ -342,10 +340,6 @@ void SGame::Init(HINSTANCE hInstance)
 
 	(new SFlyCam(m_hNodeRoot, "FlyCam"));
 	m_hCamera3DAlt = (new SCamera3D(m_hNodeRoot, "AltCam", RadFromDeg(90.0f), 0.1, 700.0f))->HCamera3D();
-	for (int i = 0; i < dumbcount ; i++)
-	{
-		m_aryhCam.push_back((new SCamera3D(m_hNodeRoot, "AltCam", RadFromDeg(90.0f), 0.1, 700.0f))->HCamera3D());
-	}
 
 	// Skybox
 
@@ -360,6 +354,11 @@ void SGame::Init(HINSTANCE hInstance)
 		m_hMaterialSkybox = (new SMaterial(m_hShaderSkybox))->HMaterial();
 		m_hMaterialSkybox->m_aryNamedtexture.push_back({ m_hTextureSkybox, "skyTexture" });
 	}
+
+	// Shadowcaster
+
+	m_hShaderShadowcaster = (new SShader("shaders/shadowcaster.hlsl"))->HShader();
+	m_hMaterialShadowcaster = (new SMaterial(m_hShaderShadowcaster))->HMaterial();
 
 	// Default 3D material
 
@@ -763,24 +762,9 @@ void SGame::MainLoop()
 
 		// Draw 3d nodes
 
-		//for (int i = m_aryPosDumb.size() - 1; i >= 0; i--)
-		for (int i = 0; i < m_aryPosDumb.size(); i++)
-		{
-			SCamera3D * pCamera = m_aryhCam[i].PT();
-			pCamera->SetPosWorld(m_aryPosDumb[i]);
-			pCamera->SetQuatWorld(m_aryQuatDumb[i]);
-			Draw3D(&arypDrawnode3DToRender, pCamera);
-		}
+		//Draw3D(&arypDrawnode3DToRender, pCamera);
 
 		Draw3D(&arypDrawnode3DToRender, pCamera3D);
-
-		m_aryPosDumb.push_back(pCamera3D->PosWorld());
-		m_aryQuatDumb.push_back(pCamera3D->QuatWorld());
-		if (m_aryPosDumb.size() > dumbcount)
-		{
-			m_aryPosDumb.erase(m_aryPosDumb.begin());
-			m_aryQuatDumb.erase(m_aryQuatDumb.begin());
-		}
 
 		// Draw ui nodes
 		for (SUiNode * pUinode : arypUinodeToRender)
