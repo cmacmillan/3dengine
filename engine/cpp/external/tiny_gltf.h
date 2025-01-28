@@ -384,7 +384,7 @@ class Value {
 
   bool operator==(const tinygltf::Value &other) const;
 
- protected:
+ //protected: // Fuck your access modifiers
   int type_ = NULL_TYPE;
 
   int int_value_ = 0;

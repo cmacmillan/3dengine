@@ -23,20 +23,21 @@ struct SNode3D : SNode // node3D
 	Quat QuatWorld() { return m_quatObjectToWorldCache; }
 	void SetQuatLocal(Quat quat);
 	void SetQuatWorld(Quat quat);
-	Quat QuatWorldToParent();
-	Quat QuatParentToWorld();
 
 	Vector VecScaleLocal() { return m_transformLocal.m_vecScale; }
 	void SetVecScaleLocal(Vector vecScale);
 
-	Mat MatObjectToParent() { return m_transformLocal.Mat(); }
 	Mat MatObjectToWorld() { return m_matObjectToWorldCache;  }
-	Mat MatWorldToParent();
-	Mat MatParentToWorld();
 
 	void UpdateSelfAndChildTransformCache();
 
 protected:
+	Mat MatObjectToParent() { return m_transformLocal.Mat(); }
+	Quat QuatWorldToParent();
+	Quat QuatParentToWorld();
+	Mat MatWorldToParent();
+	Mat MatParentToWorld();
+
 	Transform	m_transformLocal;
 
 	Mat			m_matObjectToWorldCache = g_matIdentity;

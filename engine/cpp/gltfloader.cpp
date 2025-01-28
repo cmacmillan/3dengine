@@ -2,6 +2,7 @@
 
 #include "mesh.h"
 #include "engine.h"
+#include "goalring.h"
 
 #include <vector>
 
@@ -36,6 +37,17 @@ bool FTryLoadModel(const char * pChzPath, tinygltf::Model * pModel)
 	return fSuccess;
 }
 
+bool FTryGetValueFromKey(std::map<std::string, tinygltf::Value> * pMpStrValue, const char * pChzKey, tinygltf::Value ** ppValue)
+{
+	if (pMpStrValue->find(pChzKey) != pMpStrValue->end())
+	{
+		*ppValue = &(*pMpStrValue)[pChzKey];
+		return true;
+	}
+
+	return false;
+}
+
 // TODO create on add child or something like that to update transform heirarchy
 
 void SpawnNode(tinygltf::Model * pModel, int iNode, SNode * pNodeParent)
@@ -44,28 +56,70 @@ void SpawnNode(tinygltf::Model * pModel, int iNode, SNode * pNodeParent)
 
 	SNode3D * pNode3d = nullptr;
 
-	if (pNode->mesh != -1)
+	if (pNode->extras.IsObject())
 	{
-		SDrawNode3D * pDrawnode = new SDrawNode3D(pNodeParent->HNode(), pNode->name);
-		pDrawnode->m_hMesh = (PMeshLoad(pModel, &pModel->meshes[pNode->mesh]))->HMesh();
-		pDrawnode->m_hMaterial = g_game.m_hMaterialDefault3d;
-		pNode3d = pDrawnode;
+		std::map<std::string, tinygltf::Value> * pMpStrValue = &pNode->extras.object_value_;
+
+		tinygltf::Value * pValue;
+		if (FTryGetValueFromKey(pMpStrValue, "class", &pValue))
+		{
+			ASSERT(pValue->IsString());
+			const std::string & str= pValue->string_value_;
+
+			if (str == "GoalRing")
+			{
+				pNode3d = new SGoalRing(pNodeParent->HNode(), pNode->name);
+			}
+		}
 	}
 	else
 	{
-		SNode3D * pNode3d = new SNode3D(pNodeParent->HNode(), pNode->name);
+		ASSERT(pNode->extras.Type() == 0);
 	}
+
+
+	if (pNode3d == nullptr)
+	{
+		if (pNode->mesh != -1)
+		{
+			pNode3d = new SDrawNode3D(pNodeParent->HNode(), pNode->name);
+		}
+		else
+		{
+			SNode3D * pNode3d = new SNode3D(pNodeParent->HNode(), pNode->name);
+		}
+	}
+
+	// Do node configuration in a post-pass to support inheritance
+
+	TYPEK typek = pNode3d->m_typek;
+	while (typek != TYPEK_Nil)
+	{
+		switch (typek)
+		{
+			case TYPEK_DrawNode3D:
+				{
+					SDrawNode3D * pDrawnode = reinterpret_cast<SDrawNode3D *>(pNode3d);
+					pDrawnode->m_hMesh = (PMeshLoad(pModel, &pModel->meshes[pNode->mesh]))->HMesh();
+					pDrawnode->m_hMaterial = g_game.m_hMaterialDefault3d;
+				}
+				break;
+		}
+
+		typek = TypekSuper(typek);
+	}
+
 
 	// TODO each of these call UpdateSelfAndChildTransformCache, create some combined version
 
 	if (pNode->translation.size() > 0)
-		pNode3d->SetPosLocal(Point(pNode->translation[0], pNode->translation[1], pNode->translation[2]));
+		pNode3d->SetPosLocal(Point(float(pNode->translation[0]), float(pNode->translation[1]), float(pNode->translation[2])));
 
 	if (pNode->rotation.size() > 0)
-		pNode3d->SetQuatLocal(Quat(pNode->rotation[3], pNode->rotation[0], pNode->rotation[1], pNode->rotation[2]));
+		pNode3d->SetQuatLocal(Quat(float(pNode->rotation[3]), float(pNode->rotation[0]), float(pNode->rotation[1]), float(pNode->rotation[2])));
 
 	if (pNode->scale.size() > 0)
-		pNode3d->SetVecScaleLocal(Vector(pNode->scale[0], pNode->scale[1], pNode->scale[2]));
+		pNode3d->SetVecScaleLocal(Vector(float(pNode->scale[0]), float(pNode->scale[1]), float(pNode->scale[2])));
 
 	for (int iNodeChild : pNode->children)
 	{
@@ -143,9 +197,11 @@ SMesh3D * PMeshLoad(tinygltf::Model * pModel, tinygltf::Mesh * pTinymesh)
 			SVec3 & vec3Vert = pVec3Vert[iVec3];
 			SVec3 & vec3Normal = pVec3Normal[iVec3];
 			float2 & vecUv = pVecUv[iVec3];
-			ASSERT(FIsNear(1.0f, Vector(vec3Normal.m_x,vec3Normal.m_y, vec3Normal.m_z).SLength()));
 
-			pMesh->m_aryVertdata.push_back({ Point(vec3Vert.m_x,vec3Vert.m_y, vec3Vert.m_z), Vector(vec3Normal.m_x,vec3Normal.m_y, vec3Normal.m_z), vecUv});
+			pMesh->m_aryVertdata.push_back({ 
+									Point(float(vec3Vert.m_x),float(vec3Vert.m_y), float(vec3Vert.m_z)), 
+									Vector(float(vec3Normal.m_x),float(vec3Normal.m_y), float(vec3Normal.m_z)), 
+									vecUv});
 		}
 	}
 

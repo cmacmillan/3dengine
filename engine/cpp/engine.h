@@ -84,7 +84,6 @@ struct SGame // game
 
 	void Init(HINSTANCE hInstance);
 	void MainLoop();
-	void BindMaterialTextures(const SMaterial * pMaterial, const SShader * pShader);
 	LRESULT LresultWindowProcedure(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
 	float2 VecWinSize();
 	void VkPressed(int vk);

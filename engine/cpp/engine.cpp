@@ -11,6 +11,7 @@
 #include "console.h"
 #include "timingcontext.h"
 #include "gltfloader.h"
+#include "render.h"
 
 #include <exception>
 
@@ -391,11 +392,11 @@ void SGame::Init(HINSTANCE hInstance)
 
 int SortUinodeRenderOrder(const void * pVa, const void * pVb)
 {
-	SUiNodeHandle hUinodeA = *(SUiNodeHandle*) pVa;
-	SUiNodeHandle hUinodeB = *(SUiNodeHandle*) pVb;
-	if (hUinodeA->m_gSort == hUinodeB->m_gSort)
+	SUiNode * pUinodeA = *(SUiNode **) pVa;
+	SUiNode * pUinodeB = *(SUiNode **) pVb;
+	if (pUinodeA->m_gSort == pUinodeB->m_gSort)
 		return 0;
-	else if (hUinodeA->m_gSort < hUinodeB->m_gSort)
+	else if (pUinodeA->m_gSort < pUinodeB->m_gSort)
 		return -1;
 	else
 		return 1;
@@ -513,39 +514,68 @@ void SGame::MainLoop()
 			}
 		}
 
-		std::vector<SUiNodeHandle> aryhUinodeToRender;
-		std::vector<SDrawNode3DHandle> aryhDrawnode3DToRender;
-
-		// BB I think eventually we'd want render all draw nodes once per camera
-
-		for (SNodeHandle hNode : aryhNode)
+		std::vector<SUiNode *> arypUinodeToRender;
+		std::vector<SDrawNode3D *> arypDrawnode3DToRender;
 		{
-			if (hNode == -1)
-				continue;
+			std::vector<SUiNodeHandle> aryhUinodeToRender;
+			std::vector<SDrawNode3DHandle> aryhDrawnode3DToRender;
 
-			SNode * pNode = hNode.PT();
-			pNode->Update();
+			// BB I think eventually we'd want render all draw nodes once per camera
 
-			if (pNode->FIsDerivedFrom(TYPEK_UiNode))
+			for (SNodeHandle hNode : aryhNode)
 			{
-				aryhUinodeToRender.push_back(SUiNodeHandle(hNode.m_id));
+				if (hNode == -1)
+					continue;
+
+				SNode * pNode = hNode.PT();
+				pNode->Update();
+
+				if (pNode->FIsDerivedFrom(TYPEK_UiNode))
+				{
+					aryhUinodeToRender.push_back(SUiNodeHandle(hNode.m_id));
+				}
+				else if (pNode->FIsDerivedFrom(TYPEK_DrawNode3D))
+				{
+					SDrawNode3D * pDrawnode = reinterpret_cast<SDrawNode3D *>(pNode);
+					if (pDrawnode->m_hMaterial != -1 && pDrawnode->m_hMesh != -1)
+					{
+						aryhDrawnode3DToRender.push_back(SDrawNode3DHandle(hNode.m_id));
+					}
+				}
 			}
-			else if (pNode->FIsDerivedFrom(TYPEK_DrawNode3D))
+
+			// Cache out the pointers so we don't have to look them up since they can't be destroyed while rendering
+			//  i.e. we're done updating
+
+			for (SUiNodeHandle & hUinode : aryhUinodeToRender)
 			{
-				aryhDrawnode3DToRender.push_back(SDrawNode3DHandle(hNode.m_id));
+				if (SUiNode * pUinode = hUinode.PT())
+				{
+					arypUinodeToRender.push_back(pUinode);
+				}
+			}
+
+			for (SDrawNode3DHandle & hDrawnode : aryhDrawnode3DToRender)
+			{
+				if (SDrawNode3D * pDrawnode = hDrawnode.PT())
+				{
+					arypDrawnode3DToRender.push_back(pDrawnode);
+				}
 			}
 		}
 
 		// Sort UI nodes
 
-		std::qsort(aryhUinodeToRender.data(), aryhUinodeToRender.size(), sizeof(SUiNodeHandle), SortUinodeRenderOrder);
+		std::qsort(arypUinodeToRender.data(), arypUinodeToRender.size(), sizeof(SUiNodeHandle *), SortUinodeRenderOrder);
 
 		SCamera3D * pCamera3D = m_hCamera3DMain.PT();
+
+#if 0
 		Mat matCameraToWorld = pCamera3D->MatObjectToWorld();
 		Mat matWorldToCamera = matCameraToWorld.MatInverse();
-		Mat matCameraToClip = MatPerspective(pCamera3D->m_radFovHorizontal, vecWinSize.m_x / vecWinSize.m_y, pCamera3D->m_xNearClip, pCamera3D->m_xFarClip);
 		Mat matWorldToClip = matWorldToCamera * matCameraToClip;
 		Mat matClipToWorld = matWorldToClip.MatInverse();
+#endif
 
 		// Update skybox transform
 
@@ -585,10 +615,10 @@ void SGame::MainLoop()
 			ShaderGlobals * pShaderglobals = (ShaderGlobals *) (mappedSubresourceGlobals.pData);
 			pShaderglobals->m_t = m_dTSyst;
 			pShaderglobals->m_vecWinSize = vecWinSize;
-			pShaderglobals->m_matCameraToWorld = matCameraToWorld;
-			pShaderglobals->m_matWorldToCamera = matWorldToCamera;
-			pShaderglobals->m_matCameraToWorld = matCameraToWorld;
-			pShaderglobals->m_matWorldToCamera = matWorldToCamera;
+			pShaderglobals->m_matCameraToWorld = pCamera3D->MatObjectToWorld();
+			pShaderglobals->m_matWorldToCamera = pCamera3D->MatObjectToWorld().MatInverse();
+			pShaderglobals->m_matClipToWorld = pCamera3D->MatClipToWorld();
+			pShaderglobals->m_matWorldToClip = pCamera3D->MatWorldToClip();
 			m_pD3ddevicecontext->Unmap(m_cbufferGlobals, 0);
 		}
 
@@ -601,16 +631,16 @@ void SGame::MainLoop()
 		// Reset all mesh flags 
 		// BB Do this clearing in a better way, which would probably involve looping over meshes only
 
-		for (SDrawNode3DHandle hDrawnode3D : aryhDrawnode3DToRender)
+		for (SDrawNode3D * pDrawnode3D : arypDrawnode3DToRender)
 		{
-			SMesh3D * pMesh = hDrawnode3D->m_hMesh.PT();
+			SMesh3D * pMesh = pDrawnode3D->m_hMesh.PT();
 			pMesh->m_iIndexdata = -1;
 			pMesh->m_iVertdata = -1;
 		}
 
-		for (SUiNodeHandle hUinode : aryhUinodeToRender)
+		for (SUiNode * pUinode : arypUinodeToRender)
 		{
-			SMesh3D * pMesh = hUinode->m_hMesh.PT();
+			SMesh3D * pMesh = pUinode->m_hMesh.PT();
 
 			// Don't draw ui nodes that don't have meshes
 
@@ -630,9 +660,9 @@ void SGame::MainLoop()
 		D3D11_MAPPED_SUBRESOURCE mappedSubresourceVerts3D;
 		g_game.m_pD3ddevicecontext->Map(m_cbufferVertex3D, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresourceVerts3D);
 
-		for (SDrawNode3DHandle hDrawnode3D : aryhDrawnode3DToRender)
+		for (SDrawNode3D * pDrawnode3D : arypDrawnode3DToRender)
 		{
-			SMesh3D * pMesh = hDrawnode3D->m_hMesh.PT();
+			SMesh3D * pMesh = pDrawnode3D->m_hMesh.PT();
 			if (pMesh->m_iVertdata != -1)
 				continue;
 
@@ -650,9 +680,9 @@ void SGame::MainLoop()
 			iBIndex += cBIndex;
 		}
 
-		for (SUiNodeHandle hUinode : aryhUinodeToRender)
+		for (SUiNode * pUinode : arypUinodeToRender)
 		{
-			SMesh3D * pMesh = hUinode->m_hMesh.PT();
+			SMesh3D * pMesh = pUinode->m_hMesh.PT();
 
 			// Again skip uinodes that don't have meshes
 
@@ -715,7 +745,7 @@ void SGame::MainLoop()
 			D3D11_MAPPED_SUBRESOURCE mappedSubresource;
 			m_pD3ddevicecontext->Map(m_cbufferDrawnode3D, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
 			SDrawNodeRenderConstants * pDrawnode3Drc = (SDrawNodeRenderConstants *) (mappedSubresource.pData);
-			pDrawnode3Drc->FillOut(matModelSkybox, matWorldToClip);
+			pDrawnode3Drc->FillOut(matModelSkybox, pCamera3D->MatWorldToClip());
 
 			m_pD3ddevicecontext->Unmap(m_cbufferDrawnode3D, 0);
 
@@ -727,71 +757,20 @@ void SGame::MainLoop()
 		// Draw 3d nodes
 
 		{
-			for (SDrawNode3DHandle hDrawnode3D : aryhDrawnode3DToRender)
-			{
-				if (!hDrawnode3D.PT())
-					continue;
-
-				if (hDrawnode3D->m_hMaterial == nullptr)
-					continue;
-
-				SDrawNode3D * pDrawnode3D = hDrawnode3D.PT();
-
-				const SMaterial & material = *hDrawnode3D->m_hMaterial;
-				const SShader & shader = *(material.m_hShader);
-				ASSERT(hDrawnode3D->m_typek == TYPEK_DrawNode3D);
-				ASSERT(shader.m_shaderk == SHADERK_3D);
-
-				m_pD3ddevicecontext->RSSetState(shader.m_pD3drasterizerstate);
-				m_pD3ddevicecontext->OMSetDepthStencilState(shader.m_pD3ddepthstencilstate, 0);
-
-				const SMesh3D & mesh = *hDrawnode3D->m_hMesh;
-
-				m_pD3ddevicecontext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-				m_pD3ddevicecontext->IASetInputLayout(shader.m_pD3dinputlayout);
-
-				m_pD3ddevicecontext->VSSetShader(shader.m_pD3dvertexshader, nullptr, 0);
-				m_pD3ddevicecontext->PSSetShader(shader.m_pD3dfragshader, nullptr, 0);
-
-				ID3D11Buffer * aD3dbuffer[] = { m_cbufferDrawnode3D, m_cbufferGlobals };
-				m_pD3ddevicecontext->VSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
-				m_pD3ddevicecontext->PSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
-
-				unsigned int cbVert = sizeof(SVertData3D);
-				unsigned int s_cbMeshOffset = 0;
-
-				m_pD3ddevicecontext->IASetVertexBuffers(0, 1, &m_cbufferVertex3D, &cbVert, &s_cbMeshOffset);	// BB don't constantly do this
-				m_pD3ddevicecontext->IASetIndexBuffer(m_cbufferIndex, DXGI_FORMAT_R16_UINT, 0);					//  ...
-
-				D3D11_MAPPED_SUBRESOURCE mappedSubresource;
-				m_pD3ddevicecontext->Map(m_cbufferDrawnode3D, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
-				SDrawNodeRenderConstants * pDrawnode3Drc = (SDrawNodeRenderConstants *) (mappedSubresource.pData);
-
-				Mat matModel = hDrawnode3D->MatObjectToWorld();
-				pDrawnode3Drc->FillOut(matModel, matWorldToClip);
-
-				m_pD3ddevicecontext->Unmap(m_cbufferDrawnode3D, 0);
-
-				BindMaterialTextures(&material, &shader);
-
-				m_pD3ddevicecontext->DrawIndexed(mesh.m_cIndicies, mesh.m_iIndexdata, mesh.m_iVertdata);
-			}
+			Draw3D(&arypDrawnode3DToRender, pCamera3D);
 		}
 
 		// Draw ui nodes
-		for (SUiNodeHandle hUinode : aryhUinodeToRender)
+		for (SUiNode * pUinode : arypUinodeToRender)
 		{
-			if (!hUinode.PT())
+			if (pUinode->m_hMaterial == nullptr)
 				continue;
 
-			if (hUinode->m_hMaterial == nullptr)
-				continue;
-
-			const SMaterial & material = *hUinode->m_hMaterial;
+			const SMaterial & material = *(pUinode->m_hMaterial);
 			const SShader & shader = *(material.m_hShader);
 			ASSERT(shader.m_shaderk == SHADERK_Ui);
 
-			const SMesh3D & mesh = *hUinode->m_hMesh;
+			const SMesh3D & mesh = *pUinode->m_hMesh;
 
 			m_pD3ddevicecontext->IASetInputLayout(shader.m_pD3dinputlayout);
 			m_pD3ddevicecontext->VSSetShader(shader.m_pD3dvertexshader, nullptr, 0);
@@ -817,7 +796,7 @@ void SGame::MainLoop()
 			D3D11_MAPPED_SUBRESOURCE mappedSubresource;
 			m_pD3ddevicecontext->Map(m_cbufferUiNode, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
 			SUiNodeRenderConstants * pUinoderc = (SUiNodeRenderConstants *) (mappedSubresource.pData);
-			hUinode->GetRenderConstants(pUinoderc);
+			pUinode->GetRenderConstants(pUinoderc);
 			m_pD3ddevicecontext->Unmap(m_cbufferUiNode, 0);
 
 			BindMaterialTextures(&material, &shader);
@@ -834,43 +813,6 @@ void SGame::MainLoop()
 
 		m_pD3dswapchain->Present(1, 0);
 	}
-}
-
-void SGame::BindMaterialTextures(const SMaterial * pMaterial, const SShader * pShader)
-{
-	ASSERT(pMaterial->m_aryNamedtexture.size() == pShader->m_mpISlotStrName.size());
-
-	std::vector<ID3D11ShaderResourceView *> arypD3dsrview;
-	std::vector<ID3D11SamplerState *> arypD3dsamplerstate;
-
-	for (int i = 0; i < pShader->CNamedslot(); i++)
-	{
-		arypD3dsrview.push_back(nullptr);
-		arypD3dsamplerstate.push_back(nullptr);
-	}
-
-	for (const SNamedTexture & namedtexture : pMaterial->m_aryNamedtexture)
-	{
-		for (const SNamedTextureSlot & namedslot : pShader->m_mpISlotStrName)
-		{
-			if (namedslot.m_strName == namedtexture.m_strName)
-			{
-				ASSERT(arypD3dsrview[namedslot.m_iSlot] == nullptr);
-				ASSERT(arypD3dsamplerstate[namedslot.m_iSlot] == nullptr);
-				arypD3dsrview[namedslot.m_iSlot] = namedtexture.m_hTexture->m_pD3dsrview;
-				arypD3dsamplerstate[namedslot.m_iSlot] = namedtexture.m_hTexture->m_pD3dsamplerstate;
-			}
-		}
-	}
-
-	for (int i = 0; i < pShader->CNamedslot(); i++)
-	{
-		ASSERT(arypD3dsrview[i] != nullptr);
-		ASSERT(arypD3dsamplerstate[i] != nullptr);
-	}
-
-	m_pD3ddevicecontext->PSSetShaderResources(0, arypD3dsrview.size(), arypD3dsrview.data());
-	m_pD3ddevicecontext->PSSetSamplers(0, arypD3dsamplerstate.size(), arypD3dsamplerstate.data());
 }
 
 void SGame::VkPressed(int vk)

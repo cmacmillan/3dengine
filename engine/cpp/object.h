@@ -87,6 +87,7 @@ enum TYPEK
 			TYPEK_FpsCounter,
 			TYPEK_Node3D,
 				TYPEK_DrawNode3D,
+					TYPEK_GoalRing,
 				TYPEK_Camera3D,
 				TYPEK_FlyCam,
 		TYPEK_Font,
@@ -151,3 +152,6 @@ typedef SHandle<SFlyCam> SFlycamHandle;
 
 struct SConsole;
 typedef SHandle<SConsole> SConsoleHandle;
+
+struct SGoalRing;
+typedef SHandle<SGoalRing> SGoalRingHandle;

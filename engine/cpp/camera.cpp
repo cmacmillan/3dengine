@@ -1,4 +1,5 @@
 #include "camera3d.h"
+#include "engine.h"
 
 SCamera3D::SCamera3D(SNodeHandle hNodeParent,  const std::string & strName, float radFovHorizontal, float xNearClip, float xFarClip) :
 	super(hNodeParent, strName),
@@ -7,4 +8,25 @@ SCamera3D::SCamera3D(SNodeHandle hNodeParent,  const std::string & strName, floa
 	m_xFarClip(xFarClip)
 {
 	m_typek = TYPEK_Camera3D;
+}
+
+Mat SCamera3D::MatCameraToClip()
+{
+	float2 vecWinSize = g_game.VecWinSize();
+	return MatPerspective(m_radFovHorizontal, vecWinSize.m_x / vecWinSize.m_y, m_xNearClip, m_xFarClip);
+}
+
+Mat SCamera3D::MatWorldToClip()
+{
+	return MatObjectToWorld().MatInverse() * MatCameraToClip();
+}
+
+Mat SCamera3D::MatClipToCamera()
+{
+	return MatCameraToClip().MatInverse();
+}
+
+Mat SCamera3D::MatClipToWorld()
+{
+	return MatCameraToClip() * MatObjectToWorld();
 }

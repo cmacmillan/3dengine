@@ -10,6 +10,11 @@ struct SCamera3D : SNode3D // camera3D
 
 	SCamera3D(SNodeHandle hNodeParent, const std::string & strName, float radFovHorizontal, float xNearClip, float xFarClip);
 
+	Mat MatCameraToClip();
+	Mat MatWorldToClip();
+	Mat MatClipToCamera();
+	Mat MatClipToWorld();
+
 	float m_radFovHorizontal = -1;
 	float m_xNearClip = -1;
 	float m_xFarClip = -1;

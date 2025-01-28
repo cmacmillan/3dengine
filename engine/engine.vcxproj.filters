@@ -90,6 +90,12 @@
     <ClCompile Include="cpp\gltfloader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="cpp\goalring.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="cpp\render.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cpp\engine.h">
@@ -177,6 +183,12 @@
       <Filter>External</Filter>
     </ClInclude>
     <ClInclude Include="cpp\gltfloader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cpp\goalring.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cpp\render.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

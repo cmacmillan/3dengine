@@ -16,6 +16,7 @@ TYPEK TypekSuper(TYPEK typek)
 					case TYPEK_Console:		return TYPEK_UiNode;
 				case TYPEK_Node3D:		return TYPEK_Node;
 					case TYPEK_DrawNode3D:	return TYPEK_Node3D;
+						case TYPEK_GoalRing:	return TYPEK_DrawNode3D;
 					case TYPEK_Camera3D:	return TYPEK_Node3D;
 					case TYPEK_FlyCam:		return TYPEK_Node3D;
 			case TYPEK_Font:		return TYPEK_Object;
