@@ -108,7 +108,7 @@ struct SGame // game
 	SShaderHandle m_hShaderShadowcaster = -1;
 
 	SCamera3DHandle m_hCamera3DMain = -1;
-	//SCamera3DHandle m_hCamera3DAlt = -1;
+	SCamera3DHandle m_hCamera3DShadow = -1;
 
 	SDrawNode3DHandle m_hPlaneTest = -1;
 	SDrawNode3DHandle m_hPlaneTest2 = -1;
@@ -143,6 +143,10 @@ struct SGame // game
 	IDXGISwapChain1 * m_pD3dswapchain = nullptr;
 	ID3D11RenderTargetView * m_pD3dframebufferview = nullptr;
 	ID3D11DepthStencilView * m_pD3ddepthstencilview = nullptr;
+
+	ID3D11RenderTargetView * m_pD3dframebufferviewShadow = nullptr;
+	ID3D11DepthStencilView * m_pD3ddepthstencilviewShadow = nullptr;
+	STextureHandle m_hTextureShadow = -1;
 
 	ID3D11Buffer * m_cbufferVertex3D = nullptr;
 	ID3D11Buffer * m_cbufferIndex = nullptr;

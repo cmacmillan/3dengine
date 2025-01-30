@@ -25,12 +25,10 @@ STexture::STexture(const char * pChzFilename, bool fIsNormal, bool fGenerateMips
 
 	g_game.m_pD3ddevice->CreateSamplerState(&samplerDesc, &m_pD3dsamplerstate);
 
-	std::string strPath = StrPrintf("%s%s", ASSET_PATH, pChzFilename);
-
 	// Load Image
 	int texNumChannels;
 	int texForceNumChannels = 4;
-	unsigned char * aBTexture = stbi_load(strPath.c_str(), &m_dX, &m_dY,
+	unsigned char * aBTexture = stbi_load(StrPrintf("%s%s", ASSET_PATH, pChzFilename).c_str(), &m_dX, &m_dY,
 		&texNumChannels, texForceNumChannels);
 	assert(aBTexture);
 	int texBytesPerRow = 4 * m_dX;
@@ -76,4 +74,8 @@ STexture::STexture(const char * pChzFilename, bool fIsNormal, bool fGenerateMips
 	}
 
 	free(aBTexture);
+}
+
+STexture::STexture() : super()
+{
 }

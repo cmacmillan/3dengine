@@ -198,19 +198,8 @@ void SGame::Init(HINSTANCE hInstance)
 	}
 
 	// Create Framebuffer Render Target
+
 	{
-#if OLD
-		ID3D11Texture2D * d3d11FrameBuffer;
-		HRESULT hResult = m_pD3dswapchain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void **) &d3d11FrameBuffer);
-		assert(SUCCEEDED(hResult));
-
-		hResult = m_pD3ddevice->CreateRenderTargetView(d3d11FrameBuffer, 0, &m_pD3dframebufferview);
-		assert(SUCCEEDED(hResult));
-		d3d11FrameBuffer->Release();
-#endif
-
-		////////////////////////
-
 		// BB overlap/duplication with resize code
 
 		ID3D11Texture2D * d3d11FrameBuffer;
@@ -219,6 +208,8 @@ void SGame::Init(HINSTANCE hInstance)
 
 		hResult = m_pD3ddevice->CreateRenderTargetView(d3d11FrameBuffer, nullptr, &m_pD3dframebufferview);
 		assert(SUCCEEDED(hResult));
+
+		// Get the framebuffer from the device
 
 		D3D11_TEXTURE2D_DESC depthBufferDesc;
 		d3d11FrameBuffer->GetDesc(&depthBufferDesc);
@@ -232,6 +223,72 @@ void SGame::Init(HINSTANCE hInstance)
 		m_pD3ddevice->CreateTexture2D(&depthBufferDesc, nullptr, &depthBuffer);
 
 		m_pD3ddevice->CreateDepthStencilView(depthBuffer, nullptr, &m_pD3ddepthstencilview);
+
+		depthBuffer->Release(); // BB why do we release here? This seems highly suspect
+	}
+
+	// Create Shadow Render Target
+
+	{
+		int nShadowRes = 2048;
+
+		m_hTextureShadow = (new STexture())->HTexture();
+
+		// Create Sampler State
+
+		D3D11_SAMPLER_DESC samplerDesc = {};
+		samplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+		samplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+		samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+		samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+		samplerDesc.MinLOD = 0.0f;
+		samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+		samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+
+		g_game.m_pD3ddevice->CreateSamplerState(&samplerDesc, &m_hTextureShadow->m_pD3dsamplerstate);
+
+		// Create Texture
+		D3D11_TEXTURE2D_DESC textureDesc = {};
+		textureDesc.Width = nShadowRes;
+		textureDesc.Height = nShadowRes;
+		textureDesc.MipLevels = 0;
+		textureDesc.ArraySize = 1;
+		textureDesc.Format = DXGI_FORMAT_R32_FLOAT;
+		textureDesc.SampleDesc.Count = 1;
+		textureDesc.Usage = D3D11_USAGE_DEFAULT;
+		textureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_RENDER_TARGET;
+
+		HRESULT hresultTexture = g_game.m_pD3ddevice->CreateTexture2D(&textureDesc, nullptr, &m_hTextureShadow->m_pD3dtexture);
+		ASSERT(hresultTexture == S_OK);
+
+		HRESULT hResult = m_pD3ddevice->CreateRenderTargetView(m_hTextureShadow->m_pD3dtexture, nullptr, &m_pD3dframebufferviewShadow);
+		assert(SUCCEEDED(hResult));
+
+		D3D11_SHADER_RESOURCE_VIEW_DESC d3dsrvd = {};
+
+		d3dsrvd.Format = textureDesc.Format;
+		d3dsrvd.ViewDimension = D3D_SRV_DIMENSION_TEXTURE2D;
+		d3dsrvd.Texture2D.MipLevels = -1;
+
+		g_game.m_pD3ddevice->CreateShaderResourceView(m_hTextureShadow->m_pD3dtexture, &d3dsrvd, &m_hTextureShadow->m_pD3dsrview);
+
+		D3D11_TEXTURE2D_DESC depthBufferDesc = {};
+
+		depthBufferDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+		depthBufferDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+		depthBufferDesc.Width = nShadowRes;
+		depthBufferDesc.Height = nShadowRes;
+		depthBufferDesc.MipLevels = 0;
+		depthBufferDesc.ArraySize = 1;
+		depthBufferDesc.Usage = D3D11_USAGE_DEFAULT;
+		//depthBufferDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_DEPTH_STENCIL;
+		depthBufferDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+		depthBufferDesc.SampleDesc.Count = 1;
+		depthBufferDesc.SampleDesc.Quality = 0;
+		ID3D11Texture2D * depthBuffer;
+		m_pD3ddevice->CreateTexture2D(&depthBufferDesc, nullptr, &depthBuffer);
+
+		m_pD3ddevice->CreateDepthStencilView(depthBuffer, nullptr, &m_pD3ddepthstencilviewShadow);
 
 		depthBuffer->Release();
 	}
@@ -339,7 +396,8 @@ void SGame::Init(HINSTANCE hInstance)
 	// Camera
 
 	(new SFlyCam(m_hNodeRoot, "FlyCam"));
-	//m_hCamera3DAlt = (new SCamera3D(m_hNodeRoot, "AltCam", RadFromDeg(90.0f), 0.1, 700.0f))->HCamera3D();
+	m_hCamera3DShadow = (new SCamera3D(m_hNodeRoot, "AltCam", RadFromDeg(90.0f), 0.0, 700.0f))->HCamera3D();
+	m_hCamera3DShadow->SetOrthographic(100.0f);
 
 	// Skybox
 
@@ -436,8 +494,9 @@ void SGame::MainLoop()
 		if (!isRunning)
 			break;
 
-		if (m_fDidWindowResize)
+		if (m_fDidWindowResize && false)
 		{
+			//TODO
 			m_pD3ddevicecontext->OMSetRenderTargets(0, 0, 0);
 			m_pD3dframebufferview->Release();
 			m_pD3ddepthstencilview->Release();
@@ -574,48 +633,14 @@ void SGame::MainLoop()
 
 		std::qsort(arypUinodeToRender.data(), arypUinodeToRender.size(), sizeof(SUiNodeHandle *), SortUinodeRenderOrder);
 
-		SCamera3D * pCamera3D = m_hCamera3DMain.PT();
-
-#if 0
-		Mat matCameraToWorld = pCamera3D->MatObjectToWorld();
-		Mat matWorldToCamera = matCameraToWorld.MatInverse();
-		Mat matWorldToClip = matWorldToCamera * matCameraToClip;
-		Mat matClipToWorld = matWorldToClip.MatInverse();
-#endif
-
 		// Update skybox transform
 
 		// NOTE if this was a node that did this work in update, it would have to update after the camera
-
-		Mat matModelSkybox;
-		{
-			float x = Lerp(pCamera3D->m_xNearClip, pCamera3D->m_xFarClip, 0.1f);
-			Mat matTranslate = MatTranslate(x * pCamera3D->MatObjectToWorld().VecX() + pCamera3D->MatObjectToWorld().Pos());
-			Quat quat = QuatLookAt(-pCamera3D->MatObjectToWorld().VecX(), pCamera3D->MatObjectToWorld().VecZ());
-			Mat matRot = MatRotate(quat);
-			float w = x * GTan(pCamera3D->m_radFovHorizontal * 0.5f);
-			float h = w * vecWinSize.m_y / vecWinSize.m_x;
-			Mat matScale = MatScale(Vector(1.0f, w, h));
-			matModelSkybox = matScale * matRot * matTranslate;
-		}
 
 		// Update console text
 
 		SConsole * pConsole = m_hConsole.PT();
 		pConsole->m_hTextConsole->SetText(pConsole->StrPrint());
-
-		// Start rendering stuff
-
-		FLOAT backgroundColor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
-		m_pD3ddevicecontext->ClearRenderTargetView(m_pD3dframebufferview, backgroundColor);
-		m_pD3ddevicecontext->RSSetViewports(1, &viewport);
-		m_pD3ddevicecontext->OMSetRenderTargets(1, &m_pD3dframebufferview, nullptr);
-
-		// Clear depth to 0 since 0=far 1=near in our clip space
-
-		m_pD3ddevicecontext->ClearDepthStencilView(m_pD3ddepthstencilview, D3D11_CLEAR_DEPTH, 0.0f, 0);
-
-		BindGlobalsForCamera(pCamera3D);
 
 		// Pack all the meshes into a big index and vertex buffer
 		//  See https://learn.microsoft.com/en-us/windows/win32/api/d3d11/ne-d3d11-d3d11_map
@@ -704,99 +729,135 @@ void SGame::MainLoop()
 		g_game.m_pD3ddevicecontext->Unmap(m_cbufferIndex, 0);
 		g_game.m_pD3ddevicecontext->Unmap(m_cbufferVertex3D, 0);
 
-		// Set render target
+		// Start rendering stuff
 
-		m_pD3ddevicecontext->OMSetRenderTargets(1, &m_pD3dframebufferview, m_pD3ddepthstencilview);
-
-		// Draw skybox
-		
+		for (int i = 0; i < 2; i++)
+		//for (int i = 1; i < 2; i++)
 		{
-			// TODO consider grouping together into some sort of fullscreen pass system
-		
-			const SMaterial & material = *(m_hMaterialSkybox.PT());
-			const SShader & shader = *(m_hShaderSkybox.PT());
+			SCamera3D * pCamera3D = (i == 0 ? m_hCamera3DShadow : m_hCamera3DMain).PT();
 
-			m_pD3ddevicecontext->RSSetState(shader.m_pD3drasterizerstate);
-			m_pD3ddevicecontext->OMSetDepthStencilState(shader.m_pD3ddepthstencilstate, 0);
+			ID3D11RenderTargetView * pD3drtview = (i == 0 ? m_pD3dframebufferviewShadow : m_pD3dframebufferview);
+			ID3D11DepthStencilView * pD3ddepthstencilview = (i == 0 ? m_pD3ddepthstencilviewShadow : m_pD3ddepthstencilview);
 
-			const SMesh3D & mesh = *(m_hMeshQuad.PT());
+			FLOAT backgroundColor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+			m_pD3ddevicecontext->ClearRenderTargetView(pD3drtview, backgroundColor);
+			m_pD3ddevicecontext->RSSetViewports(1, &viewport);
+			m_pD3ddevicecontext->OMSetRenderTargets(1, &pD3drtview, nullptr);
 
-			m_pD3ddevicecontext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-			m_pD3ddevicecontext->IASetInputLayout(shader.m_pD3dinputlayout);
+			// Clear depth to 0 since 0=far 1=near in our clip space
 
-			m_pD3ddevicecontext->VSSetShader(shader.m_pD3dvertexshader, nullptr, 0);
-			m_pD3ddevicecontext->PSSetShader(shader.m_pD3dfragshader, nullptr, 0);
+			m_pD3ddevicecontext->ClearDepthStencilView(pD3ddepthstencilview, D3D11_CLEAR_DEPTH, 0.0f, 0);
 
-			ID3D11Buffer * aD3dbuffer[] = { m_cbufferDrawnode3D, m_cbufferGlobals };
-			m_pD3ddevicecontext->VSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
-			m_pD3ddevicecontext->PSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
+			BindGlobalsForCamera(pCamera3D);
 
-			unsigned int cbVert = sizeof(SVertData3D);
-			unsigned int s_cbMeshOffset = 0;
+			// Set render target
 
-			m_pD3ddevicecontext->IASetVertexBuffers(0, 1, &m_cbufferVertex3D, &cbVert, &s_cbMeshOffset);	// BB don't constantly do this
-			m_pD3ddevicecontext->IASetIndexBuffer(m_cbufferIndex, DXGI_FORMAT_R16_UINT, 0);					//  ...
+			m_pD3ddevicecontext->OMSetRenderTargets(1, &pD3drtview, pD3ddepthstencilview);
 
-			D3D11_MAPPED_SUBRESOURCE mappedSubresource;
-			m_pD3ddevicecontext->Map(m_cbufferDrawnode3D, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
-			SDrawNodeRenderConstants * pDrawnode3Drc = (SDrawNodeRenderConstants *) (mappedSubresource.pData);
-			pDrawnode3Drc->FillOut(matModelSkybox, pCamera3D->MatWorldToClip());
+			// Draw skybox
 
-			m_pD3ddevicecontext->Unmap(m_cbufferDrawnode3D, 0);
+			if (i==1)
+			{
+				Mat matModelSkybox;
+				{
+					float x = Lerp(pCamera3D->m_xNearClip, pCamera3D->m_xFarClip, 0.1f);
+					Mat matTranslate = MatTranslate(x * pCamera3D->MatObjectToWorld().VecX() + pCamera3D->MatObjectToWorld().Pos());
+					Quat quat = QuatLookAt(-pCamera3D->MatObjectToWorld().VecX(), pCamera3D->MatObjectToWorld().VecZ());
+					Mat matRot = MatRotate(quat);
+					float w = x * GTan(pCamera3D->m_radFovHorizontal * 0.5f);
+					float h = w * vecWinSize.m_y / vecWinSize.m_x;
+					Mat matScale = MatScale(Vector(1.0f, w, h));
+					matModelSkybox = matScale * matRot * matTranslate;
+				}
 
-			BindMaterialTextures(&material, &shader);
+				// TODO consider grouping together into some sort of fullscreen pass system
 
-			m_pD3ddevicecontext->DrawIndexed(mesh.m_cIndicies, mesh.m_iIndexdata, mesh.m_iVertdata);
-		}
+				const SMaterial & material = *(m_hMaterialSkybox.PT());
+				const SShader & shader = *(m_hShaderSkybox.PT());
 
-		// Draw 3d nodes
+				m_pD3ddevicecontext->RSSetState(shader.m_pD3drasterizerstate);
+				m_pD3ddevicecontext->OMSetDepthStencilState(shader.m_pD3ddepthstencilstate, 0);
 
-		//Draw3D(&arypDrawnode3DToRender, pCamera);
+				const SMesh3D & mesh = *(m_hMeshQuad.PT());
 
-		Draw3D(&arypDrawnode3DToRender, pCamera3D);
+				m_pD3ddevicecontext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+				m_pD3ddevicecontext->IASetInputLayout(shader.m_pD3dinputlayout);
 
-		// Draw ui nodes
-		for (SUiNode * pUinode : arypUinodeToRender)
-		{
-			if (pUinode->m_hMaterial == nullptr)
-				continue;
+				m_pD3ddevicecontext->VSSetShader(shader.m_pD3dvertexshader, nullptr, 0);
+				m_pD3ddevicecontext->PSSetShader(shader.m_pD3dfragshader, nullptr, 0);
 
-			const SMaterial & material = *(pUinode->m_hMaterial);
-			const SShader & shader = *(material.m_hShader);
-			ASSERT(shader.m_shaderk == SHADERK_Ui);
+				ID3D11Buffer * aD3dbuffer[] = { m_cbufferDrawnode3D, m_cbufferGlobals };
+				m_pD3ddevicecontext->VSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
+				m_pD3ddevicecontext->PSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
 
-			const SMesh3D & mesh = *pUinode->m_hMesh;
+				unsigned int cbVert = sizeof(SVertData3D);
+				unsigned int s_cbMeshOffset = 0;
 
-			m_pD3ddevicecontext->IASetInputLayout(shader.m_pD3dinputlayout);
-			m_pD3ddevicecontext->VSSetShader(shader.m_pD3dvertexshader, nullptr, 0);
-			m_pD3ddevicecontext->PSSetShader(shader.m_pD3dfragshader, nullptr, 0);
+				m_pD3ddevicecontext->IASetVertexBuffers(0, 1, &m_cbufferVertex3D, &cbVert, &s_cbMeshOffset);	// BB don't constantly do this
+				m_pD3ddevicecontext->IASetIndexBuffer(m_cbufferIndex, DXGI_FORMAT_R16_UINT, 0);					//  ...
 
-			float blendFactor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
-			UINT sampleMask   = 0xffffffff;
-			m_pD3ddevicecontext->OMSetBlendState(shader.m_pD3dblendstatenoblend, blendFactor, sampleMask);
-			m_pD3ddevicecontext->RSSetState(shader.m_pD3drasterizerstate);
-			m_pD3ddevicecontext->OMSetDepthStencilState(shader.m_pD3ddepthstencilstate, 0);
+				D3D11_MAPPED_SUBRESOURCE mappedSubresource;
+				m_pD3ddevicecontext->Map(m_cbufferDrawnode3D, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
+				SDrawNodeRenderConstants * pDrawnode3Drc = (SDrawNodeRenderConstants *) (mappedSubresource.pData);
+				pDrawnode3Drc->FillOut(matModelSkybox, pCamera3D->MatWorldToClip());
 
-			m_pD3ddevicecontext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-			ID3D11Buffer * aD3dbuffer[] = { m_cbufferUiNode, m_cbufferGlobals };
-			m_pD3ddevicecontext->VSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
-			m_pD3ddevicecontext->PSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
+				m_pD3ddevicecontext->Unmap(m_cbufferDrawnode3D, 0);
 
-			unsigned int cbVert = sizeof(SVertData3D);
-			unsigned int s_cbMeshOffset = 0;
+				BindMaterialTextures(&material, &shader);
 
-			m_pD3ddevicecontext->IASetVertexBuffers(0, 1, &m_cbufferVertex3D, &cbVert, &s_cbMeshOffset);	// BB don't constantly do this
-			m_pD3ddevicecontext->IASetIndexBuffer(m_cbufferIndex, DXGI_FORMAT_R16_UINT, 0);					//  ...
+				m_pD3ddevicecontext->DrawIndexed(mesh.m_cIndicies, mesh.m_iIndexdata, mesh.m_iVertdata);
+			}
 
-			D3D11_MAPPED_SUBRESOURCE mappedSubresource;
-			m_pD3ddevicecontext->Map(m_cbufferUiNode, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
-			SUiNodeRenderConstants * pUinoderc = (SUiNodeRenderConstants *) (mappedSubresource.pData);
-			pUinode->GetRenderConstants(pUinoderc);
-			m_pD3ddevicecontext->Unmap(m_cbufferUiNode, 0);
+			// Draw 3d nodes
 
-			BindMaterialTextures(&material, &shader);
+			Draw3D(&arypDrawnode3DToRender, pCamera3D);
 
-			m_pD3ddevicecontext->DrawIndexed(mesh.m_cIndicies, mesh.m_iIndexdata, mesh.m_iVertdata);
+			// Draw ui nodes
+			if (i == 1)
+			{
+				for (SUiNode * pUinode : arypUinodeToRender)
+				{
+					if (pUinode->m_hMaterial == nullptr)
+						continue;
+
+					const SMaterial & material = *(pUinode->m_hMaterial);
+					const SShader & shader = *(material.m_hShader);
+					ASSERT(shader.m_shaderk == SHADERK_Ui);
+
+					const SMesh3D & mesh = *pUinode->m_hMesh;
+
+					m_pD3ddevicecontext->IASetInputLayout(shader.m_pD3dinputlayout);
+					m_pD3ddevicecontext->VSSetShader(shader.m_pD3dvertexshader, nullptr, 0);
+					m_pD3ddevicecontext->PSSetShader(shader.m_pD3dfragshader, nullptr, 0);
+
+					float blendFactor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+					UINT sampleMask = 0xffffffff;
+					m_pD3ddevicecontext->OMSetBlendState(shader.m_pD3dblendstatenoblend, blendFactor, sampleMask);
+					m_pD3ddevicecontext->RSSetState(shader.m_pD3drasterizerstate);
+					m_pD3ddevicecontext->OMSetDepthStencilState(shader.m_pD3ddepthstencilstate, 0);
+
+					m_pD3ddevicecontext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+					ID3D11Buffer * aD3dbuffer[] = { m_cbufferUiNode, m_cbufferGlobals };
+					m_pD3ddevicecontext->VSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
+					m_pD3ddevicecontext->PSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
+
+					unsigned int cbVert = sizeof(SVertData3D);
+					unsigned int s_cbMeshOffset = 0;
+
+					m_pD3ddevicecontext->IASetVertexBuffers(0, 1, &m_cbufferVertex3D, &cbVert, &s_cbMeshOffset);	// BB don't constantly do this
+					m_pD3ddevicecontext->IASetIndexBuffer(m_cbufferIndex, DXGI_FORMAT_R16_UINT, 0);					//  ...
+
+					D3D11_MAPPED_SUBRESOURCE mappedSubresource;
+					m_pD3ddevicecontext->Map(m_cbufferUiNode, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
+					SUiNodeRenderConstants * pUinoderc = (SUiNodeRenderConstants *) (mappedSubresource.pData);
+					pUinode->GetRenderConstants(pUinoderc);
+					m_pD3ddevicecontext->Unmap(m_cbufferUiNode, 0);
+
+					BindMaterialTextures(&material, &shader);
+
+					m_pD3ddevicecontext->DrawIndexed(mesh.m_cIndicies, mesh.m_iIndexdata, mesh.m_iVertdata);
+				}
+			}
 		}
 
 		for (int i = 0; i < DIM(m_mpVkFJustPressed); i++)

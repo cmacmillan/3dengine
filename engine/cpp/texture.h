@@ -7,6 +7,8 @@ struct STexture : SObject // texture
 {
 	typedef SObject super;
 	STexture(const char * pChzFilename, bool fIsNormal, bool fGenerateMips);
+	STexture();
+
 	SHandle<STexture> HTexture() { return (SHandle<STexture>) m_nHandle; }
 
 	ID3D11Texture2D * m_pD3dtexture = nullptr;
