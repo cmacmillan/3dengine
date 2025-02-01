@@ -49,6 +49,13 @@ std::string SFile::StrGet()
 	return std::string((char *) m_pB, m_cBytesFile);
 }
 
+FILETIME SFile::FiletimeLastWrite()
+{
+	FILETIME filetime;
+	VERIFY(GetFileTime(m_hFile, nullptr, nullptr, &filetime));
+	return filetime;
+}
+
 bool FTryReadFile(const char * pChzPath, SFile * pFile)
 {
 	// BB would be nice to have a stack allocated string class

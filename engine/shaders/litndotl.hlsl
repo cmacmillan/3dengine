@@ -63,19 +63,23 @@ VS_Output vs_main(VS_Input input)
     return output;
 }
 
+float maprange(float a1, float b1, float a2, float b2, float input)
+{
+    float lerp = (input - a1) / (b1 - a1);
+    return a2 + (b2 - a2) * lerp;
+}
+
 float4 ps_main(VS_Output input) : SV_Target
 {
     float light = dot(input.normal, normalize(float3(-1, -.3, 1)));
-    float gShadow = 0.0f;
+    float gShadow = 0.0f;//
     if (input.posShadow.w != 0.0f)
     {
         input.posShadow /= input.posShadow.w;
         float2 uvShadow = (input.posShadow.xy + 1.0) * 0.5;
         uvShadow.y = 1.0f - uvShadow.y;
-        //return float4(uvShadow, 0, 1);
-        //return float4(sunShadowTexture.Sample(sunShadowSampler, uvShadow).x, input.posShadow.z,0.0, 1.0);
-        float gEpsilon = 0.0001f;
-        if (input.posShadow.z+gEpsilon <= 1.0f-sunShadowTexture.Sample(sunShadowSampler, uvShadow).x)
+        float gEpsilon = 0.0003f; // BB should be based on some world distance probably
+        if (input.posShadow.z + gEpsilon <= 1.0f - sunShadowTexture.Sample(sunShadowSampler, uvShadow).x)
         {
             gShadow = 1.0f;
         }
@@ -83,8 +87,5 @@ float4 ps_main(VS_Output input) : SV_Target
 
     float gLightAmbient = .1f;
     float3 color = max(gLightAmbient, (1.0f - gShadow) * light) * mainTexture.Sample(mainSampler, input.uv);
-    //float3 color = mainTexture.Sample(mainSampler, input.uv);
-    //float3 color = float3(input.uv.xy, 0.0);
-    //float3 color = light.xxx; // temp
     return float4(color, 1.0);
 }

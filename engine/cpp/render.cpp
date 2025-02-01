@@ -15,19 +15,22 @@ void Draw3D(std::vector<SDrawNode3D *> * parypDrawnode3DToRender, SCamera3D * pC
 
 		const SMaterial & material = (fDrawAsShadowcaster) ? *g_game.m_hMaterialShadowcaster : *pDrawnode3D->m_hMaterial;
 		const SShader & shader = *(material.m_hShader);
+		if (shader.m_shaderk == SHADERK_Error)
+			continue;
+
 		ASSERT(pDrawnode3D->FIsDerivedFrom(TYPEK_DrawNode3D));
 		ASSERT(shader.m_shaderk == SHADERK_3D);
 
-		pD3ddevicecontext->RSSetState(shader.m_pD3drasterizerstate);
-		pD3ddevicecontext->OMSetDepthStencilState(shader.m_pD3ddepthstencilstate, 0);
+		pD3ddevicecontext->RSSetState(shader.m_data.m_pD3drasterizerstate);
+		pD3ddevicecontext->OMSetDepthStencilState(shader.m_data.m_pD3ddepthstencilstate, 0);
 
 		const SMesh3D & mesh = *pDrawnode3D->m_hMesh;
 
 		pD3ddevicecontext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		pD3ddevicecontext->IASetInputLayout(shader.m_pD3dinputlayout);
+		pD3ddevicecontext->IASetInputLayout(shader.m_data.m_pD3dinputlayout);
 
-		pD3ddevicecontext->VSSetShader(shader.m_pD3dvertexshader, nullptr, 0);
-		pD3ddevicecontext->PSSetShader(shader.m_pD3dfragshader, nullptr, 0);
+		pD3ddevicecontext->VSSetShader(shader.m_data.m_pD3dvertexshader, nullptr, 0);
+		pD3ddevicecontext->PSSetShader(shader.m_data.m_pD3dfragshader, nullptr, 0);
 
 		ID3D11Buffer * aD3dbuffer[] = { g_game.m_cbufferDrawnode3D, g_game.m_cbufferGlobals };
 		pD3ddevicecontext->VSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);

@@ -294,14 +294,9 @@ void SLineParser::ParseLines(const std::string & str)
 	SetState(PARSE_Nil, str);
 }
 
-SShader::SShader(const char * pChzFile) : super()
+bool SShader::FTryLoadFromFile(SFile * pFile, SShaderData * pData, std::string * pStrError)
 {
-	m_typek = TYPEK_Shader;
-
-	SFile file;
-	VERIFY(FTryReadFile(pChzFile, &file));
-
-	std::string strFile = file.StrGet();
+	std::string strFile = pFile->StrGet();
 
 	static SLinearMap<std::string, BOOL, 2> mpStrBool = { {
 														{std::string("On"), TRUE},
@@ -315,26 +310,26 @@ SShader::SShader(const char * pChzFile) : super()
 
 	// Set up defaults:
 
-	m_d3ddepthstencildesc.DepthFunc = D3D11_COMPARISON_GREATER; // default to greater since our clip space znear=1.0, zfar=0.0
-	m_d3ddepthstencildesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
-	m_d3ddepthstencildesc.DepthEnable = FALSE;
+	pData->m_d3ddepthstencildesc.DepthFunc = D3D11_COMPARISON_GREATER; // default to greater since our clip space znear=1.0, zfar=0.0
+	pData->m_d3ddepthstencildesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+	pData->m_d3ddepthstencildesc.DepthEnable = FALSE;
 
-	m_d3drasterizerdesc.CullMode = D3D11_CULL_BACK;
-	m_d3drasterizerdesc.FillMode = D3D11_FILL_SOLID;
-	m_d3drasterizerdesc.FrontCounterClockwise = TRUE;
-	m_d3drasterizerdesc.DepthClipEnable = TRUE;
+	pData->m_d3drasterizerdesc.CullMode = D3D11_CULL_BACK;
+	pData->m_d3drasterizerdesc.FillMode = D3D11_FILL_SOLID;
+	pData->m_d3drasterizerdesc.FrontCounterClockwise = TRUE;
+	pData->m_d3drasterizerdesc.DepthClipEnable = TRUE;
 
-	m_d3drtblenddesc.BlendEnable = FALSE;
-	m_d3drtblenddesc.SrcBlend = D3D11_BLEND_SRC_ALPHA;
-	m_d3drtblenddesc.DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
-	m_d3drtblenddesc.BlendOp = D3D11_BLEND_OP_ADD;
-	m_d3drtblenddesc.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
-	m_d3drtblenddesc.BlendOpAlpha = D3D11_BLEND_OP_ADD;
-	m_d3drtblenddesc.SrcBlendAlpha = D3D11_BLEND_SRC_ALPHA;
-	m_d3drtblenddesc.DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
+	pData->m_d3drtblenddesc.BlendEnable = FALSE;
+	pData->m_d3drtblenddesc.SrcBlend = D3D11_BLEND_SRC_ALPHA;
+	pData->m_d3drtblenddesc.DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+	pData->m_d3drtblenddesc.BlendOp = D3D11_BLEND_OP_ADD;
+	pData->m_d3drtblenddesc.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+	pData->m_d3drtblenddesc.BlendOpAlpha = D3D11_BLEND_OP_ADD;
+	pData->m_d3drtblenddesc.SrcBlendAlpha = D3D11_BLEND_SRC_ALPHA;
+	pData->m_d3drtblenddesc.DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA;
 
-	m_d3drtblenddesc.LogicOpEnable = FALSE;
-	m_d3drtblenddesc.LogicOp = D3D11_LOGIC_OP_CLEAR;
+	pData->m_d3drtblenddesc.LogicOpEnable = FALSE;
+	pData->m_d3drtblenddesc.LogicOp = D3D11_LOGIC_OP_CLEAR;
 
 	const char * pChzShaderKind		= "ShaderKind";
 	const char * pChzDepthEnable	= "DepthEnable";
@@ -381,7 +376,11 @@ SShader::SShader(const char * pChzFile) : super()
 			}
 		}
 
-		VERIFY(fFound); // Unknown keyword
+		if (!fFound)
+		{
+			*pStrError = StrPrintf("Unknown keyword '%s'", line.m_pairMain.m_strKey.c_str());
+			return false;
+		}
 	}
 
 	// Shaderkind
@@ -393,9 +392,18 @@ SShader::SShader(const char * pChzFile) : super()
 																{std::string("UI"), SHADERK_Ui}, 
 																{std::string("Skybox"), SHADERK_Skybox}}};
 			
-		ASSERT(arypLine.size() == 1); // Not exactly 1 shader kind
+		if (arypLine.size() != 1)
+		{
+			*pStrError = "Not exactly 1 shader kind!";
+			return false;
+		}
 
-		VERIFY(mpStrShaderk.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &m_shaderk));
+		if (!mpStrShaderk.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &m_shaderk))
+		{
+			*pStrError = StrPrintf("Unrecognized shader kind '%s'", arypLine.front()->m_pairMain.m_strValue.c_str());
+			return false;
+		}
+
 		arypLine.clear();
 	}
 
@@ -405,9 +413,18 @@ SShader::SShader(const char * pChzFile) : super()
 		parser.FindLines(pChzDepthEnable, &arypLine);
 		if (arypLine.size() > 0)
 		{
-			ASSERT(arypLine.size() == 1); // Not exactly 1
+			if (arypLine.size() != 1)
+			{
+				*pStrError = "More than one DepthEnable tag";
+				return false;
+			}
 
-			VERIFY(mpStrBool.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &m_d3ddepthstencildesc.DepthEnable));
+			if (!mpStrBool.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &pData->m_d3ddepthstencildesc.DepthEnable))
+			{
+				*pStrError = StrPrintf("Unrecognized DepthEnable tag '%s'", arypLine.front()->m_pairMain.m_strValue.c_str());
+				return false;
+			}
+
 			arypLine.clear();
 		}
 	}
@@ -421,9 +438,18 @@ SShader::SShader(const char * pChzFile) : super()
 															{std::string("Off"), D3D11_DEPTH_WRITE_MASK_ZERO}} };
 		if (arypLine.size() > 0)
 		{
-			ASSERT(arypLine.size() == 1); // Not exactly 1
+			if (arypLine.size() != 1)
+			{
+				*pStrError = "More than one DepthWrite tag";
+				return false;
+			}
 
-			VERIFY(mpStrD3ddepthwritemask.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &m_d3ddepthstencildesc.DepthWriteMask));
+			if (!mpStrD3ddepthwritemask.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &pData->m_d3ddepthstencildesc.DepthWriteMask))
+			{
+				*pStrError = StrPrintf("Unrecognized DepthWrite tag '%s'", arypLine.front()->m_pairMain.m_strValue.c_str());
+				return false;
+			}
+
 			arypLine.clear();
 		}
 	}
@@ -445,9 +471,17 @@ SShader::SShader(const char * pChzFile) : super()
 																{std::string("Always"), D3D11_COMPARISON_ALWAYS}}};
 		if (arypLine.size() > 0)
 		{
-			ASSERT(arypLine.size() == 1); // Not exactly 1
+			if (arypLine.size() != 1)
+			{
+				*pStrError = "More than one DepthFunc tag";
+				return false;
+			}
 
-			VERIFY(mpStrComparisonfunc.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &m_d3ddepthstencildesc.DepthFunc));
+			if (!mpStrComparisonfunc.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &pData->m_d3ddepthstencildesc.DepthFunc))
+			{
+				*pStrError = StrPrintf("Unrecognized DepthFunc tag '%s'", arypLine.front()->m_pairMain.m_strValue.c_str());
+				return false;
+			}
 			arypLine.clear();
 		}
 	}
@@ -461,9 +495,18 @@ SShader::SShader(const char * pChzFile) : super()
 																{std::string("Solid"), D3D11_FILL_SOLID}}};
 		if (arypLine.size() > 0)
 		{
+			if (arypLine.size() != 1)
+			{
+				*pStrError = "More than one FillMode tag";
+				return false;
+			}
 			ASSERT(arypLine.size() == 1); // Not exactly 1
 
-			VERIFY(mpStrFillmode.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &m_d3drasterizerdesc.FillMode));
+			if (!mpStrFillmode.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &pData->m_d3drasterizerdesc.FillMode))
+			{
+				*pStrError = StrPrintf("Unrecognized FillMode tag '%s'", arypLine.front()->m_pairMain.m_strValue.c_str());
+				return false;
+			}
 			arypLine.clear();
 		}
 	}
@@ -478,9 +521,17 @@ SShader::SShader(const char * pChzFile) : super()
 																{std::string("Back"), D3D11_CULL_BACK}}};
 		if (arypLine.size() > 0)
 		{
-			ASSERT(arypLine.size() == 1); // Not exactly 1
+			if (arypLine.size() != 1)
+			{
+				*pStrError = "More than one CullMode tag";
+				return false;
+			}
 
-			VERIFY(mpStrCullmode.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &m_d3drasterizerdesc.CullMode));
+			if (!mpStrCullmode.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &pData->m_d3drasterizerdesc.CullMode))
+			{
+				*pStrError = StrPrintf("Unrecognized CullMode tag '%s'", arypLine.front()->m_pairMain.m_strValue.c_str());
+				return false;
+			}
 			arypLine.clear();
 		}
 	}
@@ -518,9 +569,17 @@ SShader::SShader(const char * pChzFile) : super()
 
 		if (arypLine.size() > 0)
 		{
-			ASSERT(arypLine.size() == 1); // Not exactly 1
+			if (arypLine.size() != 1)
+			{
+				*pStrError = "More than one BlendEnable tag";
+				return false;
+			}
 
-			VERIFY(mpStrBool.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &m_d3drtblenddesc.BlendEnable));
+			if (!mpStrBool.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &pData->m_d3drtblenddesc.BlendEnable))
+			{
+				*pStrError = StrPrintf("Unrecognized BlendEnable tag '%s'", arypLine.front()->m_pairMain.m_strValue.c_str());
+				return false;
+			}
 			arypLine.clear();
 		}
 	}
@@ -532,9 +591,17 @@ SShader::SShader(const char * pChzFile) : super()
 
 		if (arypLine.size() > 0)
 		{
-			ASSERT(arypLine.size() == 1); // Not exactly 1
+			if (arypLine.size() != 1)
+			{
+				*pStrError = "More than one SrcBlend tag";
+				return false;
+			}
 
-			VERIFY(mpStrBlend.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &m_d3drtblenddesc.SrcBlend));
+			if (!mpStrBlend.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &pData->m_d3drtblenddesc.SrcBlend))
+			{
+				*pStrError = StrPrintf("Unrecognized SrcBlend tag '%s'", arypLine.front()->m_pairMain.m_strValue.c_str());
+				return false;
+			}
 			arypLine.clear();
 		}
 	}
@@ -546,9 +613,18 @@ SShader::SShader(const char * pChzFile) : super()
 
 		if (arypLine.size() > 0)
 		{
-			ASSERT(arypLine.size() == 1); // Not exactly 1
+			if (arypLine.size() != 1)
+			{
+				*pStrError = "More than one DestBlend tag";
+				return false;
+			}
 
-			VERIFY(mpStrBlend.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &m_d3drtblenddesc.DestBlend));
+			if (!mpStrBlend.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &pData->m_d3drtblenddesc.DestBlend))
+			{
+
+				*pStrError = StrPrintf("Unrecognized DestBlend tag '%s'", arypLine.front()->m_pairMain.m_strValue.c_str());
+				return false;
+			}
 			arypLine.clear();
 		}
 	}
@@ -560,9 +636,17 @@ SShader::SShader(const char * pChzFile) : super()
 
 		if (arypLine.size() > 0)
 		{
-			ASSERT(arypLine.size() == 1); // Not exactly 1
+			if (arypLine.size() != 1)
+			{
+				*pStrError = "More than one BlendOp tag";
+				return false;
+			}
 
-			VERIFY(mpStrBlendop.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &m_d3drtblenddesc.BlendOp));
+			if (!mpStrBlendop.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &pData->m_d3drtblenddesc.BlendOp))
+			{
+				*pStrError = StrPrintf("Unrecognized BlendOp tag '%s'", arypLine.front()->m_pairMain.m_strValue.c_str());
+				return false;
+			}
 			arypLine.clear();
 		}
 	}
@@ -591,9 +675,17 @@ SShader::SShader(const char * pChzFile) : super()
 
 		if (arypLine.size() > 0)
 		{
-			ASSERT(arypLine.size() == 1); // Not exactly 1
+			if (arypLine.size() != 1)
+			{
+				*pStrError = "More than one RenderTargetWriteMask";
+				return false;
+			}
 
-			VERIFY(mpStrColorwriteenable.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &m_d3drtblenddesc.RenderTargetWriteMask));
+			if (!mpStrColorwriteenable.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &pData->m_d3drtblenddesc.RenderTargetWriteMask))
+			{
+				*pStrError = StrPrintf("Unrecognized RenderTargetWriteMask tag '%s'",arypLine.front()->m_pairMain.m_strValue.c_str());
+				return false;
+			}
 			arypLine.clear();
 		}
 	}
@@ -605,9 +697,17 @@ SShader::SShader(const char * pChzFile) : super()
 
 		if (arypLine.size() > 0)
 		{
-			ASSERT(arypLine.size() == 1); // Not exactly 1
+			if (arypLine.size() != 1)
+			{
+				*pStrError = "More than one BlendOpAlpha";
+				return false;
+			}
 
-			VERIFY(mpStrBlendop.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &m_d3drtblenddesc.BlendOpAlpha));
+			if (!mpStrBlendop.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &pData->m_d3drtblenddesc.BlendOpAlpha))
+			{
+				*pStrError = StrPrintf("Unrecognized BlendOpAlpha tag '%s'", arypLine.front()->m_pairMain.m_strValue);
+				return false;
+			}
 			arypLine.clear();
 		}
 	}
@@ -619,9 +719,17 @@ SShader::SShader(const char * pChzFile) : super()
 
 		if (arypLine.size() > 0)
 		{
-			ASSERT(arypLine.size() == 1); // Not exactly 1
+			if (arypLine.size() != 1)
+			{
+				*pStrError = "More than one SrcBlendAlpha tag";
+				return false;
+			}
 
-			VERIFY(mpStrBlend.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &m_d3drtblenddesc.SrcBlendAlpha));
+			if (!mpStrBlend.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &pData->m_d3drtblenddesc.SrcBlendAlpha))
+			{
+				*pStrError = StrPrintf("Unrecognized SrcBlendAlpha tag '%s'", arypLine.front()->m_pairMain.m_strValue.c_str());
+				return false;
+			}
 			arypLine.clear();
 		}
 	}
@@ -633,9 +741,17 @@ SShader::SShader(const char * pChzFile) : super()
 
 		if (arypLine.size() > 0)
 		{
-			ASSERT(arypLine.size() == 1); // Not exactly 1
+			if (arypLine.size() != 1)
+			{
+				*pStrError = "More than one DestBlendAlpha tag";
+				return false;
+			}
 
-			VERIFY(mpStrBlend.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &m_d3drtblenddesc.DestBlendAlpha));
+			if (!mpStrBlend.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &pData->m_d3drtblenddesc.DestBlendAlpha))
+			{
+				*pStrError = StrPrintf("Unrecognized DestBlendAlpha tag '%s'", arypLine.front()->m_pairMain.m_strValue.c_str());
+				return false;
+			}
 			arypLine.clear();
 		}
 	}
@@ -661,7 +777,12 @@ SShader::SShader(const char * pChzFile) : super()
 			m_mpISlotStrName[i] = { {},-1 };
 			iSlotMax = NMax(iSlotMax, aryNamedslot[i].m_iSlot);
 		}
-		ASSERT(iSlotMax + 1 == aryNamedslot.size());
+
+		if (iSlotMax + 1 != aryNamedslot.size())
+		{
+			*pStrError = "Texture slot count mismatch!";
+			return false;
+		}
 
 		for (const SNamedTextureSlot & namedslot : aryNamedslot)
 		{
@@ -670,7 +791,11 @@ SShader::SShader(const char * pChzFile) : super()
 
 		for (const SNamedTextureSlot & namedslot : m_mpISlotStrName)
 		{
-			ASSERT(namedslot.m_iSlot != -1);
+			if (namedslot.m_iSlot == -1)
+			{
+				*pStrError = "Texture slot error!";
+				return false;
+			}
 		}
 
 		arypLine.clear();
@@ -682,43 +807,44 @@ SShader::SShader(const char * pChzFile) : super()
 		// BB Omitting 3rd argument to D3DCompile will prevent shader #includes from working
 
 		ID3DBlob * shaderCompileErrorsBlob;
-		HRESULT hResult = D3DCompile(file.m_pB, file.m_cBytesFile, nullptr, nullptr, nullptr, "vs_main", "vs_5_0", 0, 0, &vsBlob, &shaderCompileErrorsBlob);
-		if (FAILED(hResult))
+		HRESULT hResultCompileVs = D3DCompile(pFile->m_pB, pFile->m_cBytesFile, nullptr, nullptr, nullptr, "vs_main", "vs_5_0", 0, 0, &vsBlob, &shaderCompileErrorsBlob);
+		if (FAILED(hResultCompileVs))
 		{
 			if (shaderCompileErrorsBlob)
 			{
-				MessageBoxA(0, (const char *) shaderCompileErrorsBlob->GetBufferPointer(), "Shader Compiler Error", MB_ICONERROR | MB_OK);
+				*pStrError = (const char *) shaderCompileErrorsBlob->GetBufferPointer();
+				shaderCompileErrorsBlob->Release();
 			}
-			exit;
+			return false;
 		}
-
-		hResult = g_game.m_pD3ddevice->CreateVertexShader(vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), nullptr, &m_pD3dvertexshader);
-		assert(SUCCEEDED(hResult));
 	}
 
 	// Create Pixel Shader
 	// BB Omitting 3rd argument to D3DCompile will prevent shader #includes from working
 
+	ID3DBlob * psBlob;
 	{
-		ID3DBlob * psBlob;
 		ID3DBlob * shaderCompileErrorsBlob;
-		HRESULT hResult = D3DCompile(file.m_pB, file.m_cBytesFile, nullptr, nullptr, nullptr, "ps_main", "ps_5_0", 0, 0, &psBlob, &shaderCompileErrorsBlob);
-		if (FAILED(hResult))
+		HRESULT hResultCompilePs = D3DCompile(pFile->m_pB, pFile->m_cBytesFile, nullptr, nullptr, nullptr, "ps_main", "ps_5_0", 0, 0, &psBlob, &shaderCompileErrorsBlob);
+		if (FAILED(hResultCompilePs))
 		{
-			const char * errorString = NULL;
 			if (shaderCompileErrorsBlob)
 			{
-				errorString = (const char *) shaderCompileErrorsBlob->GetBufferPointer();
+				*pStrError = (const char *) shaderCompileErrorsBlob->GetBufferPointer();
 				shaderCompileErrorsBlob->Release();
 			}
-			MessageBoxA(0, errorString, "Shader Compiler Error", MB_ICONERROR | MB_OK);
-			exit;
+			return false;
 		}
-
-		hResult = g_game.m_pD3ddevice->CreatePixelShader(psBlob->GetBufferPointer(), psBlob->GetBufferSize(), nullptr, &m_pD3dfragshader);
-		assert(SUCCEEDED(hResult));
-		psBlob->Release();
 	}
+
+	// BEYOND THIS POINT, THE FUNCTION CANNOT FAIL OR RETURN FALSE. ERRORS SHOULD BE CRASHES OR ASSERTS
+
+	HRESULT hResultCreateVs = g_game.m_pD3ddevice->CreateVertexShader(vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), nullptr, &pData->m_pD3dvertexshader);
+	assert(SUCCEEDED(hResultCreateVs));
+
+	HRESULT hResultCreatePs = g_game.m_pD3ddevice->CreatePixelShader(psBlob->GetBufferPointer(), psBlob->GetBufferSize(), nullptr, &pData->m_pD3dfragshader);
+	assert(SUCCEEDED(hResultCreatePs));
+	psBlob->Release();
 	
 #if 0 // BB force this to match with the input data
 	ID3D11ShaderReflection* pReflector = NULL;
@@ -745,18 +871,18 @@ SShader::SShader(const char * pChzFile) : super()
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 }
 	};
 
-	HRESULT hResultInputLayout = g_game.m_pD3ddevice->CreateInputLayout(inputElementDesc, ARRAYSIZE(inputElementDesc), vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), &m_pD3dinputlayout);
+	HRESULT hResultInputLayout = g_game.m_pD3ddevice->CreateInputLayout(inputElementDesc, ARRAYSIZE(inputElementDesc), vsBlob->GetBufferPointer(), vsBlob->GetBufferSize(), &pData->m_pD3dinputlayout);
 	assert(SUCCEEDED(hResultInputLayout));
 
 	vsBlob->Release();
 
 	// Create rasterizer state
 
-	g_game.m_pD3ddevice->CreateRasterizerState(&m_d3drasterizerdesc, &m_pD3drasterizerstate);
+	g_game.m_pD3ddevice->CreateRasterizerState(&pData->m_d3drasterizerdesc, &pData->m_pD3drasterizerstate);
 
 	// Create depth stencil state
 
-	g_game.m_pD3ddevice->CreateDepthStencilState(&m_d3ddepthstencildesc, &m_pD3ddepthstencilstate);
+	g_game.m_pD3ddevice->CreateDepthStencilState(&pData->m_d3ddepthstencildesc, &pData->m_pD3ddepthstencilstate);
 
 	// Create blend state
 
@@ -765,11 +891,108 @@ SShader::SShader(const char * pChzFile) : super()
 		ZeroMemory(&BlendState, sizeof(D3D11_BLEND_DESC1));
 		D3D11_RENDER_TARGET_BLEND_DESC1 * pD3drtbd = &BlendState.RenderTarget[0];
 
-		*pD3drtbd = m_d3drtblenddesc;
+		*pD3drtbd = pData->m_d3drtblenddesc;
 
 		pD3drtbd->LogicOpEnable = FALSE;
 		pD3drtbd->LogicOp = D3D11_LOGIC_OP_CLEAR;
 
-		g_game.m_pD3ddevice->CreateBlendState1(&BlendState, &m_pD3dblendstatenoblend);
+		g_game.m_pD3ddevice->CreateBlendState1(&BlendState, &pData->m_pD3dblendstatenoblend);
 	}
+
+	return true;
+}
+
+SShader::SShader(const char * pChzFile) : super()
+{
+	g_game.m_arypShader.push_back(this);
+
+	m_typek = TYPEK_Shader;
+
+	m_strFile = pChzFile;
+
+	SFile file;
+	VERIFY(FTryReadFile(pChzFile, &file));
+
+	m_filetimeLastEdit = file.FiletimeLastWrite();
+
+	SShaderData data;
+	std::string strError;
+	if (!FTryLoadFromFile(&file, &data, &strError))
+	{
+		m_shaderk = SHADERK_Error;
+		g_game.PrintConsole(StrPrintf("Shader compile error:\n%s\n", strError.c_str()), 20.0f);
+		return;
+	}
+	
+	m_data = data;
+}
+
+SShader::~SShader()
+{
+	ReleaseResources();
+
+	int ipShaderThis = -1;
+	for (int ipShader = 0; ipShader < g_game.m_arypShader.size(); ipShader++)
+	{
+		if (g_game.m_arypShader[ipShader] == this)
+		{
+			ipShaderThis = ipShader;
+			break;
+		}
+	}
+
+	g_game.m_arypShader.erase(g_game.m_arypShader.begin() + ipShaderThis);
+}
+
+void SShader::UpdateHotload()
+{
+	SFile file;
+
+	// If we fail to read, it's probably being written to, so ignore for now
+
+	if (!FTryReadFile(m_strFile.c_str(), &file))
+		return;
+
+	FILETIME filetimeLastEdit = file.FiletimeLastWrite();
+
+	if (CompareFileTime(&filetimeLastEdit, &m_filetimeLastEdit) <= 0)
+		return;
+
+	m_filetimeLastEdit = file.FiletimeLastWrite();
+
+	g_game.PrintConsole("Recompiling shader...\n", 5.0f);
+
+	SShaderData data;
+	std::string strError;
+	if (!FTryLoadFromFile(&file, &data, &strError))
+	{
+		m_shaderk = SHADERK_Error;
+		g_game.PrintConsole(StrPrintf("Shader compile error:\n%s\n", strError.c_str()), 20.0f);
+		return;
+	}
+
+	ReleaseResources();
+	
+	m_data = data;
+}
+
+void SShader::ReleaseResources()
+{
+	m_data.m_pD3dvertexshader->Release();
+	m_data.m_pD3dvertexshader = nullptr;
+
+	m_data.m_pD3dfragshader->Release();
+	m_data.m_pD3dfragshader = nullptr;
+
+	m_data.m_pD3dinputlayout->Release();
+	m_data.m_pD3dinputlayout = nullptr;
+
+	m_data.m_pD3dblendstatenoblend->Release();
+	m_data.m_pD3dblendstatenoblend = nullptr;
+
+	m_data.m_pD3drasterizerstate->Release();
+	m_data.m_pD3drasterizerstate = nullptr;
+
+	m_data.m_pD3ddepthstencilstate->Release();
+	m_data.m_pD3ddepthstencilstate = nullptr;
 }

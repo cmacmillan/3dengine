@@ -535,6 +535,13 @@ void SGame::MainLoop()
 		if (m_mpVkFDown[VK_ESCAPE])
 			DestroyWindow(m_hwnd);
 
+		// Update shader hotloading
+
+		for (SShader * pShader : m_arypShader)
+		{
+			pShader->UpdateHotload();
+		}
+
 		////////// GAMEPLAY CODE (JANK)
 	
 		m_hPlaneTest2->SetQuatLocal(QuatAxisAngle(g_vecYAxis, m_dT * 10.0f) * m_hPlaneTest2->QuatLocal());
@@ -769,54 +776,58 @@ void SGame::MainLoop()
 
 			if (i==1)
 			{
-				Mat matModelSkybox;
-				{
-					float x = Lerp(pCamera3D->m_xNearClip, pCamera3D->m_xFarClip, 0.1f);
-					Mat matTranslate = MatTranslate(x * pCamera3D->MatObjectToWorld().VecX() + pCamera3D->MatObjectToWorld().Pos());
-					Quat quat = QuatLookAt(-pCamera3D->MatObjectToWorld().VecX(), pCamera3D->MatObjectToWorld().VecZ());
-					Mat matRot = MatRotate(quat);
-					float w = x * GTan(pCamera3D->m_radFovHorizontal * 0.5f);
-					float h = w * vecWinSize.m_y / vecWinSize.m_x;
-					Mat matScale = MatScale(Vector(1.0f, w, h));
-					matModelSkybox = matScale * matRot * matTranslate;
-				}
-
 				// TODO consider grouping together into some sort of fullscreen pass system
 
 				const SMaterial & material = *(m_hMaterialSkybox.PT());
 				const SShader & shader = *(m_hShaderSkybox.PT());
+				if (shader.m_shaderk != SHADERK_Error)
+				{
+					ASSERT(shader.m_shaderk == SHADERK_Skybox);
 
-				m_pD3ddevicecontext->RSSetState(shader.m_pD3drasterizerstate);
-				m_pD3ddevicecontext->OMSetDepthStencilState(shader.m_pD3ddepthstencilstate, 0);
+					Mat matModelSkybox;
+					{
+						float x = Lerp(pCamera3D->m_xNearClip, pCamera3D->m_xFarClip, 0.1f);
+						Mat matTranslate = MatTranslate(x * pCamera3D->MatObjectToWorld().VecX() + pCamera3D->MatObjectToWorld().Pos());
+						Quat quat = QuatLookAt(-pCamera3D->MatObjectToWorld().VecX(), pCamera3D->MatObjectToWorld().VecZ());
+						Mat matRot = MatRotate(quat);
+						float w = x * GTan(pCamera3D->m_radFovHorizontal * 0.5f);
+						float h = w * vecWinSize.m_y / vecWinSize.m_x;
+						Mat matScale = MatScale(Vector(1.0f, w, h));
+						matModelSkybox = matScale * matRot * matTranslate;
+					}
 
-				const SMesh3D & mesh = *(m_hMeshQuad.PT());
+					m_pD3ddevicecontext->RSSetState(shader.m_data.m_pD3drasterizerstate);
+					m_pD3ddevicecontext->OMSetDepthStencilState(shader.m_data.m_pD3ddepthstencilstate, 0);
 
-				m_pD3ddevicecontext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-				m_pD3ddevicecontext->IASetInputLayout(shader.m_pD3dinputlayout);
+					const SMesh3D & mesh = *(m_hMeshQuad.PT());
 
-				m_pD3ddevicecontext->VSSetShader(shader.m_pD3dvertexshader, nullptr, 0);
-				m_pD3ddevicecontext->PSSetShader(shader.m_pD3dfragshader, nullptr, 0);
+					m_pD3ddevicecontext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+					m_pD3ddevicecontext->IASetInputLayout(shader.m_data.m_pD3dinputlayout);
 
-				ID3D11Buffer * aD3dbuffer[] = { m_cbufferDrawnode3D, m_cbufferGlobals };
-				m_pD3ddevicecontext->VSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
-				m_pD3ddevicecontext->PSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
+					m_pD3ddevicecontext->VSSetShader(shader.m_data.m_pD3dvertexshader, nullptr, 0);
+					m_pD3ddevicecontext->PSSetShader(shader.m_data.m_pD3dfragshader, nullptr, 0);
 
-				unsigned int cbVert = sizeof(SVertData3D);
-				unsigned int s_cbMeshOffset = 0;
+					ID3D11Buffer * aD3dbuffer[] = { m_cbufferDrawnode3D, m_cbufferGlobals };
+					m_pD3ddevicecontext->VSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
+					m_pD3ddevicecontext->PSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
 
-				m_pD3ddevicecontext->IASetVertexBuffers(0, 1, &m_cbufferVertex3D, &cbVert, &s_cbMeshOffset);	// BB don't constantly do this
-				m_pD3ddevicecontext->IASetIndexBuffer(m_cbufferIndex, DXGI_FORMAT_R16_UINT, 0);					//  ...
+					unsigned int cbVert = sizeof(SVertData3D);
+					unsigned int s_cbMeshOffset = 0;
 
-				D3D11_MAPPED_SUBRESOURCE mappedSubresource;
-				m_pD3ddevicecontext->Map(m_cbufferDrawnode3D, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
-				SDrawNodeRenderConstants * pDrawnode3Drc = (SDrawNodeRenderConstants *) (mappedSubresource.pData);
-				pDrawnode3Drc->FillOut(matModelSkybox, pCamera3D->MatWorldToClip());
+					m_pD3ddevicecontext->IASetVertexBuffers(0, 1, &m_cbufferVertex3D, &cbVert, &s_cbMeshOffset);	// BB don't constantly do this
+					m_pD3ddevicecontext->IASetIndexBuffer(m_cbufferIndex, DXGI_FORMAT_R16_UINT, 0);					//  ...
 
-				m_pD3ddevicecontext->Unmap(m_cbufferDrawnode3D, 0);
+					D3D11_MAPPED_SUBRESOURCE mappedSubresource;
+					m_pD3ddevicecontext->Map(m_cbufferDrawnode3D, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
+					SDrawNodeRenderConstants * pDrawnode3Drc = (SDrawNodeRenderConstants *) (mappedSubresource.pData);
+					pDrawnode3Drc->FillOut(matModelSkybox, pCamera3D->MatWorldToClip());
 
-				BindMaterialTextures(&material, &shader);
+					m_pD3ddevicecontext->Unmap(m_cbufferDrawnode3D, 0);
 
-				m_pD3ddevicecontext->DrawIndexed(mesh.m_cIndicies, mesh.m_iIndexdata, mesh.m_iVertdata);
+					BindMaterialTextures(&material, &shader);
+
+					m_pD3ddevicecontext->DrawIndexed(mesh.m_cIndicies, mesh.m_iIndexdata, mesh.m_iVertdata);
+				}
 			}
 
 			// Draw 3d nodes
@@ -833,19 +844,22 @@ void SGame::MainLoop()
 
 					const SMaterial & material = *(pUinode->m_hMaterial);
 					const SShader & shader = *(material.m_hShader);
+					if (shader.m_shaderk == SHADERK_Error)
+						continue;
+
 					ASSERT(shader.m_shaderk == SHADERK_Ui);
 
 					const SMesh3D & mesh = *pUinode->m_hMesh;
 
-					m_pD3ddevicecontext->IASetInputLayout(shader.m_pD3dinputlayout);
-					m_pD3ddevicecontext->VSSetShader(shader.m_pD3dvertexshader, nullptr, 0);
-					m_pD3ddevicecontext->PSSetShader(shader.m_pD3dfragshader, nullptr, 0);
+					m_pD3ddevicecontext->IASetInputLayout(shader.m_data.m_pD3dinputlayout);
+					m_pD3ddevicecontext->VSSetShader(shader.m_data.m_pD3dvertexshader, nullptr, 0);
+					m_pD3ddevicecontext->PSSetShader(shader.m_data.m_pD3dfragshader, nullptr, 0);
 
 					float blendFactor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 					UINT sampleMask = 0xffffffff;
-					m_pD3ddevicecontext->OMSetBlendState(shader.m_pD3dblendstatenoblend, blendFactor, sampleMask);
-					m_pD3ddevicecontext->RSSetState(shader.m_pD3drasterizerstate);
-					m_pD3ddevicecontext->OMSetDepthStencilState(shader.m_pD3ddepthstencilstate, 0);
+					m_pD3ddevicecontext->OMSetBlendState(shader.m_data.m_pD3dblendstatenoblend, blendFactor, sampleMask);
+					m_pD3ddevicecontext->RSSetState(shader.m_data.m_pD3drasterizerstate);
+					m_pD3ddevicecontext->OMSetDepthStencilState(shader.m_data.m_pD3ddepthstencilstate, 0);
 
 					m_pD3ddevicecontext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 					ID3D11Buffer * aD3dbuffer[] = { m_cbufferUiNode, m_cbufferGlobals };

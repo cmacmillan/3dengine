@@ -118,6 +118,10 @@ struct SGame // game
 
 	SMaterialHandle m_hMaterialDefault3d = -1;
 
+	// TODO should just have a map of every type
+
+	std::vector<SShader *> m_arypShader = {};
+
 	// Fonts
 
 	SFontHandle m_hFont = -1;
