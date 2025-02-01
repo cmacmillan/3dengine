@@ -495,9 +495,8 @@ void SGame::MainLoop()
 		if (!isRunning)
 			break;
 
-		if (m_fDidWindowResize && false)
+		if (m_fDidWindowResize)
 		{
-			//TODO
 			m_pD3ddevicecontext->OMSetRenderTargets(0, 0, 0);
 			m_pD3dframebufferview->Release();
 			m_pD3ddepthstencilview->Release();
