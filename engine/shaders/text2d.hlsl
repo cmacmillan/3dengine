@@ -23,12 +23,16 @@ cbuffer constants : register(b0)
 cbuffer globals : register(b1)
 {
     float time;
+    float deltaTime;
     float2 vecWinSize;
-    float padding;
     float4x4 matCameraToWorld;
     float4x4 matWorldToCamera;
 	float4x4 matClipToWorld;
     float4x4 matWorldToClip;
+    float4x4 matWorldToShadowClip;
+	float	xClipNear;
+	float	xClipFar;
+	float2	vecPadding;
 };
 
 struct VS_INPUT

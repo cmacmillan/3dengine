@@ -75,6 +75,9 @@ struct ShaderGlobals
     Mat		m_matWorldToCamera;
 	Mat		m_matClipToWorld;
     Mat		m_matWorldToClip;
+
+    Mat		m_matWorldToShadowClip;
+
 	float	m_xClipNear;
 	float	m_xClipFar;
 	float2	m_vecPadding;

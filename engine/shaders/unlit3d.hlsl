@@ -25,6 +25,7 @@ cbuffer globals : register(b1)
     float4x4 matWorldToCamera;
 	float4x4 matClipToWorld;
     float4x4 matWorldToClip;
+    float4x4 matWorldToShadowClip;
 	float	xClipNear;
 	float	xClipFar;
 	float2	vecPadding;

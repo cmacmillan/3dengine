@@ -3,6 +3,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "external/stb_image.h"
 
+#define nShadowRes 2048
+
 #include "engine.h"
 #include "fpscounter.h"
 #include "texture.h"
@@ -230,8 +232,6 @@ void SGame::Init(HINSTANCE hInstance)
 	// Create Shadow Render Target
 
 	{
-		int nShadowRes = 2048;
-
 		m_hTextureShadow = (new STexture())->HTexture();
 
 		// Create Sampler State
@@ -242,7 +242,7 @@ void SGame::Init(HINSTANCE hInstance)
 		samplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
 		samplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
 		samplerDesc.MinLOD = 0.0f;
-		samplerDesc.MaxLOD = D3D11_FLOAT32_MAX;
+		samplerDesc.MaxLOD = 0.0f; // Disable lod
 		samplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
 
 		g_game.m_pD3ddevice->CreateSamplerState(&samplerDesc, &m_hTextureShadow->m_pD3dsamplerstate);
@@ -396,8 +396,8 @@ void SGame::Init(HINSTANCE hInstance)
 	// Camera
 
 	(new SFlyCam(m_hNodeRoot, "FlyCam"));
-	m_hCamera3DShadow = (new SCamera3D(m_hNodeRoot, "AltCam", RadFromDeg(90.0f), 0.0, 700.0f))->HCamera3D();
-	m_hCamera3DShadow->SetOrthographic(100.0f);
+	m_hCamera3DShadow = (new SCamera3D(m_hNodeRoot, "AltCam", RadFromDeg(-1.0f), -500.0, 500.0f))->HCamera3D();
+	m_hCamera3DShadow->SetOrthographic(200.0f);
 
 	// Skybox
 
@@ -428,7 +428,7 @@ void SGame::Init(HINSTANCE hInstance)
 	pMaterial3d->m_aryNamedtexture.push_back({ (new STexture("textures/testTexture2.png", false, false))->HTexture(),  "altTexture"});
 
 	m_hPlaneTest = (new SDrawNode3D(m_hNodeRoot, "PlaneTest1"))->HDrawnode3D();
-	m_hPlaneTest->m_hMaterial = pMaterial3d->HMaterial();
+	m_hPlaneTest->m_hMaterial = pMaterial3dNDotL->HMaterial();
 	m_hPlaneTest->SetPosWorld(Point(10.0f, 0.0f, 0.0f));
 	m_hPlaneTest->m_hMesh = m_hMeshQuad;
 
@@ -441,6 +441,7 @@ void SGame::Init(HINSTANCE hInstance)
 	SDrawNode3DHandle hDrawnode3dSuzanne = (new SDrawNode3D(m_hPlaneTest->HNode(), "PlaneTest2"))->HDrawnode3D();
 	hDrawnode3dSuzanne->m_hMaterial = pMaterial3dNDotL->HMaterial();
 	hDrawnode3dSuzanne->m_hMaterial->m_aryNamedtexture.push_back({ (new STexture("textures/uvchecker.jpg",false,false))->HTexture(), "mainTexture" });
+	hDrawnode3dSuzanne->m_hMaterial->m_aryNamedtexture.push_back({ m_hTextureShadow, "sunShadowTexture" });
 	hDrawnode3dSuzanne->m_hMesh = pMeshSuzzane->HMesh();
 	hDrawnode3dSuzanne->SetPosWorld(Point(10.0f, -2.0f, 0.0f));
 
@@ -530,8 +531,6 @@ void SGame::MainLoop()
 		}
 
 		float2 vecWinSize = VecWinSize();
-
-		D3D11_VIEWPORT viewport = { 0.0f, 0.0f, vecWinSize.m_x, vecWinSize.m_y, 0.0f, 1.0f };
 
 		if (m_mpVkFDown[VK_ESCAPE])
 			DestroyWindow(m_hwnd);
@@ -732,8 +731,20 @@ void SGame::MainLoop()
 		// Start rendering stuff
 
 		for (int i = 0; i < 2; i++)
-		//for (int i = 1; i < 2; i++)
 		{
+			// Clear bound render targets
+
+			m_pD3ddevicecontext->OMSetRenderTargets(0, nullptr, nullptr);
+
+			// Set viewport 
+
+			D3D11_VIEWPORT viewport;
+			if (i==0)
+				viewport = { 0.0f, 0.0f, nShadowRes, nShadowRes, 0.0f, 1.0f };
+			else
+				viewport = { 0.0f, 0.0f, vecWinSize.m_x, vecWinSize.m_y, 0.0f, 1.0f };
+			m_pD3ddevicecontext->RSSetViewports(1, &viewport);
+
 			SCamera3D * pCamera3D = (i == 0 ? m_hCamera3DShadow : m_hCamera3DMain).PT();
 
 			ID3D11RenderTargetView * pD3drtview = (i == 0 ? m_pD3dframebufferviewShadow : m_pD3dframebufferview);
@@ -741,14 +752,14 @@ void SGame::MainLoop()
 
 			FLOAT backgroundColor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 			m_pD3ddevicecontext->ClearRenderTargetView(pD3drtview, backgroundColor);
-			m_pD3ddevicecontext->RSSetViewports(1, &viewport);
-			m_pD3ddevicecontext->OMSetRenderTargets(1, &pD3drtview, nullptr);
+
+			//m_pD3ddevicecontext->OMSetRenderTargets(1, &pD3drtview, nullptr);
 
 			// Clear depth to 0 since 0=far 1=near in our clip space
 
 			m_pD3ddevicecontext->ClearDepthStencilView(pD3ddepthstencilview, D3D11_CLEAR_DEPTH, 0.0f, 0);
 
-			BindGlobalsForCamera(pCamera3D);
+			BindGlobalsForCamera(pCamera3D, m_hCamera3DShadow.PT());
 
 			// Set render target
 
@@ -810,7 +821,7 @@ void SGame::MainLoop()
 
 			// Draw 3d nodes
 
-			Draw3D(&arypDrawnode3DToRender, pCamera3D);
+			Draw3D(&arypDrawnode3DToRender, pCamera3D, i == 0);
 
 			// Draw ui nodes
 			if (i == 1)

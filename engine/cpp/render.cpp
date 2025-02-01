@@ -3,7 +3,7 @@
 #include "shader.h"
 #include "texture.h"
 
-void Draw3D(std::vector<SDrawNode3D *> * parypDrawnode3DToRender, SCamera3D * pCamera)
+void Draw3D(std::vector<SDrawNode3D *> * parypDrawnode3DToRender, SCamera3D * pCamera, bool fDrawAsShadowcaster)
 {
 	Mat matWorldToClip = pCamera->MatWorldToClip();
 
@@ -13,8 +13,7 @@ void Draw3D(std::vector<SDrawNode3D *> * parypDrawnode3DToRender, SCamera3D * pC
 		if (pDrawnode3D->m_hMaterial == nullptr)
 			continue;
 
-		const SMaterial & material = *g_game.m_hMaterialShadowcaster;
-		//const SMaterial & material = *pDrawnode3D->m_hMaterial;
+		const SMaterial & material = (fDrawAsShadowcaster) ? *g_game.m_hMaterialShadowcaster : *pDrawnode3D->m_hMaterial;
 		const SShader & shader = *(material.m_hShader);
 		ASSERT(pDrawnode3D->FIsDerivedFrom(TYPEK_DrawNode3D));
 		ASSERT(shader.m_shaderk == SHADERK_3D);
@@ -52,8 +51,30 @@ void Draw3D(std::vector<SDrawNode3D *> * parypDrawnode3DToRender, SCamera3D * pC
 		BindMaterialTextures(&material, &shader);
 
 		pD3ddevicecontext->DrawIndexed(mesh.m_cIndicies, mesh.m_iIndexdata, mesh.m_iVertdata);
+
+		UnbindTextures(&shader);
 	}
 
+}
+
+void UnbindTextures(const SShader * pShader)
+{
+	// NOTE only necessary for render textures
+
+	ID3D11DeviceContext1 * pD3ddevicecontext  = g_game.m_pD3ddevicecontext;
+
+	// BB Very jank that we're doing an allocation here. Perfect use case for a stack array
+
+	std::vector<void *> arypV;
+
+	int cNamedslot = pShader->CNamedslot();
+	for (int i = 0; i < cNamedslot; i++)
+	{
+		arypV.push_back(nullptr);
+	}
+
+	pD3ddevicecontext->PSSetShaderResources(0, cNamedslot, reinterpret_cast<ID3D11ShaderResourceView **>(arypV.data()));
+	pD3ddevicecontext->PSSetSamplers(0, cNamedslot, reinterpret_cast<ID3D11SamplerState **>(arypV.data()));
 }
 
 void BindMaterialTextures(const SMaterial * pMaterial, const SShader * pShader)
@@ -95,7 +116,7 @@ void BindMaterialTextures(const SMaterial * pMaterial, const SShader * pShader)
 	pD3ddevicecontext->PSSetSamplers(0, arypD3dsamplerstate.size(), arypD3dsamplerstate.data());
 }
 
-void BindGlobalsForCamera(SCamera3D * pCamera)
+void BindGlobalsForCamera(SCamera3D * pCamera, SCamera3D * pCameraShadow)
 {
 	ID3D11DeviceContext1 * pD3ddevicecontext = g_game.m_pD3ddevicecontext;
 
@@ -109,6 +130,7 @@ void BindGlobalsForCamera(SCamera3D * pCamera)
 	pShaderglobals->m_matWorldToCamera = pCamera->MatObjectToWorld().MatInverse();
 	pShaderglobals->m_matClipToWorld = pCamera->MatClipToWorld();
 	pShaderglobals->m_matWorldToClip = pCamera->MatWorldToClip();
+	pShaderglobals->m_matWorldToShadowClip = (pCameraShadow) ? pCameraShadow->MatWorldToClip() : g_matIdentity;
 	pShaderglobals->m_xClipNear = pCamera->m_xNearClip;
 	pShaderglobals->m_xClipFar = pCamera->m_xFarClip;
 	pD3ddevicecontext->Unmap(g_game.m_cbufferGlobals, 0);
