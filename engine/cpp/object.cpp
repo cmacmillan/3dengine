@@ -19,6 +19,7 @@ TYPEK TypekSuper(TYPEK typek)
 						case TYPEK_GoalRing:	return TYPEK_DrawNode3D;
 					case TYPEK_Camera3D:	return TYPEK_Node3D;
 					case TYPEK_FlyCam:		return TYPEK_Node3D;
+					case TYPEK_Sun:			return TYPEK_Node3D;
 			case TYPEK_Font:		return TYPEK_Object;
 			case TYPEK_Mesh3D:		return TYPEK_Object;
 			case TYPEK_FpsCounter:	return TYPEK_Node;

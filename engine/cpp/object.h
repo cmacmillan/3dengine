@@ -89,6 +89,7 @@ enum TYPEK
 					TYPEK_GoalRing,
 				TYPEK_Camera3D,
 				TYPEK_FlyCam,
+				TYPEK_Sun,
 		TYPEK_Font,
 		TYPEK_Mesh3D,
 
@@ -154,3 +155,6 @@ typedef SHandle<SConsole> SConsoleHandle;
 
 struct SGoalRing;
 typedef SHandle<SGoalRing> SGoalRingHandle;
+
+struct SSun;
+typedef SHandle<SSun> SSunHandle;

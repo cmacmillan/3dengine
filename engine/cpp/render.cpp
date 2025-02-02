@@ -2,6 +2,7 @@
 #include "engine.h"
 #include "shader.h"
 #include "texture.h"
+#include "sun.h"
 
 void Draw3D(std::vector<SDrawNode3D *> * parypDrawnode3DToRender, SCamera3D * pCamera, bool fDrawAsShadowcaster)
 {
@@ -134,6 +135,12 @@ void BindGlobalsForCamera(SCamera3D * pCamera, SCamera3D * pCameraShadow)
 	pShaderglobals->m_matClipToWorld = pCamera->MatClipToWorld();
 	pShaderglobals->m_matWorldToClip = pCamera->MatWorldToClip();
 	pShaderglobals->m_matWorldToShadowClip = (pCameraShadow) ? pCameraShadow->MatWorldToClip() : g_matIdentity;
+
+	// Lights are z = towards the light in blender
+
+	SSun * pSun = g_game.m_hSun.PT();
+	pShaderglobals->m_normalSunDir = (pSun) ? pSun->VecZWorld().VecNormalized() : g_vecZAxis;
+
 	pShaderglobals->m_xClipNear = pCamera->m_xNearClip;
 	pShaderglobals->m_xClipFar = pCamera->m_xFarClip;
 	pD3ddevicecontext->Unmap(g_game.m_cbufferGlobals, 0);

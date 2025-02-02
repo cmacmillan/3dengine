@@ -357,6 +357,16 @@ Vector VecNormalize(const Vector & vec)
 	return vec / SLength(vec);
 }
 
+Vector VecNormalizeElse(const Vector & vec, const Vector & vecElse)
+{
+	if (FIsNear(vec, g_vecZero))
+	{
+		return VecNormalize(vecElse);
+	}
+
+	return VecNormalize(vec);
+}
+
 float Vector::SLength() const
 {
 	return ::SLength(*this);

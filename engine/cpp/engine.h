@@ -78,6 +78,8 @@ struct ShaderGlobals
 
     Mat		m_matWorldToShadowClip;
 
+	Vector	m_normalSunDir;
+
 	float	m_xClipNear;
 	float	m_xClipFar;
 	float2	m_vecPadding;
@@ -93,6 +95,7 @@ struct SGame // game
 	float2 VecWinSize();
 	void VkPressed(int vk);
 	void VkReleased(int vk);
+
 	void PrintConsole(const std::string & str, float dT = 0.0);
 
 	// TODO add QueuePrintConsole for debugging rendering stuff
@@ -118,6 +121,8 @@ struct SGame // game
 
 	SMaterialHandle m_hMaterialDefault3d = -1;
 
+	SSunHandle m_hSun = -1;
+
 	// TODO should just have a map of every type
 
 	std::vector<SShader *> m_arypShader = {};
@@ -133,6 +138,8 @@ struct SGame // game
 
 	HWND m_hwnd;
 	bool m_fDidWindowResize = false;
+
+	bool m_fRendering = false;
 
 	// Input
 

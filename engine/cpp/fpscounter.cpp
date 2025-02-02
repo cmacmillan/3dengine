@@ -54,7 +54,7 @@ void SFpsCounter::Update()
 
 	// TODO fps counter should be a node 2d these things are parented to
 
-	m_hText->SetText(StrPrintf("avg: %.1fms \nworst: %.1fms\nhistory:%i", GRound(1000 * gdTAvg, 1), GRound(1000 * dTWorst, 1), m_cdT));
+	m_hText->SetText(StrPrintf("avg: %.2fms \nworst: %.2fms\nhistory:%i", 1000 * gdTAvg, 1000 * dTWorst, m_cdT));
 	m_hTextFps->SetText(StrPrintf("(%.0ffps)", GRound(gFps, 0)));
 
 	// BB why do we have to scale vecwinsize by 2?

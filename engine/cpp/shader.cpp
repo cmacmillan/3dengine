@@ -920,7 +920,7 @@ SShader::SShader(const char * pChzFile) : super()
 	if (!FTryLoadFromFile(&file, &data, &strError))
 	{
 		m_shaderk = SHADERK_Error;
-		g_game.PrintConsole(StrPrintf("Shader compile error:\n%s\n", strError.c_str()), 20.0f);
+		g_game.PrintConsole(StrPrintf("Shader compile error (%s) :\n%s\n", m_strFile.c_str(), strError.c_str()), 20.0f);
 		return;
 	}
 	
@@ -967,7 +967,7 @@ void SShader::UpdateHotload()
 	if (!FTryLoadFromFile(&file, &data, &strError))
 	{
 		m_shaderk = SHADERK_Error;
-		g_game.PrintConsole(StrPrintf("Shader compile error:\n%s\n", strError.c_str()), 20.0f);
+		g_game.PrintConsole(StrPrintf("Shader compile error (%s) :\n\n", m_strFile.c_str(), strError.c_str()), 20.0f);
 		return;
 	}
 

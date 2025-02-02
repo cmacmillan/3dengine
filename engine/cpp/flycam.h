@@ -12,4 +12,11 @@ struct SFlyCam : SNode3D
 	void Update() override;
 
 	SCamera3DHandle m_hCamera3D = -1;
+
+	bool m_fMouseControls = false;
+	bool m_fInteracting = false;
+	int m_xCursorPrev = -1;
+	int m_yCursorPrev = -1;
+	Point m_posCenter = g_posZero;
+	float m_sRadiusCenter = 0.0f;
 };

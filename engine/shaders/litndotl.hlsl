@@ -25,6 +25,7 @@ cbuffer globals : register(b1)
 	float4x4 matClipToWorld;
     float4x4 matWorldToClip;
     float4x4 matWorldToShadowClip;
+	float4	normalSunDir;
 	float	xClipNear;
 	float	xClipFar;
 	float2	vecPadding;
@@ -71,8 +72,8 @@ float maprange(float a1, float b1, float a2, float b2, float input)
 
 float4 ps_main(VS_Output input) : SV_Target
 {
-    float light = dot(input.normal, normalize(float3(-1, -.3, 1)));
-    float gShadow = 0.0f;//
+    float light = dot(input.normal, normalSunDir.xyz);
+    float gShadow = 0.0f;
     if (input.posShadow.w != 0.0f)
     {
         input.posShadow /= input.posShadow.w;

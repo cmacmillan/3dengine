@@ -382,9 +382,9 @@ void SGame::Init(HINSTANCE hInstance)
 		PushQuad3D(&m_hMeshQuad->m_aryVertdata, &m_hMeshQuad->m_aryIIndex);
 	}
 
+	// Load initial text shader and set up the console
+
 	SShaderHandle hShaderText = (new SShader("shaders\\text2d.hlsl"))->HShader();
-	SShaderHandle hShader3D = (new SShader("shaders\\unlit3d.hlsl"))->HShader();
-	SShaderHandle hShader3DNDotL = (new SShader("shaders\\litndotl.hlsl"))->HShader();
 
 	// Font 
 
@@ -397,6 +397,11 @@ void SGame::Init(HINSTANCE hInstance)
 	// Console
 
 	m_hConsole = (new SConsole(m_hNodeRoot, "Console"))->HConsole();
+
+	// Load other shaders
+
+	SShaderHandle hShader3D = (new SShader("shaders\\unlit3d.hlsl"))->HShader();
+	SShaderHandle hShader3DNDotL = (new SShader("shaders\\litndotl.hlsl"))->HShader();
 
 	// Fps counter
 
@@ -499,6 +504,24 @@ void SGame::MainLoop()
 				isRunning = false;
 			TranslateMessage(&msg);
 			DispatchMessageW(&msg);
+		}
+
+		// Manually add alt to the input map
+		// TODO should probably sample all keys like this to avoid key up outside of window issues
+
+		SHORT s = GetKeyState(VK_MENU);
+		bool fAltDown = (GetKeyState(VK_MENU) & (1 << 15)) != 0;
+		if (m_mpVkFDown[VK_MENU] != fAltDown)
+		{
+			m_mpVkFDown[VK_MENU] = fAltDown;
+			if (fAltDown)
+			{
+				m_mpVkFJustPressed[VK_MENU] = true;
+			}
+			else
+			{
+				m_mpVkFJustReleased[VK_MENU] = true;
+			}
 		}
 
 		if (!isRunning)
@@ -655,6 +678,8 @@ void SGame::MainLoop()
 
 		SConsole * pConsole = m_hConsole.PT();
 		pConsole->m_hTextConsole->SetText(pConsole->StrPrint());
+
+		m_fRendering = true;
 
 		// Pack all the meshes into a big index and vertex buffer
 		//  See https://learn.microsoft.com/en-us/windows/win32/api/d3d11/ne-d3d11-d3d11_map
@@ -893,14 +918,17 @@ void SGame::MainLoop()
 			}
 		}
 
+		m_pD3dswapchain->Present(1, 0);
+			
+		m_fRendering = false;
+
 		for (int i = 0; i < DIM(m_mpVkFJustPressed); i++)
 		{
 			m_mpVkFJustPressed[i] = false;
 			m_mpVkFJustReleased[i] = false;
 		}
-		m_sScroll = 0.0f;
 
-		m_pD3dswapchain->Present(1, 0);
+		m_sScroll = 0.0f;
 	}
 }
 
@@ -966,6 +994,18 @@ LRESULT SGame::LresultWindowProcedure(HWND hwnd, UINT msg, WPARAM wparam, LPARAM
 		case WM_LBUTTONUP:
 			{
 				VkReleased(VK_LBUTTON);
+			}
+			break;
+
+		case WM_MBUTTONDOWN:
+			{
+				VkPressed(VK_MBUTTON);
+			}
+			break;
+
+		case WM_MBUTTONUP:
+			{
+				VkReleased(VK_MBUTTON);
 			}
 			break;
 

@@ -3,6 +3,7 @@
 #include "mesh.h"
 #include "engine.h"
 #include "goalring.h"
+#include "sun.h"
 
 #include <vector>
 
@@ -66,9 +67,13 @@ void SpawnNode(tinygltf::Model * pModel, int iNode, SNode * pNodeParent)
 			ASSERT(pValue->IsString());
 			const std::string & str= pValue->string_value_;
 
-			if (str == "GoalRing")
+			if (FMatchCaseInsensitive(str, "GoalRing"))
 			{
 				pNode3d = new SGoalRing(pNodeParent->HNode(), pNode->name);
+			}
+			else if (FMatchCaseInsensitive(str, "Sun"))
+			{
+				pNode3d = new SSun(pNodeParent->HNode(), pNode->name);
 			}
 		}
 	}
