@@ -122,6 +122,8 @@ struct SGame // game
 
 	std::vector<SShader *> m_arypShader = {};
 
+	std::string m_strAssetPath = {};
+
 	// Fonts
 
 	SFontHandle m_hFont = -1;

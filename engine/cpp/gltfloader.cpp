@@ -26,7 +26,7 @@ bool FTryLoadModel(const char * pChzPath, tinygltf::Model * pModel)
 	std::string strErr;
 	std::string strWarn;
 
-	bool fSuccess = loader.LoadASCIIFromFile(pModel, &strErr, &strWarn, StrPrintf("%s%s", ASSET_PATH, pChzPath).c_str());
+	bool fSuccess = loader.LoadASCIIFromFile(pModel, &strErr, &strWarn, StrPrintf("%s\\%s", g_game.m_strAssetPath.c_str(), pChzPath).c_str());
 
 	if (!strWarn.empty())
 		g_game.PrintConsole(StrPrintf("%s\n",strWarn).c_str());

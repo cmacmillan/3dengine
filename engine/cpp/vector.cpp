@@ -544,18 +544,27 @@ Mat Mat::MatTranspose() const
 	return Mat(vecCol0, vecCol1, vecCol2, vecCol3);
 }
 
-Quat Quat::operator*(const Quat & quat) const
+Quat QuatMulRaw(const Quat & quatA, const Quat & quatB)
 {
+	// Multiply quats without renormalizing
+
 	// i^2 = j^2 = k^2 = ijk = -1
 
 	// By applying the above rule, keeping in mind that Quaternions are of the form Q = a + bi + cj + dk
 	//  and then distributing you arrive at the following:
 
 	return Quat(
-				m_a * quat.m_a - m_b * quat.m_b - m_c * quat.m_c - m_d * quat.m_d,
-				m_a * quat.m_b + m_b * quat.m_a + m_c * quat.m_d - m_d * quat.m_c,
-				m_a * quat.m_c - m_b * quat.m_d + m_c * quat.m_a + m_d * quat.m_b,
-				m_a * quat.m_d + m_b * quat.m_c - m_c * quat.m_b + m_d * quat.m_a);
+				quatA.m_a * quatB.m_a - quatA.m_b * quatB.m_b - quatA.m_c * quatB.m_c - quatA.m_d * quatB.m_d,
+				quatA.m_a * quatB.m_b + quatA.m_b * quatB.m_a + quatA.m_c * quatB.m_d - quatA.m_d * quatB.m_c,
+				quatA.m_a * quatB.m_c - quatA.m_b * quatB.m_d + quatA.m_c * quatB.m_a + quatA.m_d * quatB.m_b,
+				quatA.m_a * quatB.m_d + quatA.m_b * quatB.m_c - quatA.m_c * quatB.m_b + quatA.m_d * quatB.m_a);
+}
+
+Quat Quat::operator*(const Quat & quat) const
+{
+	Quat quatRetr = QuatMulRaw(*this, quat);
+	float sLength = quatRetr.SLength();
+	return Quat(quatRetr.m_a / sLength, quatRetr.m_b / sLength, quatRetr.m_c / sLength, quatRetr.m_d / sLength);
 }
 
 Quat Quat::Inverse() const
@@ -620,9 +629,9 @@ Quat QuatFromTo(const Vector & vecFrom, const Vector & vecTo)
 
 Quat QuatFromMatRot(const Mat & matRot)
 {
-	ASSERT(FIsNear(SLength(matRot.m_aVec[0]),1.0f));
-	ASSERT(FIsNear(SLength(matRot.m_aVec[1]),1.0f));
-	ASSERT(FIsNear(SLength(matRot.m_aVec[2]),1.0f));
+	ASSERT(FIsNear(SLength(matRot.m_aVec[0]), 1.0f));
+	ASSERT(FIsNear(SLength(matRot.m_aVec[1]), 1.0f));
+	ASSERT(FIsNear(SLength(matRot.m_aVec[2]), 1.0f));
 
 	// From https://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToQuaternion/
 
@@ -702,7 +711,7 @@ float4 VecRotate(const float4 & vec, const Quat & quat)
 
 	Quat quatPoint = Quat(0.0f, vec.m_x, vec.m_y, vec.m_z);
 
-	Quat quatResult = quat * quatPoint * quat.Inverse();
+	Quat quatResult = QuatMulRaw(QuatMulRaw(quat, quatPoint), quat.Inverse());
 
 	return float4(quatResult.m_b, quatResult.m_c, quatResult.m_d, vec.m_w);
 }

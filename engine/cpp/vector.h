@@ -195,6 +195,7 @@ extern Quat g_quatIdentity;
 Quat QuatAxisAngle(const Vector & normal, float radAngle);
 Quat QuatFromTo(const Vector & vecFrom, const Vector & vecTo);
 Quat QuatLookAt(const Vector & vecForward, const Vector & vecUp);
+Quat QuatMulRaw(const Quat & quatA, const Quat & quatB);
 
 bool FIsNear(const Quat & quat1, const Quat & quat2);
 

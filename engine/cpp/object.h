@@ -6,7 +6,6 @@
 
 #include "util.h"
 #include "vector.h"
-#define ASSET_PATH "C:\\Users\\chase\\OneDrive\\Desktop\\3dengine\\engine\\" // TODO make relative instead of absolute
 
 struct SObject;
 struct SObjectManager

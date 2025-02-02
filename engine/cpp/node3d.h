@@ -29,6 +29,10 @@ struct SNode3D : SNode // node3D
 
 	Mat MatObjectToWorld() { return m_matObjectToWorldCache;  }
 
+	Vector VecXWorld() { return VecRotate(g_vecXAxis, m_quatObjectToWorldCache); }
+	Vector VecYWorld() { return VecRotate(g_vecYAxis, m_quatObjectToWorldCache); }
+	Vector VecZWorld() { return VecRotate(g_vecZAxis, m_quatObjectToWorldCache); }
+
 	void UpdateSelfAndChildTransformCache();
 
 protected:

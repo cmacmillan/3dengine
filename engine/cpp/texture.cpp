@@ -28,7 +28,7 @@ STexture::STexture(const char * pChzFilename, bool fIsNormal, bool fGenerateMips
 	// Load Image
 	int texNumChannels;
 	int texForceNumChannels = 4;
-	unsigned char * aBTexture = stbi_load(StrPrintf("%s%s", ASSET_PATH, pChzFilename).c_str(), &m_dX, &m_dY,
+	unsigned char * aBTexture = stbi_load(StrPrintf("%s\\%s", g_game.m_strAssetPath.c_str(), pChzFilename).c_str(), &m_dX, &m_dY,
 		&texNumChannels, texForceNumChannels);
 	assert(aBTexture);
 	int texBytesPerRow = 4 * m_dX;

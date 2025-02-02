@@ -1,5 +1,6 @@
 #include "file.h"
 #include "object.h"
+#include "engine.h"
 
 SFile::SFile()
 {
@@ -60,6 +61,6 @@ bool FTryReadFile(const char * pChzPath, SFile * pFile)
 {
 	// BB would be nice to have a stack allocated string class
 
-	std::string strPath = std::string(ASSET_PATH) + pChzPath;
+	std::string strPath = g_game.m_strAssetPath + "\\" + pChzPath;
 	return pFile->FTryRead(strPath.c_str());
 }

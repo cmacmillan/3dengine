@@ -105,6 +105,15 @@ void SGame::Init(HINSTANCE hInstance)
 		}
 	}
 
+	// Get exe path
+	{
+		WCHAR aChzCurrentDirectory[1000];
+		int cChar = GetCurrentDirectory(DIM(aChzCurrentDirectory), aChzCurrentDirectory);
+		ASSERT(cChar != 0);
+
+		m_strAssetPath = StrFromWstr(aChzCurrentDirectory);
+	}
+
 	// Create D3D11 Device and Context
 	{
 		ID3D11Device * baseDevice;
@@ -787,7 +796,7 @@ void SGame::MainLoop()
 					{
 						float x = Lerp(pCamera3D->m_xNearClip, pCamera3D->m_xFarClip, 0.1f);
 						Mat matTranslate = MatTranslate(x * pCamera3D->MatObjectToWorld().VecX() + pCamera3D->MatObjectToWorld().Pos());
-						Quat quat = QuatLookAt(-pCamera3D->MatObjectToWorld().VecX(), pCamera3D->MatObjectToWorld().VecZ());
+						Quat quat = QuatLookAt(-pCamera3D->VecXWorld(), pCamera3D->VecZWorld());
 						Mat matRot = MatRotate(quat);
 						float w = x * GTan(pCamera3D->m_radFovHorizontal * 0.5f);
 						float h = w * vecWinSize.m_y / vecWinSize.m_x;
