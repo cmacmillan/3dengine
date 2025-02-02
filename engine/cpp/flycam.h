@@ -18,5 +18,5 @@ struct SFlyCam : SNode3D
 	int m_xCursorPrev = -1;
 	int m_yCursorPrev = -1;
 	Point m_posCenter = g_posZero;
-	float m_sRadiusCenter = 0.0f;
+	float m_sRadiusCenter = 10.0f;
 };

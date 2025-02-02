@@ -60,6 +60,62 @@ SGame::SGame()
 	}
 }
 
+int aVkCompute[] = {
+	VK_0,
+	VK_1,
+	VK_2,
+	VK_3,
+	VK_4,
+	VK_5,
+	VK_6,
+	VK_7,
+	VK_8,
+	VK_9,
+	VK_A,
+	VK_B,
+	VK_C,
+	VK_D,
+	VK_E,
+	VK_F,
+	VK_G,
+	VK_H,
+	VK_I,
+	VK_J,
+	VK_K,
+	VK_L,
+	VK_M,
+	VK_N,
+	VK_O,
+	VK_P,
+	VK_Q,
+	VK_R,
+	VK_S,
+	VK_T,
+	VK_U,
+	VK_V,
+	VK_W,
+	VK_X,
+	VK_Y,
+	VK_Z,
+
+	VK_MENU,
+	VK_ESCAPE,
+	VK_RBUTTON,
+	VK_LBUTTON,
+	VK_MBUTTON,
+	VK_SHIFT,
+	VK_CONTROL,
+	VK_SPACE,
+	VK_BACK,
+	VK_TAB,
+	VK_RETURN,
+
+	VK_LEFT,
+	VK_RIGHT,
+	VK_UP,
+	VK_DOWN,
+};
+
 void SGame::Init(HINSTANCE hInstance)
 {
 	STimingContext timectx = STimingContext("Init", 15.0f);
@@ -506,21 +562,21 @@ void SGame::MainLoop()
 			DispatchMessageW(&msg);
 		}
 
-		// Manually add alt to the input map
-		// TODO should probably sample all keys like this to avoid key up outside of window issues
-
-		SHORT s = GetKeyState(VK_MENU);
-		bool fAltDown = (GetKeyState(VK_MENU) & (1 << 15)) != 0;
-		if (m_mpVkFDown[VK_MENU] != fAltDown)
+		for (int iVk = 0; iVk < DIM(aVkCompute); iVk++)
 		{
-			m_mpVkFDown[VK_MENU] = fAltDown;
-			if (fAltDown)
+			int vk = aVkCompute[iVk];
+			bool fDown = (GetKeyState(vk) & (1 << 15)) != 0;
+			if (m_mpVkFDown[vk] != fDown)
 			{
-				m_mpVkFJustPressed[VK_MENU] = true;
-			}
-			else
-			{
-				m_mpVkFJustReleased[VK_MENU] = true;
+				m_mpVkFDown[vk] = fDown;
+				if (fDown)
+				{
+					m_mpVkFJustPressed[vk] = true;
+				}
+				else
+				{
+					m_mpVkFJustReleased[vk] = true;
+				}
 			}
 		}
 
@@ -974,51 +1030,13 @@ LRESULT SGame::LresultWindowProcedure(HWND hwnd, UINT msg, WPARAM wparam, LPARAM
 			break;
 
 		case WM_RBUTTONDOWN:
-			{
-				VkPressed(VK_RBUTTON);
-			}
-			break;
-
 		case WM_RBUTTONUP:
-			{
-				VkReleased(VK_RBUTTON);
-			}
-			break;
-
 		case WM_LBUTTONDOWN:
-			{
-				VkPressed(VK_LBUTTON);
-			}
-			break;
-
 		case WM_LBUTTONUP:
-			{
-				VkReleased(VK_LBUTTON);
-			}
-			break;
-
 		case WM_MBUTTONDOWN:
-			{
-				VkPressed(VK_MBUTTON);
-			}
-			break;
-
 		case WM_MBUTTONUP:
-			{
-				VkReleased(VK_MBUTTON);
-			}
-			break;
-
 		case WM_KEYDOWN:
-			{
-				VkPressed(wparam);
-			}
-			break;
-
 		case WM_KEYUP:
-			{
-				VkReleased(wparam);
-			}
 			break;
 
 		case WM_DESTROY:
