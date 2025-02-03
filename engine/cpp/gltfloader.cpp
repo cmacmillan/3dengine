@@ -4,6 +4,7 @@
 #include "engine.h"
 #include "goalring.h"
 #include "sun.h"
+#include "player.h"
 
 #include <vector>
 
@@ -65,15 +66,30 @@ void SpawnNode(tinygltf::Model * pModel, int iNode, SNode * pNodeParent)
 		if (FTryGetValueFromKey(pMpStrValue, "class", &pValue))
 		{
 			ASSERT(pValue->IsString());
-			const std::string & str= pValue->string_value_;
-
-			if (FMatchCaseInsensitive(str, "GoalRing"))
+			if (!pValue->IsString())
 			{
-				pNode3d = new SGoalRing(pNodeParent->HNode(), pNode->name);
+				g_game.PrintConsole("'Class' value must be a string\n", 10.0f);
 			}
-			else if (FMatchCaseInsensitive(str, "Sun"))
+			else
 			{
-				pNode3d = new SSun(pNodeParent->HNode(), pNode->name);
+				const std::string & str = pValue->string_value_;
+
+				if (FMatchCaseInsensitive(str, "GoalRing"))
+				{
+					pNode3d = new SGoalRing(pNodeParent->HNode(), pNode->name);
+				}
+				else if (FMatchCaseInsensitive(str, "Sun"))
+				{
+					pNode3d = new SSun(pNodeParent->HNode(), pNode->name);
+				}
+				else if (FMatchCaseInsensitive(str, "Player"))
+				{
+					pNode3d = new SPlayer(pNodeParent->HNode(), pNode->name);
+				}
+				else
+				{
+					g_game.PrintConsole(StrPrintf("Unrecongized class '%s'\n", str.c_str()), 10.0f);
+				}
 			}
 		}
 	}
@@ -94,6 +110,9 @@ void SpawnNode(tinygltf::Model * pModel, int iNode, SNode * pNodeParent)
 			SNode3D * pNode3d = new SNode3D(pNodeParent->HNode(), pNode->name);
 		}
 	}
+
+	if (pNode3d == nullptr)
+		return;
 
 	// Do node configuration in a post-pass to support inheritance
 

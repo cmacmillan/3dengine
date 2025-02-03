@@ -93,9 +93,9 @@ struct SGame // game
 	void MainLoop();
 	LRESULT LresultWindowProcedure(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
 	float2 VecWinSize();
+	float2 VecWinTopLeft();
 	void VkPressed(int vk);
 	void VkReleased(int vk);
-
 	void PrintConsole(const std::string & str, float dT = 0.0);
 
 	// TODO add QueuePrintConsole for debugging rendering stuff
@@ -123,6 +123,8 @@ struct SGame // game
 
 	SSunHandle m_hSun = -1;
 
+	SPlayerHandle m_hPlayer = -1;
+
 	// TODO should just have a map of every type
 
 	std::vector<SShader *> m_arypShader = {};
@@ -138,8 +140,7 @@ struct SGame // game
 
 	HWND m_hwnd;
 	bool m_fDidWindowResize = false;
-
-	bool m_fRendering = false;
+	bool m_fWindowFocused = false;
 
 	// Input
 

@@ -14,6 +14,7 @@
 #include "timingcontext.h"
 #include "gltfloader.h"
 #include "render.h"
+#include "sun.h"
 
 #include <exception>
 
@@ -48,6 +49,14 @@ float2 SGame::VecWinSize()
 	float dxWindow = winRect.right - winRect.left;
 	float dyWindow = winRect.bottom - winRect.top;
 	return float2(dxWindow, dyWindow);
+}
+
+float2 SGame::VecWinTopLeft()
+{
+	RECT winRect;
+	GetWindowRect(m_hwnd, &winRect);
+
+	return float2(winRect.left, winRect.top);
 }
 
 SGame::SGame()
@@ -122,6 +131,21 @@ void SGame::Init(HINSTANCE hInstance)
 
 	m_hNodeRoot = (new SNode(-1, "RootNode"))->HNode();
 
+	/*
+	// https://learn.microsoft.com/en-us/windows/win32/inputdev/using-raw-input
+	RAWINPUTDEVICE aRid[] =
+	{
+		{
+		0x01,						// HID_USAGE_PAGE_GENERIC
+		0x02,						// HID_USAGE_GENERIC_MOUSE
+		0x00,//RIDEV_NOLEGACY,		// adds mouse and also ignores legacy mouse messages
+		0,
+		}
+	};
+
+	VERIFY(RegisterRawInputDevices(aRid, DIM(aRid), sizeof(aRid[0])));
+	*/
+
 	// Open a window
 	{
 		WNDCLASSEXW winClass = {};
@@ -145,14 +169,20 @@ void SGame::Init(HINSTANCE hInstance)
 		LONG initialWidth = initialRect.right - initialRect.left;
 		LONG initialHeight = initialRect.bottom - initialRect.top;
 
-		m_hwnd = CreateWindowExW(WS_EX_OVERLAPPEDWINDOW,
-			winClass.lpszClassName,
-			L"Engine",
-			WS_OVERLAPPEDWINDOW | WS_VISIBLE,
-			CW_USEDEFAULT, CW_USEDEFAULT,
-			initialWidth,
-			initialHeight,
-			0, 0, hInstance, 0);
+		m_hwnd = CreateWindowExW(
+					WS_EX_OVERLAPPEDWINDOW,
+					winClass.lpszClassName,
+					L"Engine",
+					//(WS_OVERLAPPEDWINDOW | WS_VISIBLE) & ~WS_SYSMENU,
+					WS_OVERLAPPEDWINDOW | WS_VISIBLE,
+					CW_USEDEFAULT, 
+					CW_USEDEFAULT,
+					initialWidth,
+					initialHeight,
+					0, 
+					0, 
+					hInstance, 
+					0);
 
 		if (!m_hwnd)
 		{
@@ -562,10 +592,16 @@ void SGame::MainLoop()
 			DispatchMessageW(&msg);
 		}
 
+		if (!isRunning)
+			break;
+
+		// Read input
+		// BB could use GetKeyboard state instead to get this all at once
+
 		for (int iVk = 0; iVk < DIM(aVkCompute); iVk++)
 		{
 			int vk = aVkCompute[iVk];
-			bool fDown = (GetKeyState(vk) & (1 << 15)) != 0;
+			bool fDown = ((GetKeyState(vk) & (1 << 15)) != 0) && m_fWindowFocused;
 			if (m_mpVkFDown[vk] != fDown)
 			{
 				m_mpVkFDown[vk] = fDown;
@@ -579,9 +615,6 @@ void SGame::MainLoop()
 				}
 			}
 		}
-
-		if (!isRunning)
-			break;
 
 		if (m_fDidWindowResize)
 		{
@@ -631,6 +664,9 @@ void SGame::MainLoop()
 
 		////////// GAMEPLAY CODE (JANK)
 	
+		g_game.m_hCamera3DShadow->SetPosWorld(m_hSun->PosWorld());
+		g_game.m_hCamera3DShadow->SetQuatWorld(QuatLookAt(-m_hSun->VecZWorld(),m_hSun->VecYWorld()));
+
 		m_hPlaneTest2->SetQuatLocal(QuatAxisAngle(g_vecYAxis, m_dT * 10.0f) * m_hPlaneTest2->QuatLocal());
 
 		///////////////////////////////
@@ -734,8 +770,6 @@ void SGame::MainLoop()
 
 		SConsole * pConsole = m_hConsole.PT();
 		pConsole->m_hTextConsole->SetText(pConsole->StrPrint());
-
-		m_fRendering = true;
 
 		// Pack all the meshes into a big index and vertex buffer
 		//  See https://learn.microsoft.com/en-us/windows/win32/api/d3d11/ne-d3d11-d3d11_map
@@ -976,32 +1010,20 @@ void SGame::MainLoop()
 
 		m_pD3dswapchain->Present(1, 0);
 			
-		m_fRendering = false;
-
 		for (int i = 0; i < DIM(m_mpVkFJustPressed); i++)
 		{
 			m_mpVkFJustPressed[i] = false;
 			m_mpVkFJustReleased[i] = false;
 		}
 
+		if (m_fWindowFocused)
+		{
+			float2 vecWinTopLeft = VecWinTopLeft();
+			SetCursorPos(vecWinTopLeft.m_x + vecWinSize.m_x / 2, vecWinTopLeft.m_y + vecWinSize.m_y / 2);
+		}
+
 		m_sScroll = 0.0f;
 	}
-}
-
-void SGame::VkPressed(int vk)
-{
-	ASSERT(vk> 0 && vk < DIM(m_mpVkFDown));
-	if (!m_mpVkFDown[vk])
-		m_mpVkFJustPressed[vk] = true;
-	m_mpVkFDown[vk] = true;
-}
-
-void SGame::VkReleased(int vk)
-{
-	ASSERT(vk> 0 && vk < DIM(m_mpVkFDown));
-	if (m_mpVkFDown[vk])
-		m_mpVkFJustReleased[vk] = true;
-	m_mpVkFDown[vk] = false;
 }
 
 void SGame::PrintConsole(const std::string & str, float dT)
@@ -1009,11 +1031,80 @@ void SGame::PrintConsole(const std::string & str, float dT)
 	m_hConsole->Print(str, g_game.m_dTSyst + dT);
 }
 
+void SGame::VkPressed(int vk)
+{
+   ASSERT(vk> 0 && vk < DIM(m_mpVkFDown));
+   if (!m_mpVkFDown[vk])
+		   m_mpVkFJustPressed[vk] = true;
+   m_mpVkFDown[vk] = true;
+}
+
+void SGame::VkReleased(int vk)
+{
+   ASSERT(vk> 0 && vk < DIM(m_mpVkFDown));
+   if (m_mpVkFDown[vk])
+		   m_mpVkFJustReleased[vk] = true;
+   m_mpVkFDown[vk] = false;
+}
+
 LRESULT SGame::LresultWindowProcedure(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
 	LRESULT result = 0;
 	switch (msg)
 	{
+		/*
+		case WM_INPUT: 
+		{
+			// https://learn.microsoft.com/en-us/windows/win32/inputdev/using-raw-input
+
+			// TODO use raw input for keyboard too, see above link
+
+			UINT dwSize = sizeof(RAWINPUT);
+			static BYTE lpb[sizeof(RAWINPUT)];
+
+			GetRawInputData((HRAWINPUT)lparam, RID_INPUT, lpb, &dwSize, sizeof(RAWINPUTHEADER));
+
+			RAWINPUT* raw = (RAWINPUT*)lpb;
+			
+			if (raw->header.dwType == RIM_TYPEMOUSE) 
+			{
+				if (raw->data.mouse.usFlags & MOUSE_MOVE_ABSOLUTE)
+				{
+					m_xCursor = raw->data.mouse.lLastX;
+					m_yCursor = raw->data.mouse.lLastY;
+				}
+
+				if (raw->data.mouse.usFlags & MOUSE_MOVE_RELATIVE)
+				{
+					m_xCursor += raw->data.mouse.lLastX;
+					m_yCursor += raw->data.mouse.lLastY;
+				}
+
+				if ((raw->data.mouse.usButtonFlags & RI_MOUSE_BUTTON_1_DOWN) != 0)
+				{
+					VkPressed(VK_LBUTTON);
+				}
+
+				if ((raw->data.mouse.usButtonFlags & RI_MOUSE_BUTTON_1_UP) != 0)
+				{
+					VkReleased(VK_LBUTTON);
+				}
+
+				if ((raw->data.mouse.usButtonFlags & RI_MOUSE_BUTTON_2_DOWN) != 0)
+				{
+					VkPressed(VK_RBUTTON);
+				}
+
+				if ((raw->data.mouse.usButtonFlags & RI_MOUSE_BUTTON_2_UP) != 0)
+				{
+					VkReleased(VK_RBUTTON);
+				}
+			} 
+
+			return 0;
+		} 
+		*/
+
 		case WM_MOUSEMOVE:
 			{
 				short nLower = lparam;
@@ -1037,6 +1128,24 @@ LRESULT SGame::LresultWindowProcedure(HWND hwnd, UINT msg, WPARAM wparam, LPARAM
 		case WM_MBUTTONUP:
 		case WM_KEYDOWN:
 		case WM_KEYUP:
+			// We manually read keys
+			break;
+
+		case WM_SETFOCUS:
+			m_fWindowFocused = true;
+			return 0;
+
+		case WM_KILLFOCUS:
+			m_fWindowFocused = false;
+			return 0;
+
+		case WM_SYSKEYDOWN:
+			// Don't do default to avoid tapping alt freezing the game
+			break;
+
+		// https://learn.microsoft.com/en-us/windows/win32/menurc/keyboard-accelerators
+		case WM_SYSCHAR:
+			// Disable beep when you type alt+another key that (the missing accelerator warning noise)
 			break;
 
 		case WM_DESTROY:

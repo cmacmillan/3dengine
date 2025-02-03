@@ -137,6 +137,8 @@
     <ClCompile Include="cpp\node.cpp" />
     <ClCompile Include="cpp\node3d.cpp" />
     <ClCompile Include="cpp\object.cpp" />
+    <ClCompile Include="cpp\phys.cpp" />
+    <ClCompile Include="cpp\player.cpp" />
     <ClCompile Include="cpp\render.cpp" />
     <ClCompile Include="cpp\shader.cpp" />
     <ClCompile Include="cpp\slotheap.cpp" />
@@ -171,6 +173,8 @@
     <ClInclude Include="cpp\node.h" />
     <ClInclude Include="cpp\node3d.h" />
     <ClInclude Include="cpp\object.h" />
+    <ClInclude Include="cpp\phys.h" />
+    <ClInclude Include="cpp\player.h" />
     <ClInclude Include="cpp\render.h" />
     <ClInclude Include="cpp\shader.h" />
     <ClInclude Include="cpp\slotheap.h" />

@@ -90,6 +90,7 @@ enum TYPEK
 				TYPEK_Camera3D,
 				TYPEK_FlyCam,
 				TYPEK_Sun,
+				TYPEK_Player,
 		TYPEK_Font,
 		TYPEK_Mesh3D,
 
@@ -158,3 +159,6 @@ typedef SHandle<SGoalRing> SGoalRingHandle;
 
 struct SSun;
 typedef SHandle<SSun> SSunHandle;
+
+struct SPlayer;
+typedef SHandle<SPlayer> SPlayerHandle;

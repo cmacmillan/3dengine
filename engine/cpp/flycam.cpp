@@ -1,5 +1,6 @@
 #include "flycam.h"
 #include "engine.h"
+#include "player.h"
 
 SFlyCam::SFlyCam(SNodeHandle hNodeParent, const std::string & strName) : super(hNodeParent, strName)
 {
@@ -8,6 +9,7 @@ SFlyCam::SFlyCam(SNodeHandle hNodeParent, const std::string & strName) : super(h
 	m_hCamera3D = (new SCamera3D(HNode(), "FlyCamCamera", RadFromDeg(90.0f), 0.1, 700.0f))->HCamera3D();
 	g_game.m_hCamera3DMain = m_hCamera3D;
 
+	m_fActive = true;
 	m_fMouseControls = true;
 }
 
@@ -15,21 +17,43 @@ void SFlyCam::Update()
 {
 	super::Update();
 
-	if (g_game.m_mpVkFDown[VK_H])
+	SPlayer * pPlayer = g_game.m_hPlayer.PT();
+	if (g_game.m_mpVkFJustPressed[VK_H])
 	{
-		g_game.m_hCamera3DShadow->SetPosWorld(PosWorld());
-		g_game.m_hCamera3DShadow->SetQuatWorld(QuatWorld());
-		g_game.m_hCamera3DMain = g_game.m_hCamera3DShadow;
+		bool fActiveNext = !m_fActive || !pPlayer;
+		if (fActiveNext != m_fActive)
+		{
+			m_fActive = fActiveNext;
+
+			if (m_fActive)
+			{
+				// Activating, copy position
+
+				m_posCenter = pPlayer->PosWorld();
+				m_transformLocal.m_quat = g_quatIdentity;
+				m_sRadiusCenter = 10.0f;
+				g_game.m_hCamera3DMain = m_hCamera3D;
+			}
+			else
+			{
+				// Deactivating
+
+				g_game.m_hCamera3DMain = pPlayer->m_hCamera3D;
+			}
+		}
 	}
-	else
-	{
-		g_game.m_hCamera3DMain = m_hCamera3D;
-	}
+
+	g_game.PrintConsole(m_fActive ? "Orbit cam\n" : "Player cam\n");
+
+	if (!m_fActive)
+		return;
+
+	float gMoveSpeed = g_game.m_mpVkFDown[VK_SHIFT] ? 40.0f : (g_game.m_mpVkFDown[VK_M] ? 1.0f : 10.0f);
 
 	if (m_fMouseControls)
 	{
-		float gScrollSpeed = .03f;
-		m_sRadiusCenter += gScrollSpeed * -g_game.m_sScroll;
+		TWEAKABLE float s_gScrollSpeed = .03f;
+		m_sRadiusCenter += s_gScrollSpeed * -g_game.m_sScroll;
 		m_sRadiusCenter = GMax(1.0f, m_sRadiusCenter);
 
 		bool fAltDown = g_game.m_mpVkFDown[VK_MENU];
@@ -72,12 +96,31 @@ void SFlyCam::Update()
 			m_yCursorPrev = g_game.m_yCursor;
 		}
 
+		if (g_game.m_mpVkFDown[VK_SPACE])
+			m_posCenter = m_posCenter + g_vecZAxis * gMoveSpeed * g_game.m_dT;
+
+		if (g_game.m_mpVkFDown[VK_CONTROL])
+			m_posCenter = m_posCenter - g_vecZAxis * gMoveSpeed * g_game.m_dT;
+
+		Vector vecObjForward = VecProjectOnTangent(MatObjectToWorld().VecX(), g_vecZAxis);
+		if (g_game.m_mpVkFDown[VK_W])
+			m_posCenter = m_posCenter + vecObjForward * gMoveSpeed * g_game.m_dT;
+
+		if (g_game.m_mpVkFDown[VK_S])
+			m_posCenter = m_posCenter - vecObjForward * gMoveSpeed * g_game.m_dT;
+
+		Vector vecObjLeft = VecProjectOnTangent(MatObjectToWorld().VecY(), g_vecZAxis);
+		if (g_game.m_mpVkFDown[VK_A])
+			m_posCenter = m_posCenter + vecObjLeft * gMoveSpeed * g_game.m_dT;
+
+		if (g_game.m_mpVkFDown[VK_D])
+			m_posCenter = m_posCenter - vecObjLeft * gMoveSpeed * g_game.m_dT;
+
 		Vector vecTowardsCenter = VecRotate(g_vecXAxis, m_transformLocal.m_quat);
 		SetPosWorld(m_posCenter + m_sRadiusCenter * -vecTowardsCenter);
 	}
 	else
 	{
-		float gMoveSpeed = g_game.m_mpVkFDown[VK_SHIFT] ? 40.0f : (g_game.m_mpVkFDown[VK_M] ? 1.0f : 10.0f);
 		float gRotSpeed = 1.0f;
 
 		Vector vecObjForward = VecProjectOnTangent(MatObjectToWorld().VecX(), g_vecZAxis);
