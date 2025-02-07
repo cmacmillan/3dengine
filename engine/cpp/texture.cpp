@@ -78,4 +78,5 @@ STexture::STexture(const char * pChzFilename, bool fIsNormal, bool fGenerateMips
 
 STexture::STexture() : super()
 {
+	m_typek = TYPEK_Texture;
 }

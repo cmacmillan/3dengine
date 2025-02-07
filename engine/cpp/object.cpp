@@ -37,12 +37,16 @@ void SObjectManager::RegisterObj(SObject * pObj)
 {
 	int id = m_cId;
 	m_cId++;
+	ASSERT(pObj->m_ols == OBJECT_LIFE_STATE_Uninitialized);
+	pObj->m_ols = OBJECT_LIFE_STATE_Registered;
 	m_mpObjhObj.emplace(id, pObj);
 	pObj->m_nHandle = id;
 }
 
 void SObjectManager::UnregisterObj(SObject * pObj)
 {
+	ASSERT(pObj->m_ols == OBJECT_LIFE_STATE_Registered);
+	pObj->m_ols = OBJECT_LIFE_STATE_Unregistered;
 	m_mpObjhObj.erase(m_mpObjhObj.find(pObj->m_nHandle));
 }
 

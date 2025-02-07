@@ -13,7 +13,6 @@ struct SFlyCam : SNode3D
 
 	SCamera3DHandle m_hCamera3D = -1;
 
-	bool m_fActive = false;
 	bool m_fMouseControls = false;
 	bool m_fInteracting = false;
 	int m_xCursorPrev = -1;

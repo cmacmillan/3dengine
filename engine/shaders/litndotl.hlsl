@@ -79,10 +79,13 @@ float4 ps_main(VS_Output input) : SV_Target
         input.posShadow /= input.posShadow.w;
         float2 uvShadow = (input.posShadow.xy + 1.0) * 0.5;
         uvShadow.y = 1.0f - uvShadow.y;
-        float gEpsilon = 0.0003f; // BB should be based on some world distance probably
-        if (input.posShadow.z + gEpsilon <= 1.0f - sunShadowTexture.Sample(sunShadowSampler, uvShadow).x)
+        if (uvShadow.x >= 0.0 && uvShadow.y >= 0.0 && uvShadow.x <= 1.0 && uvShadow.y <= 1.0)
         {
-            gShadow = 1.0f;
+            float gEpsilon = 0.0003f; // BB should be based on some world distance probably
+            if (input.posShadow.z + gEpsilon <= 1.0f - sunShadowTexture.Sample(sunShadowSampler, uvShadow).x)
+            {
+                gShadow = 1.0f;
+            }
         }
     }
 

@@ -15,6 +15,7 @@
 #include "gltfloader.h"
 #include "render.h"
 #include "sun.h"
+#include "player.h"
 
 #include <exception>
 
@@ -495,9 +496,14 @@ void SGame::Init(HINSTANCE hInstance)
 
 	// Camera
 
-	(new SFlyCam(m_hNodeRoot, "FlyCam"));
-	m_hCamera3DShadow = (new SCamera3D(m_hNodeRoot, "AltCam", RadFromDeg(-1.0f), -500.0, 500.0f))->HCamera3D();
-	m_hCamera3DShadow->SetOrthographic(200.0f);
+	SFlyCam * pFlycam = (new SFlyCam(m_hNodeRoot, "FlyCam"));
+	m_hFlycam = pFlycam->HFlycam();
+
+	// Shadow Camera
+
+	SCamera3D * pCamera = new SCamera3D(m_hNodeRoot, "ShadowCam", RadFromDeg(-1.0f), -500.0, 500.0f);
+	m_hCamera3DShadow = pCamera->HCamera3D();
+	pCamera->SetOrthographic(200.0f);
 
 	// Skybox
 
@@ -546,6 +552,10 @@ void SGame::Init(HINSTANCE hInstance)
 	hDrawnode3dSuzanne->SetPosWorld(Point(10.0f, -2.0f, 0.0f));
 
 	SpawnScene("models/fakelevel.gltf");
+
+	// Init edit mode
+
+	SetEdits(EDITS_Editor);
 
 	// Run audits
 
@@ -661,6 +671,8 @@ void SGame::MainLoop()
 		{
 			pShader->UpdateHotload();
 		}
+
+		UpdateEdits();
 
 		////////// GAMEPLAY CODE (JANK)
 	
@@ -970,56 +982,50 @@ void SGame::MainLoop()
 					if (shader.m_shaderk == SHADERK_Error)
 						continue;
 
-					ASSERT(shader.m_shaderk == SHADERK_Ui);
+						ASSERT(shader.m_shaderk == SHADERK_Ui);
 
-					const SMesh3D & mesh = *pUinode->m_hMesh;
+						const SMesh3D & mesh = *pUinode->m_hMesh;
 
-					m_pD3ddevicecontext->IASetInputLayout(shader.m_data.m_pD3dinputlayout);
-					m_pD3ddevicecontext->VSSetShader(shader.m_data.m_pD3dvertexshader, nullptr, 0);
-					m_pD3ddevicecontext->PSSetShader(shader.m_data.m_pD3dfragshader, nullptr, 0);
+						m_pD3ddevicecontext->IASetInputLayout(shader.m_data.m_pD3dinputlayout);
+						m_pD3ddevicecontext->VSSetShader(shader.m_data.m_pD3dvertexshader, nullptr, 0);
+						m_pD3ddevicecontext->PSSetShader(shader.m_data.m_pD3dfragshader, nullptr, 0);
 
-					float blendFactor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
-					UINT sampleMask = 0xffffffff;
-					m_pD3ddevicecontext->OMSetBlendState(shader.m_data.m_pD3dblendstatenoblend, blendFactor, sampleMask);
-					m_pD3ddevicecontext->RSSetState(shader.m_data.m_pD3drasterizerstate);
-					m_pD3ddevicecontext->OMSetDepthStencilState(shader.m_data.m_pD3ddepthstencilstate, 0);
+						float blendFactor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+						UINT sampleMask = 0xffffffff;
+						m_pD3ddevicecontext->OMSetBlendState(shader.m_data.m_pD3dblendstatenoblend, blendFactor, sampleMask);
+						m_pD3ddevicecontext->RSSetState(shader.m_data.m_pD3drasterizerstate);
+						m_pD3ddevicecontext->OMSetDepthStencilState(shader.m_data.m_pD3ddepthstencilstate, 0);
 
-					m_pD3ddevicecontext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-					ID3D11Buffer * aD3dbuffer[] = { m_cbufferUiNode, m_cbufferGlobals };
-					m_pD3ddevicecontext->VSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
-					m_pD3ddevicecontext->PSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
+						m_pD3ddevicecontext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+						ID3D11Buffer * aD3dbuffer[] = { m_cbufferUiNode, m_cbufferGlobals };
+						m_pD3ddevicecontext->VSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
+						m_pD3ddevicecontext->PSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
 
-					unsigned int cbVert = sizeof(SVertData3D);
-					unsigned int s_cbMeshOffset = 0;
+						unsigned int cbVert = sizeof(SVertData3D);
+						unsigned int s_cbMeshOffset = 0;
 
-					m_pD3ddevicecontext->IASetVertexBuffers(0, 1, &m_cbufferVertex3D, &cbVert, &s_cbMeshOffset);	// BB don't constantly do this
-					m_pD3ddevicecontext->IASetIndexBuffer(m_cbufferIndex, DXGI_FORMAT_R16_UINT, 0);					//  ...
+						m_pD3ddevicecontext->IASetVertexBuffers(0, 1, &m_cbufferVertex3D, &cbVert, &s_cbMeshOffset);	// BB don't constantly do this
+						m_pD3ddevicecontext->IASetIndexBuffer(m_cbufferIndex, DXGI_FORMAT_R16_UINT, 0);					//  ...
 
-					D3D11_MAPPED_SUBRESOURCE mappedSubresource;
-					m_pD3ddevicecontext->Map(m_cbufferUiNode, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
-					SUiNodeRenderConstants * pUinoderc = (SUiNodeRenderConstants *) (mappedSubresource.pData);
-					pUinode->GetRenderConstants(pUinoderc);
-					m_pD3ddevicecontext->Unmap(m_cbufferUiNode, 0);
+						D3D11_MAPPED_SUBRESOURCE mappedSubresource;
+						m_pD3ddevicecontext->Map(m_cbufferUiNode, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
+						SUiNodeRenderConstants * pUinoderc = (SUiNodeRenderConstants *) (mappedSubresource.pData);
+						pUinode->GetRenderConstants(pUinoderc);
+						m_pD3ddevicecontext->Unmap(m_cbufferUiNode, 0);
 
-					BindMaterialTextures(&material, &shader);
+						BindMaterialTextures(&material, &shader);
 
-					m_pD3ddevicecontext->DrawIndexed(mesh.m_cIndicies, mesh.m_iIndexdata, mesh.m_iVertdata);
+						m_pD3ddevicecontext->DrawIndexed(mesh.m_cIndicies, mesh.m_iIndexdata, mesh.m_iVertdata);
 				}
 			}
 		}
 
 		m_pD3dswapchain->Present(1, 0);
-			
+
 		for (int i = 0; i < DIM(m_mpVkFJustPressed); i++)
 		{
 			m_mpVkFJustPressed[i] = false;
 			m_mpVkFJustReleased[i] = false;
-		}
-
-		if (m_fWindowFocused)
-		{
-			float2 vecWinTopLeft = VecWinTopLeft();
-			SetCursorPos(vecWinTopLeft.m_x + vecWinSize.m_x / 2, vecWinTopLeft.m_y + vecWinSize.m_y / 2);
 		}
 
 		m_sScroll = 0.0f;
@@ -1029,6 +1035,115 @@ void SGame::MainLoop()
 void SGame::PrintConsole(const std::string & str, float dT)
 {
 	m_hConsole->Print(str, g_game.m_dTSyst + dT);
+}
+
+void SGame::SetEdits(EDITS edits)
+{
+	if (m_edits == edits)
+		return;
+
+	m_edits = edits;
+
+	// Enter new state
+
+	SPlayer * pPlayer = g_game.m_hPlayer.PT();
+	SFlyCam * pFlycam = g_game.m_hFlycam.PT();
+
+	switch (edits)
+	{
+	case EDITS_Editor:
+		{
+			pFlycam->m_posCenter = pPlayer->PosWorld();
+			pFlycam->SetQuatLocal(g_quatIdentity);
+			pFlycam->m_sRadiusCenter = 10.0f;
+			m_hCamera3DMain = pFlycam->m_hCamera3D;
+		}
+		break;
+
+	case EDITS_Player:
+		{
+			// Exit edit mode
+
+			m_hCamera3DMain = pPlayer->m_hCamera3D;
+		}
+		break;
+	}
+}
+
+void SGame::UpdateEdits()
+{
+	// Update state
+
+	SPlayer * pPlayer = m_hPlayer.PT();
+	SFlyCam * pFlycam = m_hFlycam.PT();
+	ASSERT(pPlayer || pFlycam);
+
+	EDITS editsWants = m_edits;
+
+	// Toggle the state when the player presses h
+
+	if (m_mpVkFJustPressed[VK_H])
+	{
+		switch (m_edits)
+		{
+		case EDITS_Editor:
+			editsWants = EDITS_Player;
+			break;
+		case EDITS_Player:
+			editsWants = EDITS_Editor;
+			break;
+		default:
+			break;
+		}	
+	}
+
+	// Choose edits on startup
+
+	if (editsWants == EDITS_Nil)
+	{
+		// Default to editor
+
+		editsWants = EDITS_Editor;
+	}
+
+	// Handle non-existance of desired state
+
+	switch (editsWants)
+	{
+		case EDITS_Editor:
+			if (!pFlycam)
+			{
+				editsWants = EDITS_Player;
+			}
+			break;
+		case EDITS_Player:
+			if (!pPlayer)
+			{
+				editsWants = EDITS_Editor;
+			}
+			break;
+		default:
+			break;
+	}
+
+	ASSERT(editsWants != EDITS_Nil);
+
+	SetEdits(editsWants);
+
+	// Update frame
+
+	switch (m_edits)
+	{
+	case EDITS_Editor:
+		PrintConsole("Editor cam\n");
+		break;
+	case EDITS_Player:
+		PrintConsole("Player cam\n");
+		break;
+	default:
+		ASSERT(false);
+		break;
+	}
 }
 
 void SGame::VkPressed(int vk)

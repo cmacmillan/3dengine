@@ -7,9 +7,7 @@ SFlyCam::SFlyCam(SNodeHandle hNodeParent, const std::string & strName) : super(h
 	m_typek = TYPEK_FlyCam;
 
 	m_hCamera3D = (new SCamera3D(HNode(), "FlyCamCamera", RadFromDeg(90.0f), 0.1, 700.0f))->HCamera3D();
-	g_game.m_hCamera3DMain = m_hCamera3D;
 
-	m_fActive = true;
 	m_fMouseControls = true;
 }
 
@@ -17,35 +15,7 @@ void SFlyCam::Update()
 {
 	super::Update();
 
-	SPlayer * pPlayer = g_game.m_hPlayer.PT();
-	if (g_game.m_mpVkFJustPressed[VK_H])
-	{
-		bool fActiveNext = !m_fActive || !pPlayer;
-		if (fActiveNext != m_fActive)
-		{
-			m_fActive = fActiveNext;
-
-			if (m_fActive)
-			{
-				// Activating, copy position
-
-				m_posCenter = pPlayer->PosWorld();
-				m_transformLocal.m_quat = g_quatIdentity;
-				m_sRadiusCenter = 10.0f;
-				g_game.m_hCamera3DMain = m_hCamera3D;
-			}
-			else
-			{
-				// Deactivating
-
-				g_game.m_hCamera3DMain = pPlayer->m_hCamera3D;
-			}
-		}
-	}
-
-	g_game.PrintConsole(m_fActive ? "Orbit cam\n" : "Player cam\n");
-
-	if (!m_fActive)
+	if (g_game.m_edits != EDITS_Editor)
 		return;
 
 	float gMoveSpeed = g_game.m_mpVkFDown[VK_SHIFT] ? 40.0f : (g_game.m_mpVkFDown[VK_M] ? 1.0f : 10.0f);

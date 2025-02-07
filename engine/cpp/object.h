@@ -7,6 +7,13 @@
 #include "util.h"
 #include "vector.h"
 
+enum OBJECT_LIFE_STATE
+{
+	OBJECT_LIFE_STATE_Uninitialized = 0,
+	OBJECT_LIFE_STATE_Registered = 1,
+	OBJECT_LIFE_STATE_Unregistered = 2,
+};
+
 struct SObject;
 struct SObjectManager
 {
@@ -109,6 +116,7 @@ struct SObject  // obj
 	~SObject();
 	bool FIsDerivedFrom(TYPEK typek);
 	TYPEK m_typek = TYPEK_Object;
+	OBJECT_LIFE_STATE m_ols = OBJECT_LIFE_STATE_Uninitialized;
 	int m_nHandle = -1;
 };
 

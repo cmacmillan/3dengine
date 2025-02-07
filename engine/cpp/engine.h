@@ -85,6 +85,14 @@ struct ShaderGlobals
 	float2	m_vecPadding;
 };
 
+enum EDITS
+{
+	EDITS_Editor = 0,
+	EDITS_Player = 1,
+
+	EDITS_Nil = -1,
+};
+
 struct SGame // game 
 {
 	SGame();
@@ -97,6 +105,9 @@ struct SGame // game
 	void VkPressed(int vk);
 	void VkReleased(int vk);
 	void PrintConsole(const std::string & str, float dT = 0.0);
+
+	void SetEdits(EDITS edits);
+	void UpdateEdits();
 
 	// TODO add QueuePrintConsole for debugging rendering stuff
 
@@ -124,8 +135,11 @@ struct SGame // game
 	SSunHandle m_hSun = -1;
 
 	SPlayerHandle m_hPlayer = -1;
+	SFlycamHandle m_hFlycam = -1; // Editor-mode flycam
 
-	// TODO should just have a map of every type
+	EDITS m_edits = EDITS_Nil;
+
+	// TODO should just have a map of each typek to an array of instantiated objects of that type (would need to include derived classes too)
 
 	std::vector<SShader *> m_arypShader = {};
 
