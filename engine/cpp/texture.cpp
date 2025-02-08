@@ -3,10 +3,8 @@
 #include "engine.h"
 #include "external/stb_image.h"
 
-STexture::STexture(const char * pChzFilename, bool fIsNormal, bool fGenerateMips) : super()
+STexture::STexture(const char * pChzFilename, bool fIsNormal, bool fGenerateMips, TYPEK typek) : super(typek)
 {
-	m_typek = TYPEK_Texture;
-
 	// Create Sampler State
 
 	D3D11_SAMPLER_DESC samplerDesc = {};
@@ -76,7 +74,6 @@ STexture::STexture(const char * pChzFilename, bool fIsNormal, bool fGenerateMips
 	free(aBTexture);
 }
 
-STexture::STexture() : super()
+STexture::STexture(TYPEK typek) : super(typek)
 {
-	m_typek = TYPEK_Texture;
 }

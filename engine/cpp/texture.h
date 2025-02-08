@@ -6,8 +6,8 @@
 struct STexture : SObject // texture
 {
 	typedef SObject super;
-	STexture(const char * pChzFilename, bool fIsNormal, bool fGenerateMips);
-	STexture();
+	STexture(const char * pChzFilename, bool fIsNormal, bool fGenerateMips, TYPEK typek = TYPEK_Texture);
+	STexture(TYPEK typek = TYPEK_Texture);
 
 	SHandle<STexture> HTexture() { return (SHandle<STexture>) m_nHandle; }
 

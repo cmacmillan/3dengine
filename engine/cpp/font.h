@@ -75,7 +75,7 @@ struct SFontKernPair
 struct SFont : SObject
 {
 	typedef SObject super;
-	SFont(const char * pChzBitmapfontFile);
+	SFont(const char * pChzBitmapfontFile, TYPEK typek = TYPEK_Font);
 	SHandle<SFont> HFont() { return (SHandle<SFont>) m_nHandle; }
 
 	SFontInfoBlock m_fontib;

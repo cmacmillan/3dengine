@@ -2,9 +2,8 @@
 
 #include "engine.h"
 
-SGoalRing::SGoalRing(SNodeHandle hNodeParent, const std::string & strName) : super(hNodeParent, strName)
+SGoalRing::SGoalRing(SNodeHandle hNodeParent, const std::string & strName, TYPEK typek) : super(hNodeParent, strName, typek)
 {
-	m_typek = TYPEK_GoalRing;
 }
 
 void SGoalRing::Update()

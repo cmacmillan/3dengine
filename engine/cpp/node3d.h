@@ -8,7 +8,7 @@ struct SNode3D : SNode // node3D
 	typedef SNode super;
 	SNode3DHandle HNode3D() { return (SNode3DHandle) m_nHandle; }
 
-	SNode3D(SNodeHandle hNodeParent, const std::string & strName);
+	SNode3D(SNodeHandle hNodeParent, const std::string & strName, TYPEK typek = TYPEK_Node3D);
 
 	void SetParent(SNodeHandle hNodeParent) override;
 

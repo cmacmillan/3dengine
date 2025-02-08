@@ -8,7 +8,7 @@
 struct SPlayer : SNode3D
 {
 	typedef SNode3D super;
-	SPlayer(SNodeHandle hNodeParent, const std::string & strName);
+	SPlayer(SNodeHandle hNodeParent, const std::string & strName, TYPEK typek = TYPEK_Player);
 	SPlayerHandle HPlayer() { return (SPlayerHandle) m_nHandle; }
 
 	void Update() override;

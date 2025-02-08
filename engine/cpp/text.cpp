@@ -3,10 +3,8 @@
 #include "font.h"
 #include "texture.h"
 
-SText::SText(SFontHandle hFont, SNodeHandle hNodeParent, const std::string & str) : super(hNodeParent, str)
+SText::SText(SFontHandle hFont, SNodeHandle hNodeParent, const std::string & str, TYPEK typek) : super(hNodeParent, str, typek)
 {
-	m_typek = TYPEK_Text;
-
 	m_hMesh = (new SMesh3D())->HMesh();
 	m_hFont = hFont;
 }

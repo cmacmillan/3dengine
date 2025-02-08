@@ -7,7 +7,7 @@ struct SNode : SObject // node
 	typedef SObject super;
 	SNodeHandle HNode() { return (SNodeHandle) m_nHandle; }
 
-	SNode(SNodeHandle hNodeParent, const std::string & strName);
+	SNode(SNodeHandle hNodeParent, const std::string & strName, TYPEK typek = TYPEK_Node);
 	virtual void SetParent(SNodeHandle hNodeParent);
 
 	virtual void Update() {}

@@ -38,7 +38,7 @@ struct SShaderData
 struct SShader : SObject // shader
 {
 	typedef SObject super;
-	SShader(const char * pChzFile);
+	SShader(const char * pChzFile, TYPEK typek = TYPEK_Shader);
 	~SShader();
 
 	bool FTryLoadFromFile(SFile * pFile, SShaderData * pData, std::string * pStrError);

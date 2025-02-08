@@ -71,10 +71,8 @@ SFontKernPair::SFontKernPair(SBinaryStream * pBs)
 	m_nAmount = pBs->ShortRead();
 }
 
-SFont::SFont(const char * pChzBitmapfontFile) : super()
+SFont::SFont(const char * pChzBitmapfontFile, TYPEK typek) : super(typek)
 {
-	m_typek = TYPEK_Font;
-
 	SFile file;
 	VERIFY(FTryReadFile(pChzBitmapfontFile, &file));
 

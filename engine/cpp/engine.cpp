@@ -529,6 +529,10 @@ void SGame::Init(HINSTANCE hInstance)
 	SMaterial * pMaterial3dNDotL = new SMaterial(hShader3DNDotL);
 	g_game.m_hMaterialDefault3d = pMaterial3dNDotL->HMaterial();
 
+	SMaterial * pMaterialGreybox = new SMaterial(hShader3DNDotL, "greybox");
+	pMaterialGreybox->m_aryNamedtexture.push_back({ (new STexture("textures/offwhite.png", false, true))->HTexture(), "mainTexture" });
+	pMaterialGreybox->m_aryNamedtexture.push_back({ m_hTextureShadow, "sunShadowTexture" });
+
 	SMaterial * pMaterial3d = new SMaterial(hShader3D);
 	pMaterial3d->m_aryNamedtexture.push_back({ (new STexture("textures/testTexture1.png", false, false))->HTexture(),  "mainTexture"});
 	pMaterial3d->m_aryNamedtexture.push_back({ (new STexture("textures/testTexture2.png", false, false))->HTexture(),  "altTexture"});
@@ -667,8 +671,9 @@ void SGame::MainLoop()
 
 		// Update shader hotloading
 
-		for (SShader * pShader : m_arypShader)
+		for (SObject * pObjShader : g_objman.m_mpTypekAryPObj[TYPEK_Shader])
 		{
+			SShader * pShader = static_cast<SShader *>(pObjShader);
 			pShader->UpdateHotload();
 		}
 
@@ -742,7 +747,7 @@ void SGame::MainLoop()
 				}
 				else if (pNode->FIsDerivedFrom(TYPEK_DrawNode3D))
 				{
-					SDrawNode3D * pDrawnode = reinterpret_cast<SDrawNode3D *>(pNode);
+					SDrawNode3D * pDrawnode = static_cast<SDrawNode3D *>(pNode);
 					if (pDrawnode->m_hMaterial != -1 && pDrawnode->m_hMesh != -1)
 					{
 						aryhDrawnode3DToRender.push_back(SDrawNode3DHandle(hNode.m_id));

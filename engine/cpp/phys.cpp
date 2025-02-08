@@ -1,6 +1,5 @@
 #include "phys.h"
 
-SPhysCube::SPhysCube(SNodeHandle hNodeParent, const std::string & strName) : super(hNodeParent, strName)
+SPhysCube::SPhysCube(SNodeHandle hNodeParent, const std::string & strName, TYPEK typek) : super(hNodeParent, strName, typek)
 {
-	m_typek = TYPEK_PhysCube;
 }

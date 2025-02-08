@@ -1,13 +1,12 @@
 #include "camera3d.h"
 #include "engine.h"
 
-SCamera3D::SCamera3D(SNodeHandle hNodeParent,  const std::string & strName, float radFovHorizontal, float xNearClip, float xFarClip) :
-	super(hNodeParent, strName),
+SCamera3D::SCamera3D(SNodeHandle hNodeParent,  const std::string & strName, float radFovHorizontal, float xNearClip, float xFarClip, TYPEK typek) :
+	super(hNodeParent, strName, typek),
 	m_radFovHorizontal(radFovHorizontal),
 	m_xNearClip(xNearClip),
 	m_xFarClip(xFarClip)
 {
-	m_typek = TYPEK_Camera3D;
 }
 
 void SCamera3D::SetOrthographic(float gScaleOrthographic)

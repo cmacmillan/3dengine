@@ -58,11 +58,10 @@ void SpawnNode(tinygltf::Model * pModel, int iNode, SNode * pNodeParent)
 	tinygltf::Node * pNode = &pModel->nodes[iNode];
 
 	SNode3D * pNode3d = nullptr;
+	std::map<std::string, tinygltf::Value> * pMpStrValue = &pNode->extras.object_value_;
 
 	if (pNode->extras.IsObject())
 	{
-		std::map<std::string, tinygltf::Value> * pMpStrValue = &pNode->extras.object_value_;
-
 		tinygltf::Value * pValue;
 		if (FTryGetValueFromKey(pMpStrValue, "class", &pValue))
 		{
@@ -138,6 +137,21 @@ void SpawnNode(tinygltf::Model * pModel, int iNode, SNode * pNodeParent)
 					SDrawNode3D * pDrawnode = reinterpret_cast<SDrawNode3D *>(pNode3d);
 					pDrawnode->m_hMesh = (PMeshLoad(pModel, &pModel->meshes[pNode->mesh]))->HMesh();
 					pDrawnode->m_hMaterial = g_game.m_hMaterialDefault3d;
+					tinygltf::Value * pValue;
+					if (FTryGetValueFromKey(pMpStrValue, "material", &pValue))
+					{
+						ASSERT(pValue->IsString());
+						const std::string & str = pValue->string_value_;
+						for (SObject * pObjMaterial : g_objman.m_mpTypekAryPObj[TYPEK_Material])
+						{
+							SMaterial * pMaterial = static_cast<SMaterial *>(pObjMaterial);
+							if (FMatchCaseInsensitive(pMaterial->m_strName, str))
+							{
+								pDrawnode->m_hMaterial = pMaterial->HMaterial();
+								break;
+							}
+						}
+					}
 				}
 				break;
 		}

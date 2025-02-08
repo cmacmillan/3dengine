@@ -16,7 +16,7 @@ void PushQuad3D(std::vector<SVertData3D> * paryVertdata, std::vector<unsigned sh
 struct SMesh3D : SObject // mesh
 {
 	typedef SObject super;
-	SMesh3D();
+	SMesh3D(TYPEK typek = TYPEK_Mesh3D);
 	SMesh3DHandle HMesh() { return (SMesh3DHandle) m_nHandle; }
 
 	std::string						m_strName = "";

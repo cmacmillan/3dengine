@@ -39,8 +39,7 @@ void PushQuad3D(std::vector<SVertData3D> * paryVertdata, std::vector<unsigned sh
 	paryVertdata->push_back({ posUpperLeft, -g_vecXAxis ,float2(0.0f, 1.0f) });
 }
 
-SMesh3D::SMesh3D() : super()
+SMesh3D::SMesh3D(TYPEK typek) : super(typek)
 {
-	m_typek = TYPEK_Mesh3D;
 }
 

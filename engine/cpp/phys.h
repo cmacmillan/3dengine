@@ -8,5 +8,5 @@ struct SPhysCube : SNode3D // physcube
 	typedef SNode3D super;
 	SPhysCubeHandle HPhyscube() { return (SPhysCubeHandle) m_nHandle; }
 
-	SPhysCube(SNodeHandle hNodeParent, const std::string & strName);
+	SPhysCube(SNodeHandle hNodeParent, const std::string & strName, TYPEK typek = TYPEK_PhysCube);
 };

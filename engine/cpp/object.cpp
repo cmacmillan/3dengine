@@ -2,6 +2,14 @@
 
 SObjectManager g_objman;
 
+SObjectManager::SObjectManager()
+{
+	for (TYPEK typek = TYPEK_Min; typek < TYPEK_Max; typek = TYPEK(typek + 1))
+	{
+		m_mpTypekAryPObj[typek] = std::vector<SObject *>();
+	}
+}
+
 TYPEK TypekSuper(TYPEK typek)
 {
 	switch (typek)
@@ -40,6 +48,14 @@ void SObjectManager::RegisterObj(SObject * pObj)
 	m_cId++;
 	ASSERT(pObj->m_ols == OBJECT_LIFE_STATE_Uninitialized);
 	pObj->m_ols = OBJECT_LIFE_STATE_Registered;
+
+	TYPEK typek = pObj->m_typek;
+	while (typek != TYPEK_Nil)
+	{
+		m_mpTypekAryPObj[typek].push_back(pObj);
+		typek = TypekSuper(typek);
+	}
+
 	m_mpObjhObj.emplace(id, pObj);
 	pObj->m_nHandle = id;
 }
@@ -47,12 +63,38 @@ void SObjectManager::RegisterObj(SObject * pObj)
 void SObjectManager::UnregisterObj(SObject * pObj)
 {
 	ASSERT(pObj->m_ols == OBJECT_LIFE_STATE_Registered);
+
+	TYPEK typek = pObj->m_typek;
+	while (typek != TYPEK_Nil)
+	{
+		std::vector<SObject *> & aryPObj = m_mpTypekAryPObj[typek];
+		bool fFound = false;
+		SObject * pObjLast = aryPObj.size() > 1 ? aryPObj[aryPObj.size() - 1] : nullptr;
+		for (int i = 0; i < aryPObj.size(); i++)
+		{
+			if (pObj == aryPObj[i])
+			{
+				fFound = true;
+				if (pObjLast)
+				{
+					aryPObj[i] = pObjLast;
+				}
+				aryPObj.pop_back();
+				break;
+			}
+		}
+		ASSERT(fFound);
+
+		typek = TypekSuper(typek);
+	}
+
 	pObj->m_ols = OBJECT_LIFE_STATE_Unregistered;
 	m_mpObjhObj.erase(m_mpObjhObj.find(pObj->m_nHandle));
 }
 
-SObject::SObject()
+SObject::SObject(TYPEK typek)
 {
+	m_typek = typek;
 	g_objman.RegisterObj(this);
 }
 

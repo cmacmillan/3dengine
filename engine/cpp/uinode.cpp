@@ -1,8 +1,7 @@
 #include "uinode.h"
 
-SUiNode::SUiNode(SNodeHandle hNodeParent, const std::string & str) : super(hNodeParent, str)
+SUiNode::SUiNode(SNodeHandle hNodeParent, const std::string & str, TYPEK typek) : super(hNodeParent, str, typek)
 {
-	m_typek = TYPEK_UiNode;
 }
 
 void SUiNode::GetRenderConstants(SUiNodeRenderConstants * pUinoderc)

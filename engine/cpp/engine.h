@@ -141,7 +141,7 @@ struct SGame // game
 
 	// TODO should just have a map of each typek to an array of instantiated objects of that type (would need to include derived classes too)
 
-	std::vector<SShader *> m_arypShader = {};
+	//std::vector<SShader *> m_arypShader = {};
 
 	std::string m_strAssetPath = {};
 

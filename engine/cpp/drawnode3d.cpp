@@ -1,9 +1,8 @@
 #include "drawnode3d.h"
 
-SDrawNode3D::SDrawNode3D(SNodeHandle hNodeParent, const std::string & str) :
-	super(hNodeParent, str)
+SDrawNode3D::SDrawNode3D(SNodeHandle hNodeParent, const std::string & str, TYPEK typek) :
+	super(hNodeParent, str, typek)
 {
-	m_typek = TYPEK_DrawNode3D;
 }
 
 void SDrawNodeRenderConstants::FillOut(Mat matObjectToWorld, Mat matWorldToClip)

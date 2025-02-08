@@ -902,12 +902,8 @@ bool SShader::FTryLoadFromFile(SFile * pFile, SShaderData * pData, std::string *
 	return true;
 }
 
-SShader::SShader(const char * pChzFile) : super()
+SShader::SShader(const char * pChzFile, TYPEK typek) : super(typek)
 {
-	g_game.m_arypShader.push_back(this);
-
-	m_typek = TYPEK_Shader;
-
 	m_strFile = pChzFile;
 
 	SFile file;
@@ -930,18 +926,6 @@ SShader::SShader(const char * pChzFile) : super()
 SShader::~SShader()
 {
 	ReleaseResources();
-
-	int ipShaderThis = -1;
-	for (int ipShader = 0; ipShader < g_game.m_arypShader.size(); ipShader++)
-	{
-		if (g_game.m_arypShader[ipShader] == this)
-		{
-			ipShaderThis = ipShader;
-			break;
-		}
-	}
-
-	g_game.m_arypShader.erase(g_game.m_arypShader.begin() + ipShaderThis);
 }
 
 void SShader::UpdateHotload()

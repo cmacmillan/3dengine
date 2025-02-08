@@ -1,11 +1,9 @@
 #include "node3d.h"
 
-SNode3D::SNode3D(SNodeHandle hNodeParent, const std::string & str) :
-	super(hNodeParent, str),
+SNode3D::SNode3D(SNodeHandle hNodeParent, const std::string & str, TYPEK typek) :
+	super(hNodeParent, str, typek),
 	m_transformLocal()
 {
-	m_typek = TYPEK_Node3D;
-
 	UpdateSelfAndChildTransformCache();
 }
 

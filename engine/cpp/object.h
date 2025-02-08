@@ -14,13 +14,56 @@ enum OBJECT_LIFE_STATE
 	OBJECT_LIFE_STATE_Unregistered = 2,
 };
 
+enum TYPEK
+{
+	// NOTE When adding new elements to this, make sure to add them to TypekSuper too!!!
+	// NOTE When adding new elements to this, make sure to add them to TypekSuper too!!!
+	// NOTE When adding new elements to this, make sure to add them to TypekSuper too!!!
+
+	TYPEK_Object,
+		TYPEK_Texture,
+		TYPEK_Shader,
+		TYPEK_Material,
+		TYPEK_Node,
+			TYPEK_UiNode,
+				TYPEK_Text,
+				TYPEK_Console,
+			TYPEK_FpsCounter,
+			TYPEK_Node3D,
+				TYPEK_DrawNode3D,
+					TYPEK_GoalRing,
+				TYPEK_Camera3D,
+				TYPEK_FlyCam,
+				TYPEK_Sun,
+				TYPEK_Player,
+				TYPEK_PhysCube,
+		TYPEK_Font,
+		TYPEK_Mesh3D,
+
+	TYPEK_Max,
+	TYPEK_Min = 0,
+	TYPEK_Nil = -1,
+
+	// NOTE When adding new elements to this, make sure to add them to TypekSuper too!!!
+	// NOTE When adding new elements to this, make sure to add them to TypekSuper too!!!
+	// NOTE When adding new elements to this, make sure to add them to TypekSuper too!!!
+};
+
+TYPEK TypekSuper(TYPEK typek);
+
 struct SObject;
 struct SObjectManager
 {
-	void RegisterObj(SObject * pObj);
-	void UnregisterObj(SObject * pObj);
-	std::unordered_map<int, SObject *> m_mpObjhObj;
-	int m_cId = 0;
+			SObjectManager();
+	void	RegisterObj(SObject * pObj);
+	void	UnregisterObj(SObject * pObj);
+
+	// TODO make per-type iterator wrapper around m_mpTypekAryPObj
+
+	std::unordered_map<int, SObject *>	m_mpObjhObj;
+	std::vector<SObject *>				m_mpTypekAryPObj[TYPEK_Max] = {};
+
+	int									m_cId = 0;
 };
 extern SObjectManager g_objman;
 
@@ -76,47 +119,12 @@ bool operator==(const int id, const SHandle<T> & hOther)
 	return id == hOther.m_id;
 }
 
-enum TYPEK
-{
-	// NOTE When adding new elements to this, make sure to add them to TypekSuper too!!!
-	// NOTE When adding new elements to this, make sure to add them to TypekSuper too!!!
-	// NOTE When adding new elements to this, make sure to add them to TypekSuper too!!!
-
-	TYPEK_Object,
-		TYPEK_Texture,
-		TYPEK_Shader,
-		TYPEK_Material,
-		TYPEK_Node,
-			TYPEK_UiNode,
-				TYPEK_Text,
-				TYPEK_Console,
-			TYPEK_FpsCounter,
-			TYPEK_Node3D,
-				TYPEK_DrawNode3D,
-					TYPEK_GoalRing,
-				TYPEK_Camera3D,
-				TYPEK_FlyCam,
-				TYPEK_Sun,
-				TYPEK_Player,
-				TYPEK_PhysCube,
-		TYPEK_Font,
-		TYPEK_Mesh3D,
-
-	TYPEK_Nil = -1,
-
-	// NOTE When adding new elements to this, make sure to add them to TypekSuper too!!!
-	// NOTE When adding new elements to this, make sure to add them to TypekSuper too!!!
-	// NOTE When adding new elements to this, make sure to add them to TypekSuper too!!!
-};
-
-TYPEK TypekSuper(TYPEK typek);
-
 struct SObject  // obj
 {
-	SObject();
+	SObject(TYPEK typek = TYPEK_Object);
 	~SObject();
 	bool FIsDerivedFrom(TYPEK typek);
-	TYPEK m_typek = TYPEK_Object;
+	TYPEK m_typek = TYPEK_Nil;
 	OBJECT_LIFE_STATE m_ols = OBJECT_LIFE_STATE_Uninitialized;
 	int m_nHandle = -1;
 };
