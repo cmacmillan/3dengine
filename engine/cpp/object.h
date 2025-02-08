@@ -98,6 +98,7 @@ enum TYPEK
 				TYPEK_FlyCam,
 				TYPEK_Sun,
 				TYPEK_Player,
+				TYPEK_PhysCube,
 		TYPEK_Font,
 		TYPEK_Mesh3D,
 
@@ -170,3 +171,6 @@ typedef SHandle<SSun> SSunHandle;
 
 struct SPlayer;
 typedef SHandle<SPlayer> SPlayerHandle;
+
+struct SPhysCube;
+typedef SHandle<SPhysCube> SPhysCubeHandle;

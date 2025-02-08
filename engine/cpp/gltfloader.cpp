@@ -5,6 +5,7 @@
 #include "goalring.h"
 #include "sun.h"
 #include "player.h"
+#include "phys.h"
 
 #include <vector>
 
@@ -86,6 +87,17 @@ void SpawnNode(tinygltf::Model * pModel, int iNode, SNode * pNodeParent)
 				{
 					pNode3d = new SPlayer(pNodeParent->HNode(), pNode->name);
 				}
+				else if (FMatchCaseInsensitive(str, "PhysCube"))
+				{
+					pNode3d = new SPhysCube(pNodeParent->HNode(), pNode->name);
+#if 1
+					// BB Janky code to add spawn in a child drawnode as well
+					//  Ideally we'd call spawnnode again somehow
+
+					pNodeParent = pNode3d;
+					pNode3d = nullptr;
+#endif
+				}
 				else
 				{
 					g_game.PrintConsole(StrPrintf("Unrecongized class '%s'\n", str.c_str()), 10.0f);
@@ -107,7 +119,7 @@ void SpawnNode(tinygltf::Model * pModel, int iNode, SNode * pNodeParent)
 		}
 		else
 		{
-			SNode3D * pNode3d = new SNode3D(pNodeParent->HNode(), pNode->name);
+			pNode3d = new SNode3D(pNodeParent->HNode(), pNode->name);
 		}
 	}
 
