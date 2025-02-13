@@ -187,6 +187,9 @@
     <ClInclude Include="cpp\vector.h" />
   </ItemGroup>
   <ItemGroup>
+    <FxCompile Include="shaders\3dwireframe.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </FxCompile>
     <FxCompile Include="shaders\litndotl.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </FxCompile>

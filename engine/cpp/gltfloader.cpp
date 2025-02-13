@@ -134,7 +134,7 @@ void SpawnNode(tinygltf::Model * pModel, int iNode, SNode * pNodeParent)
 		{
 			case TYPEK_DrawNode3D:
 				{
-					SDrawNode3D * pDrawnode = reinterpret_cast<SDrawNode3D *>(pNode3d);
+					SDrawNode3D * pDrawnode = static_cast<SDrawNode3D *>(pNode3d);
 					pDrawnode->m_hMesh = (PMeshLoad(pModel, &pModel->meshes[pNode->mesh]))->HMesh();
 					pDrawnode->m_hMaterial = g_game.m_hMaterialDefault3d;
 					tinygltf::Value * pValue;

@@ -21,8 +21,14 @@ struct SNamedTextureSlot
 	int				m_iSlot;
 };
 
+// Hot-reloadable things
+
 struct SShaderData
 {
+	SHADERK							m_shaderk = SHADERK_Nil;
+	std::vector<SNamedTextureSlot>	m_mpISlotStrName = {};
+	bool							m_fShadowcast = true;
+
 	D3D11_DEPTH_STENCIL_DESC		m_d3ddepthstencildesc = {};
 	D3D11_RASTERIZER_DESC			m_d3drasterizerdesc = {};
 	D3D11_RENDER_TARGET_BLEND_DESC1	m_d3drtblenddesc = {};
@@ -41,14 +47,11 @@ struct SShader : SObject // shader
 	SShader(const char * pChzFile, TYPEK typek = TYPEK_Shader);
 	~SShader();
 
-	bool FTryLoadFromFile(SFile * pFile, SShaderData * pData, std::string * pStrError);
+	static bool FTryLoadFromFile(SFile * pFile, SShaderData * pData, std::string * pStrError);
 	SShaderHandle HShader() { return (SShaderHandle) m_nHandle; }
-	int CNamedslot() const { return m_mpISlotStrName.size(); }
+	int CNamedslot() const { return m_data.m_mpISlotStrName.size(); }
 	void UpdateHotload();
 	void ReleaseResources();
-
-	SHADERK							m_shaderk = SHADERK_Nil;
-	std::vector<SNamedTextureSlot>	m_mpISlotStrName = {};
 
 	std::string						m_strFile;
 	FILETIME						m_filetimeLastEdit = {};

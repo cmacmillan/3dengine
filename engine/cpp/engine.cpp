@@ -533,6 +533,8 @@ void SGame::Init(HINSTANCE hInstance)
 	pMaterialGreybox->m_aryNamedtexture.push_back({ (new STexture("textures/offwhite.png", false, true))->HTexture(), "mainTexture" });
 	pMaterialGreybox->m_aryNamedtexture.push_back({ m_hTextureShadow, "sunShadowTexture" });
 
+	SMaterial * pMaterialWireframe = new SMaterial((new SShader("shaders/3dwireframe.hlsl"))->HShader(), "wireframe");
+
 	SMaterial * pMaterial3d = new SMaterial(hShader3D);
 	pMaterial3d->m_aryNamedtexture.push_back({ (new STexture("textures/testTexture1.png", false, false))->HTexture(),  "mainTexture"});
 	pMaterial3d->m_aryNamedtexture.push_back({ (new STexture("textures/testTexture2.png", false, false))->HTexture(),  "altTexture"});
@@ -920,9 +922,9 @@ void SGame::MainLoop()
 
 				const SMaterial & material = *(m_hMaterialSkybox.PT());
 				const SShader & shader = *(m_hShaderSkybox.PT());
-				if (shader.m_shaderk != SHADERK_Error)
+				if (shader.m_data.m_shaderk != SHADERK_Error)
 				{
-					ASSERT(shader.m_shaderk == SHADERK_Skybox);
+					ASSERT(shader.m_data.m_shaderk == SHADERK_Skybox);
 
 					Mat matModelSkybox;
 					{
@@ -984,10 +986,10 @@ void SGame::MainLoop()
 
 					const SMaterial & material = *(pUinode->m_hMaterial);
 					const SShader & shader = *(material.m_hShader);
-					if (shader.m_shaderk == SHADERK_Error)
+					if (shader.m_data.m_shaderk == SHADERK_Error)
 						continue;
 
-						ASSERT(shader.m_shaderk == SHADERK_Ui);
+						ASSERT(shader.m_data.m_shaderk == SHADERK_Ui);
 
 						const SMesh3D & mesh = *pUinode->m_hMesh;
 

@@ -226,5 +226,8 @@
     <FxCompile Include="shaders\shadowcaster.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>
+    <FxCompile Include="shaders\3dwireframe.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

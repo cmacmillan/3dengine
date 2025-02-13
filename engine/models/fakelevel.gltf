@@ -130,6 +130,9 @@
 			]
 		},
 		{
+			"extras":{
+				"material":"wireframe"
+			},
 			"mesh":6,
 			"name":"PhysCube2",
 			"scale":[

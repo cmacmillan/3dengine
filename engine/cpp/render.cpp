@@ -14,24 +14,36 @@ void Draw3D(std::vector<SDrawNode3D *> * parypDrawnode3DToRender, SCamera3D * pC
 		if (pDrawnode3D->m_hMaterial == nullptr)
 			continue;
 
-		const SMaterial & material = (fDrawAsShadowcaster) ? *g_game.m_hMaterialShadowcaster : *pDrawnode3D->m_hMaterial;
-		const SShader & shader = *(material.m_hShader);
-		if (shader.m_shaderk == SHADERK_Error)
+		const SMaterial * pMaterial = pDrawnode3D->m_hMaterial.PT();
+		const SShader * pShader = pMaterial->m_hShader.PT();
+
+		if (fDrawAsShadowcaster)
+		{
+			if (!pShader->m_data.m_fShadowcast)
+				continue;
+
+			// Swap material out for shadowcaster material
+
+			pMaterial = g_game.m_hMaterialShadowcaster.PT();
+			pShader = pMaterial->m_hShader.PT();
+		}
+
+		if (pShader->m_data.m_shaderk == SHADERK_Error)
 			continue;
 
 		ASSERT(pDrawnode3D->FIsDerivedFrom(TYPEK_DrawNode3D));
-		ASSERT(shader.m_shaderk == SHADERK_3D);
+		ASSERT(pShader->m_data.m_shaderk == SHADERK_3D);
 
-		pD3ddevicecontext->RSSetState(shader.m_data.m_pD3drasterizerstate);
-		pD3ddevicecontext->OMSetDepthStencilState(shader.m_data.m_pD3ddepthstencilstate, 0);
+		pD3ddevicecontext->RSSetState(pShader->m_data.m_pD3drasterizerstate);
+		pD3ddevicecontext->OMSetDepthStencilState(pShader->m_data.m_pD3ddepthstencilstate, 0);
 
 		const SMesh3D & mesh = *pDrawnode3D->m_hMesh;
 
 		pD3ddevicecontext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		pD3ddevicecontext->IASetInputLayout(shader.m_data.m_pD3dinputlayout);
+		pD3ddevicecontext->IASetInputLayout(pShader->m_data.m_pD3dinputlayout);
 
-		pD3ddevicecontext->VSSetShader(shader.m_data.m_pD3dvertexshader, nullptr, 0);
-		pD3ddevicecontext->PSSetShader(shader.m_data.m_pD3dfragshader, nullptr, 0);
+		pD3ddevicecontext->VSSetShader(pShader->m_data.m_pD3dvertexshader, nullptr, 0);
+		pD3ddevicecontext->PSSetShader(pShader->m_data.m_pD3dfragshader, nullptr, 0);
 
 		ID3D11Buffer * aD3dbuffer[] = { g_game.m_cbufferDrawnode3D, g_game.m_cbufferGlobals };
 		pD3ddevicecontext->VSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
@@ -52,11 +64,11 @@ void Draw3D(std::vector<SDrawNode3D *> * parypDrawnode3DToRender, SCamera3D * pC
 
 		pD3ddevicecontext->Unmap(g_game.m_cbufferDrawnode3D, 0);
 
-		BindMaterialTextures(&material, &shader);
+		BindMaterialTextures(pMaterial, pShader);
 
 		pD3ddevicecontext->DrawIndexed(mesh.m_cIndicies, mesh.m_iIndexdata, mesh.m_iVertdata);
 
-		UnbindTextures(&shader);
+		UnbindTextures(pShader);
 	}
 
 }
@@ -83,7 +95,7 @@ void UnbindTextures(const SShader * pShader)
 
 void BindMaterialTextures(const SMaterial * pMaterial, const SShader * pShader)
 {
-	ASSERT(pMaterial->m_aryNamedtexture.size() == pShader->m_mpISlotStrName.size());
+	ASSERT(pMaterial->m_aryNamedtexture.size() == pShader->m_data.m_mpISlotStrName.size());
 
 	ID3D11DeviceContext1 * pD3ddevicecontext  = g_game.m_pD3ddevicecontext;
 
@@ -98,7 +110,7 @@ void BindMaterialTextures(const SMaterial * pMaterial, const SShader * pShader)
 
 	for (const SNamedTexture & namedtexture : pMaterial->m_aryNamedtexture)
 	{
-		for (const SNamedTextureSlot & namedslot : pShader->m_mpISlotStrName)
+		for (const SNamedTextureSlot & namedslot : pShader->m_data.m_mpISlotStrName)
 		{
 			if (namedslot.m_strName == namedtexture.m_strName)
 			{

@@ -47,8 +47,24 @@ void SFlyCam::Update()
 		if (fLeftMouseInteracting)
 		{
 			float gRotSpeed = .005f;
-			SetQuatLocal(QuatAxisAngle(g_vecZAxis, -dX * gRotSpeed) * m_transformLocal.m_quat);
-			SetQuatLocal(QuatAxisAngle(VecNormalize(VecProjectOnTangent(vecLeft, g_vecZAxis)), dY * gRotSpeed) * m_transformLocal.m_quat);
+			Quat quatLocal = QuatAxisAngle(g_vecZAxis, -dX * gRotSpeed) * QuatLocal();
+			quatLocal = QuatAxisAngle(VecNormalize(VecProjectOnTangent(vecLeft, g_vecZAxis)), dY * gRotSpeed) * quatLocal;
+			Vector normalForward = VecRotate(g_vecXAxis, quatLocal);
+
+			// Do nothing if this will put us too close to the poles
+
+			// BB (chasem) instead of doing this we should be decomposing the rotation, because as written if you go sideways and even a tiny bit up
+			//  while near the pole your sideways input will get eaten
+			//  This also doesn't handle the case if you whip the camera across the pole
+
+			TWEAKABLE float s_gEpsilon = .99f;
+
+			if (GAbs(GDot(normalForward, g_vecZAxis)) < s_gEpsilon)
+			{
+				Vector vecLeftCorrected = VecCross(g_vecZAxis, normalForward);
+				Vector normalUpCorrected = VecNormalize(VecCross(normalForward, vecLeftCorrected));
+				SetQuatLocal(QuatLookAt(normalForward, normalUpCorrected));
+			}
 		}
 
 		if (fMiddleMouseInteracting)

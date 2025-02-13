@@ -294,19 +294,40 @@ void SLineParser::ParseLines(const std::string & str)
 	SetState(PARSE_Nil, str);
 }
 
+template<typename K, typename V>
+bool FTryParseOneOrZeroParams(const SLineParser & parser, const char * pChzParameterName, SKv<K, V> * aKv, int cKv, V * pValue, std::string * pStrError)
+{
+	std::vector<const SParsedLine *> arypLine; // TODO turn into stack or frame array
+
+	parser.FindLines(pChzParameterName, &arypLine);
+
+	if (arypLine.size() > 0)
+	{
+		if (arypLine.size() != 1)
+		{
+			*pStrError = StrPrintf("More than one '%s' tag", pChzParameterName);
+			return false;
+		}
+
+		if (!FTryGetValueFromKey(aKv, cKv, FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, pValue))
+		{
+			*pStrError = StrPrintf("Unrecognized '%s' tag '%s'", pChzParameterName, arypLine.front()->m_pairMain.m_strValue.c_str());
+			return false;
+		}
+	}
+
+	return true;
+}
+
 bool SShader::FTryLoadFromFile(SFile * pFile, SShaderData * pData, std::string * pStrError)
 {
 	std::string strFile = pFile->StrGet();
 
-	static SLinearMap<std::string, BOOL, 2> mpStrBool = { {
-														{std::string("On"), TRUE},
-														{std::string("Off"), FALSE}} };
+	static SKv<std::string, BOOL> mpStrBool[] = {	{std::string("On"), TRUE},
+													{std::string("Off"), FALSE}};
 
 	SLineParser parser;
 	parser.ParseLines(strFile);
-
-	std::vector<const SParsedLine *> arypLine;
-
 
 	// Set up defaults:
 
@@ -346,6 +367,7 @@ bool SShader::FTryLoadFromFile(SFile * pFile, SShaderData * pData, std::string *
 	const char * pChzSrcBlendAlpha	= "SrcBlendAlpha";
 	const char * pChzDestBlendAlpha = "DestBlendAlpha";
 	const char * pChzTexture		= "Texture";
+	const char * pChzShadowcast		= "Shadowcast";
 
 	const char * apChzKeys[] = { 
 								pChzShaderKind, 
@@ -362,7 +384,8 @@ bool SShader::FTryLoadFromFile(SFile * pFile, SShaderData * pData, std::string *
 								pChzBlendOpAlpha,
 								pChzSrcBlendAlpha,
 								pChzDestBlendAlpha,
-								pChzTexture};
+								pChzTexture,
+								pChzShadowcast };
 
 	for (const SParsedLine & line : parser.m_aryLine)
 	{
@@ -386,158 +409,119 @@ bool SShader::FTryLoadFromFile(SFile * pFile, SShaderData * pData, std::string *
 	// Shaderkind
 
 	{
-		parser.FindLines(pChzShaderKind, &arypLine);
-		static SLinearMap<std::string, SHADERK, 3> mpStrShaderk = {{
-																{std::string("3D"), SHADERK_3D}, 
-																{std::string("UI"), SHADERK_Ui}, 
-																{std::string("Skybox"), SHADERK_Skybox}}};
+		static SKv<std::string, SHADERK> mpStrShaderk[] = {	{std::string("3D"), SHADERK_3D},
+															{std::string("UI"), SHADERK_Ui}, 
+															{std::string("Skybox"), SHADERK_Skybox}};
 			
-		if (arypLine.size() != 1)
-		{
-			*pStrError = "Not exactly 1 shader kind!";
+		if (!FTryParseOneOrZeroParams(
+				parser, 
+				pChzShaderKind, 
+				mpStrShaderk, 
+				DIM(mpStrShaderk), 
+				&pData->m_shaderk, 
+				pStrError))
 			return false;
-		}
+	}
 
-		if (!mpStrShaderk.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &m_shaderk))
-		{
-			*pStrError = StrPrintf("Unrecognized shader kind '%s'", arypLine.front()->m_pairMain.m_strValue.c_str());
+	// Shadowcast
+
+	{
+		if (!FTryParseOneOrZeroParams(
+				parser, 
+				pChzShadowcast, 
+				mpStrBool, 
+				DIM(mpStrBool), 
+				(BOOL *)&pData->m_fShadowcast,
+				pStrError))
 			return false;
-		}
-
-		arypLine.clear();
 	}
 
 	// Depth Enable
 
 	{
-		parser.FindLines(pChzDepthEnable, &arypLine);
-		if (arypLine.size() > 0)
-		{
-			if (arypLine.size() != 1)
-			{
-				*pStrError = "More than one DepthEnable tag";
-				return false;
-			}
-
-			if (!mpStrBool.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &pData->m_d3ddepthstencildesc.DepthEnable))
-			{
-				*pStrError = StrPrintf("Unrecognized DepthEnable tag '%s'", arypLine.front()->m_pairMain.m_strValue.c_str());
-				return false;
-			}
-
-			arypLine.clear();
-		}
+		if (!FTryParseOneOrZeroParams(
+				parser, 
+				pChzDepthEnable, 
+				mpStrBool, 
+				DIM(mpStrBool), 
+				&pData->m_d3ddepthstencildesc.DepthEnable,
+				pStrError))
+			return false;
 	}
 
 	// Depth Write
 
 	{	
-		parser.FindLines(pChzDepthWrite, &arypLine);
-		static SLinearMap<std::string, D3D11_DEPTH_WRITE_MASK, 2> mpStrD3ddepthwritemask = { {
-															{std::string("On"), D3D11_DEPTH_WRITE_MASK_ALL},
-															{std::string("Off"), D3D11_DEPTH_WRITE_MASK_ZERO}} };
-		if (arypLine.size() > 0)
-		{
-			if (arypLine.size() != 1)
-			{
-				*pStrError = "More than one DepthWrite tag";
-				return false;
-			}
+		static SKv<std::string, D3D11_DEPTH_WRITE_MASK> mpStrD3ddepthwritemask[] = {{std::string("On"), D3D11_DEPTH_WRITE_MASK_ALL},
+																					{std::string("Off"), D3D11_DEPTH_WRITE_MASK_ZERO} };
 
-			if (!mpStrD3ddepthwritemask.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &pData->m_d3ddepthstencildesc.DepthWriteMask))
-			{
-				*pStrError = StrPrintf("Unrecognized DepthWrite tag '%s'", arypLine.front()->m_pairMain.m_strValue.c_str());
-				return false;
-			}
-
-			arypLine.clear();
-		}
+		if (!FTryParseOneOrZeroParams(
+				parser, 
+				pChzDepthWrite, 
+				mpStrD3ddepthwritemask, 
+				DIM(mpStrD3ddepthwritemask), 
+				&pData->m_d3ddepthstencildesc.DepthWriteMask,
+				pStrError))
+			return false;
 	}
 
 	// Depth Function
 
 	{
-		parser.FindLines(pChzDepthFunc, &arypLine);
 		// https://learn.microsoft.com/en-us/windows/win32/api/d3d11/ne-d3d11-d3d11_comparison_func
 
-		static SLinearMap<std::string, D3D11_COMPARISON_FUNC, 8> mpStrComparisonfunc = {{
-																{std::string("Never"), D3D11_COMPARISON_NEVER}, 
-																{std::string("Less"), D3D11_COMPARISON_LESS}, 
-																{std::string("Equal"), D3D11_COMPARISON_EQUAL},
-																{std::string("LessEqual"), D3D11_COMPARISON_LESS_EQUAL},
-																{std::string("Greater"), D3D11_COMPARISON_GREATER},
-																{std::string("NotEqual"), D3D11_COMPARISON_NOT_EQUAL},
-																{std::string("GreaterEqual"), D3D11_COMPARISON_GREATER_EQUAL},
-																{std::string("Always"), D3D11_COMPARISON_ALWAYS}}};
-		if (arypLine.size() > 0)
-		{
-			if (arypLine.size() != 1)
-			{
-				*pStrError = "More than one DepthFunc tag";
-				return false;
-			}
+		static SKv<std::string, D3D11_COMPARISON_FUNC> mpStrComparisonfunc[] = {{std::string("Never"), D3D11_COMPARISON_NEVER}, 
+																				{std::string("Less"), D3D11_COMPARISON_LESS}, 
+																				{std::string("Equal"), D3D11_COMPARISON_EQUAL},
+																				{std::string("LessEqual"), D3D11_COMPARISON_LESS_EQUAL},
+																				{std::string("Greater"), D3D11_COMPARISON_GREATER},
+																				{std::string("NotEqual"), D3D11_COMPARISON_NOT_EQUAL},
+																				{std::string("GreaterEqual"), D3D11_COMPARISON_GREATER_EQUAL},
+																				{std::string("Always"), D3D11_COMPARISON_ALWAYS}};
 
-			if (!mpStrComparisonfunc.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &pData->m_d3ddepthstencildesc.DepthFunc))
-			{
-				*pStrError = StrPrintf("Unrecognized DepthFunc tag '%s'", arypLine.front()->m_pairMain.m_strValue.c_str());
-				return false;
-			}
-			arypLine.clear();
-		}
+		if (!FTryParseOneOrZeroParams(
+				parser, 
+				pChzDepthFunc, 
+				mpStrComparisonfunc, 
+				DIM(mpStrComparisonfunc), 
+				&pData->m_d3ddepthstencildesc.DepthFunc,
+				pStrError))
+			return false;
 	}
 
 	// FillMode
 
 	{
-		parser.FindLines(pChzFillMode, &arypLine);
-		static SLinearMap<std::string, D3D11_FILL_MODE, 2> mpStrFillmode = {{
-																{std::string("Wireframe"), D3D11_FILL_WIREFRAME}, 
-																{std::string("Solid"), D3D11_FILL_SOLID}}};
-		if (arypLine.size() > 0)
-		{
-			if (arypLine.size() != 1)
-			{
-				*pStrError = "More than one FillMode tag";
-				return false;
-			}
-			ASSERT(arypLine.size() == 1); // Not exactly 1
+		static SKv<std::string, D3D11_FILL_MODE> mpStrFillmode[] = {{std::string("Wireframe"), D3D11_FILL_WIREFRAME},
+																	{std::string("Solid"), D3D11_FILL_SOLID}};
 
-			if (!mpStrFillmode.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &pData->m_d3drasterizerdesc.FillMode))
-			{
-				*pStrError = StrPrintf("Unrecognized FillMode tag '%s'", arypLine.front()->m_pairMain.m_strValue.c_str());
-				return false;
-			}
-			arypLine.clear();
-		}
+		if (!FTryParseOneOrZeroParams(
+				parser, 
+				pChzFillMode, 
+				mpStrFillmode, 
+				DIM(mpStrFillmode), 
+				&pData->m_d3drasterizerdesc.FillMode,
+				pStrError))
+			return false;
 	}
 
 	// CullMode
 
 	{
-		parser.FindLines(pChzCullMode, &arypLine);
-		static SLinearMap<std::string, D3D11_CULL_MODE, 3> mpStrCullmode = {{
-																{std::string("None"), D3D11_CULL_NONE}, 
-																{std::string("Front"), D3D11_CULL_FRONT},
-																{std::string("Back"), D3D11_CULL_BACK}}};
-		if (arypLine.size() > 0)
-		{
-			if (arypLine.size() != 1)
-			{
-				*pStrError = "More than one CullMode tag";
-				return false;
-			}
-
-			if (!mpStrCullmode.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &pData->m_d3drasterizerdesc.CullMode))
-			{
-				*pStrError = StrPrintf("Unrecognized CullMode tag '%s'", arypLine.front()->m_pairMain.m_strValue.c_str());
-				return false;
-			}
-			arypLine.clear();
-		}
+		static SKv<std::string, D3D11_CULL_MODE> mpStrCullmode[] = {{std::string("None"), D3D11_CULL_NONE}, 
+																	{std::string("Front"), D3D11_CULL_FRONT},
+																	{std::string("Back"), D3D11_CULL_BACK}};
+		if (!FTryParseOneOrZeroParams(
+				parser, 
+				pChzCullMode, 
+				mpStrCullmode, 
+				DIM(mpStrCullmode), 
+				&pData->m_d3drasterizerdesc.CullMode,
+				pStrError))
+			return false;
 	}
 
-	static SLinearMap<std::string, D3D11_BLEND, 17> mpStrBlend = {{
-															{std::string("Zero"),			D3D11_BLEND_ZERO}, 
+	static SKv<std::string, D3D11_BLEND> mpStrBlend[] = {	{std::string("Zero"),			D3D11_BLEND_ZERO},
 															{std::string("One"),			D3D11_BLEND_ONE},
 															{std::string("SrcColor"),		D3D11_BLEND_SRC_COLOR},
 															{std::string("InvSrcColor"),	D3D11_BLEND_INV_SRC_COLOR},
@@ -553,212 +537,139 @@ bool SShader::FTryLoadFromFile(SFile * pFile, SShaderData * pData, std::string *
 															{std::string("Src1Color"),		D3D11_BLEND_SRC1_COLOR},
 															{std::string("InvSrc1Color"),	D3D11_BLEND_INV_SRC1_COLOR},
 															{std::string("Src1Alpha"),		D3D11_BLEND_SRC1_ALPHA},
-															{std::string("InvSrc1Alpha"),	D3D11_BLEND_INV_SRC1_ALPHA}}};
+															{std::string("InvSrc1Alpha"),	D3D11_BLEND_INV_SRC1_ALPHA}};
 
-	static SLinearMap<std::string, D3D11_BLEND_OP, 5> mpStrBlendop = {{
-															{std::string("Add"), D3D11_BLEND_OP_ADD}, 
+	static SKv<std::string, D3D11_BLEND_OP> mpStrBlendop[] = {{std::string("Add"), D3D11_BLEND_OP_ADD},
 															{std::string("Subtract"), D3D11_BLEND_OP_SUBTRACT},
 															{std::string("RevSubtract"), D3D11_BLEND_OP_REV_SUBTRACT},
 															{std::string("Min"), D3D11_BLEND_OP_MIN},
-															{std::string("Max"), D3D11_BLEND_OP_MAX}}};
+															{std::string("Max"), D3D11_BLEND_OP_MAX}};
 
 	// BlendEnable
 
 	{
-		parser.FindLines(pChzBlendEnable, &arypLine);
-
-		if (arypLine.size() > 0)
-		{
-			if (arypLine.size() != 1)
-			{
-				*pStrError = "More than one BlendEnable tag";
-				return false;
-			}
-
-			if (!mpStrBool.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &pData->m_d3drtblenddesc.BlendEnable))
-			{
-				*pStrError = StrPrintf("Unrecognized BlendEnable tag '%s'", arypLine.front()->m_pairMain.m_strValue.c_str());
-				return false;
-			}
-			arypLine.clear();
-		}
+		if (!FTryParseOneOrZeroParams(
+				parser, 
+				pChzBlendEnable, 
+				mpStrBool, 
+				DIM(mpStrBool), 
+				&pData->m_d3drtblenddesc.BlendEnable,
+				pStrError))
+			return false;
 	}
 
 	// SrcBlend 	
 
 	{
-		parser.FindLines(pChzSrcBlend, &arypLine);
-
-		if (arypLine.size() > 0)
-		{
-			if (arypLine.size() != 1)
-			{
-				*pStrError = "More than one SrcBlend tag";
-				return false;
-			}
-
-			if (!mpStrBlend.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &pData->m_d3drtblenddesc.SrcBlend))
-			{
-				*pStrError = StrPrintf("Unrecognized SrcBlend tag '%s'", arypLine.front()->m_pairMain.m_strValue.c_str());
-				return false;
-			}
-			arypLine.clear();
-		}
+		if (!FTryParseOneOrZeroParams(
+				parser, 
+				pChzSrcBlend, 
+				mpStrBlend, 
+				DIM(mpStrBlend), 
+				&pData->m_d3drtblenddesc.SrcBlend,
+				pStrError))
+			return false;
 	}
 
 	// DestBlend
 
 	{
-		parser.FindLines(pChzDestBlend, &arypLine);
-
-		if (arypLine.size() > 0)
-		{
-			if (arypLine.size() != 1)
-			{
-				*pStrError = "More than one DestBlend tag";
-				return false;
-			}
-
-			if (!mpStrBlend.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &pData->m_d3drtblenddesc.DestBlend))
-			{
-
-				*pStrError = StrPrintf("Unrecognized DestBlend tag '%s'", arypLine.front()->m_pairMain.m_strValue.c_str());
-				return false;
-			}
-			arypLine.clear();
-		}
+		if (!FTryParseOneOrZeroParams(
+				parser, 
+				pChzDestBlend, 
+				mpStrBlend, 
+				DIM(mpStrBlend), 
+				&pData->m_d3drtblenddesc.DestBlend,
+				pStrError))
+			return false;
 	}
 
 	// BlendOp
 
 	{
-		parser.FindLines(pChzBlendOp, &arypLine);
-
-		if (arypLine.size() > 0)
-		{
-			if (arypLine.size() != 1)
-			{
-				*pStrError = "More than one BlendOp tag";
-				return false;
-			}
-
-			if (!mpStrBlendop.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &pData->m_d3drtblenddesc.BlendOp))
-			{
-				*pStrError = StrPrintf("Unrecognized BlendOp tag '%s'", arypLine.front()->m_pairMain.m_strValue.c_str());
-				return false;
-			}
-			arypLine.clear();
-		}
+		if (!FTryParseOneOrZeroParams(
+				parser, 
+				pChzBlendOp, 
+				mpStrBlendop, 
+				DIM(mpStrBlendop), 
+				&pData->m_d3drtblenddesc.BlendOp,
+				pStrError))
+			return false;
 	}
 
 	// RenderTargetWriteMask
 
 	{
-		parser.FindLines(pChzRtWriteMask, &arypLine);
-		static SLinearMap<std::string, UINT8, 16> mpStrColorwriteenable = { {
-																{std::string("None"),	0},
-																{std::string("R"),		D3D11_COLOR_WRITE_ENABLE_RED },
-																{std::string("G"),		D3D11_COLOR_WRITE_ENABLE_GREEN },
-																{std::string("B"),		D3D11_COLOR_WRITE_ENABLE_BLUE },
-																{std::string("A"),		D3D11_COLOR_WRITE_ENABLE_ALPHA },
-																{std::string("RG"),		D3D11_COLOR_WRITE_ENABLE_RED | D3D11_COLOR_WRITE_ENABLE_GREEN },
-																{std::string("RB"),		D3D11_COLOR_WRITE_ENABLE_RED | D3D11_COLOR_WRITE_ENABLE_BLUE },
-																{std::string("RA"),		D3D11_COLOR_WRITE_ENABLE_RED | D3D11_COLOR_WRITE_ENABLE_ALPHA },
-																{std::string("GB"),		D3D11_COLOR_WRITE_ENABLE_GREEN | D3D11_COLOR_WRITE_ENABLE_BLUE},
-																{std::string("GA"),		D3D11_COLOR_WRITE_ENABLE_GREEN | D3D11_COLOR_WRITE_ENABLE_ALPHA},
-																{std::string("BA"),		D3D11_COLOR_WRITE_ENABLE_BLUE | D3D11_COLOR_WRITE_ENABLE_ALPHA},
-																{std::string("RGB"),	D3D11_COLOR_WRITE_ENABLE_RED | D3D11_COLOR_WRITE_ENABLE_GREEN | D3D11_COLOR_WRITE_ENABLE_BLUE},
-																{std::string("RBA"),    D3D11_COLOR_WRITE_ENABLE_RED | D3D11_COLOR_WRITE_ENABLE_BLUE | D3D11_COLOR_WRITE_ENABLE_ALPHA},
-																{std::string("RGA"),	D3D11_COLOR_WRITE_ENABLE_RED | D3D11_COLOR_WRITE_ENABLE_GREEN | D3D11_COLOR_WRITE_ENABLE_ALPHA},
-																{std::string("GBA"),	D3D11_COLOR_WRITE_ENABLE_GREEN | D3D11_COLOR_WRITE_ENABLE_BLUE | D3D11_COLOR_WRITE_ENABLE_ALPHA},
-																{std::string("RGBA"),	D3D11_COLOR_WRITE_ENABLE_ALL}} };
-
-		if (arypLine.size() > 0)
-		{
-			if (arypLine.size() != 1)
-			{
-				*pStrError = "More than one RenderTargetWriteMask";
-				return false;
-			}
-
-			if (!mpStrColorwriteenable.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &pData->m_d3drtblenddesc.RenderTargetWriteMask))
-			{
-				*pStrError = StrPrintf("Unrecognized RenderTargetWriteMask tag '%s'",arypLine.front()->m_pairMain.m_strValue.c_str());
-				return false;
-			}
-			arypLine.clear();
-		}
+		static SKv<std::string, UINT8> mpStrColorwriteenable[] = {	{std::string("None"),	0},
+																	{std::string("R"),		D3D11_COLOR_WRITE_ENABLE_RED },
+																	{std::string("G"),		D3D11_COLOR_WRITE_ENABLE_GREEN },
+																	{std::string("B"),		D3D11_COLOR_WRITE_ENABLE_BLUE },
+																	{std::string("A"),		D3D11_COLOR_WRITE_ENABLE_ALPHA },
+																	{std::string("RG"),		D3D11_COLOR_WRITE_ENABLE_RED | D3D11_COLOR_WRITE_ENABLE_GREEN },
+																	{std::string("RB"),		D3D11_COLOR_WRITE_ENABLE_RED | D3D11_COLOR_WRITE_ENABLE_BLUE },
+																	{std::string("RA"),		D3D11_COLOR_WRITE_ENABLE_RED | D3D11_COLOR_WRITE_ENABLE_ALPHA },
+																	{std::string("GB"),		D3D11_COLOR_WRITE_ENABLE_GREEN | D3D11_COLOR_WRITE_ENABLE_BLUE},
+																	{std::string("GA"),		D3D11_COLOR_WRITE_ENABLE_GREEN | D3D11_COLOR_WRITE_ENABLE_ALPHA},
+																	{std::string("BA"),		D3D11_COLOR_WRITE_ENABLE_BLUE | D3D11_COLOR_WRITE_ENABLE_ALPHA},
+																	{std::string("RGB"),	D3D11_COLOR_WRITE_ENABLE_RED | D3D11_COLOR_WRITE_ENABLE_GREEN | D3D11_COLOR_WRITE_ENABLE_BLUE},
+																	{std::string("RBA"),    D3D11_COLOR_WRITE_ENABLE_RED | D3D11_COLOR_WRITE_ENABLE_BLUE | D3D11_COLOR_WRITE_ENABLE_ALPHA},
+																	{std::string("RGA"),	D3D11_COLOR_WRITE_ENABLE_RED | D3D11_COLOR_WRITE_ENABLE_GREEN | D3D11_COLOR_WRITE_ENABLE_ALPHA},
+																	{std::string("GBA"),	D3D11_COLOR_WRITE_ENABLE_GREEN | D3D11_COLOR_WRITE_ENABLE_BLUE | D3D11_COLOR_WRITE_ENABLE_ALPHA},
+																	{std::string("RGBA"),	D3D11_COLOR_WRITE_ENABLE_ALL}};
+		if (!FTryParseOneOrZeroParams(
+				parser, 
+				pChzRtWriteMask, 
+				mpStrColorwriteenable, 
+				DIM(mpStrColorwriteenable), 
+				&pData->m_d3drtblenddesc.RenderTargetWriteMask,
+				pStrError))
+			return false;
 	}
 
 	// BlendOpAlpha
 
 	{
-		parser.FindLines(pChzBlendOpAlpha, &arypLine);
-
-		if (arypLine.size() > 0)
-		{
-			if (arypLine.size() != 1)
-			{
-				*pStrError = "More than one BlendOpAlpha";
-				return false;
-			}
-
-			if (!mpStrBlendop.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &pData->m_d3drtblenddesc.BlendOpAlpha))
-			{
-				*pStrError = StrPrintf("Unrecognized BlendOpAlpha tag '%s'", arypLine.front()->m_pairMain.m_strValue);
-				return false;
-			}
-			arypLine.clear();
-		}
+		if (!FTryParseOneOrZeroParams(
+				parser, 
+				pChzBlendOpAlpha, 
+				mpStrBlendop, 
+				DIM(mpStrBlendop), 
+				&pData->m_d3drtblenddesc.BlendOpAlpha,
+				pStrError))
+			return false;
 	}
 
 	// SrcBlendAlpha
 
 	{
-		parser.FindLines(pChzSrcBlendAlpha, &arypLine);
-
-		if (arypLine.size() > 0)
-		{
-			if (arypLine.size() != 1)
-			{
-				*pStrError = "More than one SrcBlendAlpha tag";
-				return false;
-			}
-
-			if (!mpStrBlend.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &pData->m_d3drtblenddesc.SrcBlendAlpha))
-			{
-				*pStrError = StrPrintf("Unrecognized SrcBlendAlpha tag '%s'", arypLine.front()->m_pairMain.m_strValue.c_str());
-				return false;
-			}
-			arypLine.clear();
-		}
+		if (!FTryParseOneOrZeroParams(
+				parser, 
+				pChzSrcBlendAlpha, 
+				mpStrBlend, 
+				DIM(mpStrBlend), 
+				&pData->m_d3drtblenddesc.SrcBlendAlpha,
+				pStrError))
+			return false;
 	}
 
 	// DestBlendAlpha
 
 	{
-		parser.FindLines(pChzDestBlendAlpha, &arypLine);
-
-		if (arypLine.size() > 0)
-		{
-			if (arypLine.size() != 1)
-			{
-				*pStrError = "More than one DestBlendAlpha tag";
-				return false;
-			}
-
-			if (!mpStrBlend.FTryGetValueFromKey(FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, &pData->m_d3drtblenddesc.DestBlendAlpha))
-			{
-				*pStrError = StrPrintf("Unrecognized DestBlendAlpha tag '%s'", arypLine.front()->m_pairMain.m_strValue.c_str());
-				return false;
-			}
-			arypLine.clear();
-		}
+		if (!FTryParseOneOrZeroParams(
+				parser, 
+				pChzDestBlendAlpha, 
+				mpStrBlend, 
+				DIM(mpStrBlend), 
+				&pData->m_d3drtblenddesc.DestBlendAlpha,
+				pStrError))
+			return false;
 	}
 
 	// Texture
 
 	{
+		std::vector<const SParsedLine *> arypLine; // TODO turn into stack or frame array
+
 		parser.FindLines(pChzTexture, &arypLine);
 
 		std::vector<SNamedTextureSlot> aryNamedslot;
@@ -770,11 +681,11 @@ bool SShader::FTryLoadFromFile(SFile * pFile, SShaderData * pData, std::string *
 			}
 		}
 
-		m_mpISlotStrName.resize(aryNamedslot.size());
+		pData->m_mpISlotStrName.resize(aryNamedslot.size());
 		int iSlotMax = -1;
 		for (int i = 0; i < aryNamedslot.size(); i++)
 		{
-			m_mpISlotStrName[i] = { {},-1 };
+			pData->m_mpISlotStrName[i] = { {},-1 };
 			iSlotMax = NMax(iSlotMax, aryNamedslot[i].m_iSlot);
 		}
 
@@ -786,10 +697,10 @@ bool SShader::FTryLoadFromFile(SFile * pFile, SShaderData * pData, std::string *
 
 		for (const SNamedTextureSlot & namedslot : aryNamedslot)
 		{
-			m_mpISlotStrName[namedslot.m_iSlot] = namedslot;
+			pData->m_mpISlotStrName[namedslot.m_iSlot] = namedslot;
 		}
 
-		for (const SNamedTextureSlot & namedslot : m_mpISlotStrName)
+		for (const SNamedTextureSlot & namedslot : pData->m_mpISlotStrName)
 		{
 			if (namedslot.m_iSlot == -1)
 			{
@@ -915,7 +826,7 @@ SShader::SShader(const char * pChzFile, TYPEK typek) : super(typek)
 	std::string strError;
 	if (!FTryLoadFromFile(&file, &data, &strError))
 	{
-		m_shaderk = SHADERK_Error;
+		m_data.m_shaderk = SHADERK_Error;
 		g_game.PrintConsole(StrPrintf("Shader compile error (%s) :\n%s\n", m_strFile.c_str(), strError.c_str()), 20.0f);
 		return;
 	}
@@ -950,8 +861,8 @@ void SShader::UpdateHotload()
 	std::string strError;
 	if (!FTryLoadFromFile(&file, &data, &strError))
 	{
-		m_shaderk = SHADERK_Error;
-		g_game.PrintConsole(StrPrintf("Shader compile error (%s) :\n\n", m_strFile.c_str(), strError.c_str()), 20.0f);
+		m_data.m_shaderk = SHADERK_Error;
+		g_game.PrintConsole(StrPrintf("Shader compile error (%s) :\n%s\n", m_strFile.c_str(), strError.c_str()), 15.0f);
 		return;
 	}
 

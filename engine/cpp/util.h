@@ -153,6 +153,8 @@ struct SFixArray
 	void Append(const T & t);
 	void Remove(int i);
 	void RemoveSwap(int i);
+	int CCapacity()
+		{ return C; }
 	T operator [](int i) const;
 	T & operator [](int i);
 	T	m_a[C];

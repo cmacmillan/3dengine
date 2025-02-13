@@ -1,27 +1,23 @@
 #pragma once
 
-template<typename K, typename V, size_t C>
-struct SLinearMap
+template<typename K, typename V>
+struct SKv
 {
-	struct SKv
-	{
-		K m_key;
-		V m_value;
-	};
+	K m_key;
+	V m_value;
+};
 
-	bool FTryGetValueFromKey(bool (*FCompare) (const K & key1, const K & key2), const K & key, V * pValue)
+template<typename K, typename V>
+bool FTryGetValueFromKey(SKv<K, V> * aKv, int cKv, bool (*FCompare) (const K & key1, const K & key2), const K & key, V * pValue)
+{
+	for (int i = 0; i < cKv; i++)
 	{
-		for (int i = 0; i < C; i++)
+		if (FCompare(aKv[i].m_key, key))
 		{
-			if (FCompare(m_aKv[i].m_key, key))
-			{
-				*pValue = m_aKv[i].m_value;
-				return true;
-			}
+			*pValue = aKv[i].m_value;
+			return true;
 		}
-
-		return false;
 	}
 
-	SKv m_aKv[C] = {};
-};
+	return false;
+}
