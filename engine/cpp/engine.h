@@ -93,6 +93,7 @@ enum EDITS
 	EDITS_Nil = -1,
 };
 
+
 struct SGame // game 
 {
 	SGame();
@@ -105,6 +106,13 @@ struct SGame // game
 	void VkPressed(int vk);
 	void VkReleased(int vk);
 	void PrintConsole(const std::string & str, float dT = 0.0);
+	void DebugDrawSphere(Point posSphere, float sRadius);
+	void EnsureMeshIn3dCbuffer(
+			SMesh3D * pMesh, 
+			int * piBIndex, 
+			int * piBVert3D, 
+			D3D11_MAPPED_SUBRESOURCE * pMappedsubresVerts3D, 
+			D3D11_MAPPED_SUBRESOURCE * pMappedsubresIndex);
 
 	void SetEdits(EDITS edits);
 	void UpdateEdits();
@@ -138,6 +146,18 @@ struct SGame // game
 	SFlycamHandle m_hFlycam = -1; // Editor-mode flycam
 
 	EDITS m_edits = EDITS_Nil;
+
+	struct SSphere
+	{
+		Point m_pos;
+		float m_sRadius;
+	};
+
+	SMaterialHandle m_hMaterialWireframe = -1;
+
+	std::vector<SSphere> m_arySpheresToDraw = {};
+
+	SMesh3DHandle m_hMeshSphere = -1;
 
 	// TODO should just have a map of each typek to an array of instantiated objects of that type (would need to include derived classes too)
 

@@ -1,6 +1,9 @@
 # Ignore textures since they always cause version control problems
 
 /engine/textures/
+/engine/engine.exe
+/engine/engine.pdb
+/engine/x64
 
 ######################## Below is stuff I pasted from somewhere on the internet
 

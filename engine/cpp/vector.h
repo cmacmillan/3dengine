@@ -90,6 +90,11 @@ struct Vector
 };
 
 Vector VecComponentwiseMultiply(const Vector & vec1, const Vector & vec2);
+Vector VecComponentwiseDivide(const Vector & vec1, const Vector & vec2);
+Vector VecComponentwiseMin(const Vector & vec1, const Vector & vec2);
+Vector VecComponentwiseMax(const Vector & vec1, const Vector & vec2);
+float GMinInVec(const Vector & vec);
+float GMaxInVec(const Vector & vec);
 
 Vector VecPerpendicular(const Vector & vec);
 

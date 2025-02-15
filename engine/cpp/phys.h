@@ -10,3 +10,11 @@ struct SPhysCube : SNode3D // physcube
 
 	SPhysCube(SNodeHandle hNodeParent, const std::string & strName, TYPEK typek = TYPEK_PhysCube);
 };
+
+struct SIntersection // intersection
+{
+	Point m_pos;
+	float m_s;
+};
+
+void IntersectRayWithAllPhys(Point posOrigin, Vector normalDirection, std::vector<SIntersection> * paryIntersection);

@@ -218,6 +218,40 @@ Vector VecComponentwiseMultiply(const Vector & vec1, const Vector & vec2)
 				vec1.Z() * vec2.Z());
 }
 
+Vector VecComponentwiseDivide(const Vector & vec1, const Vector & vec2)
+{
+	return Vector(
+				vec1.X() / vec2.X(),
+				vec1.Y() / vec2.Y(),
+				vec1.Z() / vec2.Z());
+}
+
+Vector VecComponentwiseMin(const Vector & vec1, const Vector & vec2)
+{
+	return Vector(
+				GMin(vec1.X(), vec2.X()),
+				GMin(vec1.Y(), vec2.Y()),
+				GMin(vec1.Z(), vec2.Z()));
+}
+
+Vector VecComponentwiseMax(const Vector & vec1, const Vector & vec2)
+{
+	return Vector(
+				GMax(vec1.X(), vec2.X()),
+				GMax(vec1.Y(), vec2.Y()),
+				GMax(vec1.Z(), vec2.Z()));
+}
+
+float GMinInVec(const Vector & vec)
+{
+	return GMin(GMin(vec.X(), vec.Y()), vec.Z());
+}
+
+float GMaxInVec(const Vector & vec)
+{
+	return GMax(GMax(vec.X(), vec.Y()), vec.Z());
+}
+
 Vector VecPerpendicular(const Vector & vec)
 {
 	if (GAbs(GDot(vec, g_vecXAxis)) < 0.9f)

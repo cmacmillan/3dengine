@@ -14,24 +14,24 @@ struct SNode3D : SNode // node3D
 
 	SNode3D * PNode3DParent();
 
-	Point PosLocal() { return m_transformLocal.m_pos; }
-	Point PosWorld() { return m_matObjectToWorldCache.m_aVec[3]; }
+	Point PosLocal() const { return m_transformLocal.m_pos; }
+	Point PosWorld() const { return m_matObjectToWorldCache.m_aVec[3]; }
 	void SetPosLocal(Point pos);
 	void SetPosWorld(Point pos);
 
-	Quat QuatLocal() { return m_transformLocal.m_quat; }
-	Quat QuatWorld() { return m_quatObjectToWorldCache; }
+	Quat QuatLocal() const { return m_transformLocal.m_quat; }
+	Quat QuatWorld() const { return m_quatObjectToWorldCache; }
 	void SetQuatLocal(Quat quat);
 	void SetQuatWorld(Quat quat);
 
-	Vector VecScaleLocal() { return m_transformLocal.m_vecScale; }
+	Vector VecScaleLocal() const { return m_transformLocal.m_vecScale; }
 	void SetVecScaleLocal(Vector vecScale);
 
-	Mat MatObjectToWorld() { return m_matObjectToWorldCache;  }
+	Mat MatObjectToWorld() const { return m_matObjectToWorldCache;  }
 
-	Vector VecXWorld() { return Vector(m_matObjectToWorldCache.m_aVec[0]); }
-	Vector VecYWorld() { return Vector(m_matObjectToWorldCache.m_aVec[1]); }
-	Vector VecZWorld() { return Vector(m_matObjectToWorldCache.m_aVec[2]); }
+	Vector VecXWorld() const { return Vector(m_matObjectToWorldCache.m_aVec[0]); }
+	Vector VecYWorld() const { return Vector(m_matObjectToWorldCache.m_aVec[1]); }
+	Vector VecZWorld() const { return Vector(m_matObjectToWorldCache.m_aVec[2]); }
 
 	void UpdateSelfAndChildTransformCache();
 

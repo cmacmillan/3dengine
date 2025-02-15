@@ -23,6 +23,9 @@
 #include <d3dcompiler.h>
 #pragma comment(lib, "d3dcompiler.lib")
 
+const int cVertsMax = 100000;
+const int cIndexMax = 100000;
+
 SGame g_game;
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
@@ -390,8 +393,6 @@ void SGame::Init(HINSTANCE hInstance)
 	}
 
 	{
-		const int cVertsMax = 100000;
-
 		D3D11_BUFFER_DESC descVertexBuffer = {};
 		descVertexBuffer.ByteWidth = cVertsMax * sizeof(SVertData3D);
 		descVertexBuffer.Usage = D3D11_USAGE_DYNAMIC;
@@ -403,8 +404,6 @@ void SGame::Init(HINSTANCE hInstance)
 	}
 
 	{
-		const int cIndexMax = 100000;
-
 		D3D11_BUFFER_DESC descIndexBuffer = {};
 		descIndexBuffer.ByteWidth = cIndexMax * sizeof(unsigned short);
 		descIndexBuffer.Usage = D3D11_USAGE_DYNAMIC;
@@ -534,6 +533,7 @@ void SGame::Init(HINSTANCE hInstance)
 	pMaterialGreybox->m_aryNamedtexture.push_back({ m_hTextureShadow, "sunShadowTexture" });
 
 	SMaterial * pMaterialWireframe = new SMaterial((new SShader("shaders/3dwireframe.hlsl"))->HShader(), "wireframe");
+	m_hMaterialWireframe = pMaterialWireframe->HMaterial();
 
 	SMaterial * pMaterial3d = new SMaterial(hShader3D);
 	pMaterial3d->m_aryNamedtexture.push_back({ (new STexture("textures/testTexture1.png", false, false))->HTexture(),  "mainTexture"});
@@ -556,6 +556,8 @@ void SGame::Init(HINSTANCE hInstance)
 	hDrawnode3dSuzanne->m_hMaterial->m_aryNamedtexture.push_back({ m_hTextureShadow, "sunShadowTexture" });
 	hDrawnode3dSuzanne->m_hMesh = pMeshSuzzane->HMesh();
 	hDrawnode3dSuzanne->SetPosWorld(Point(10.0f, -2.0f, 0.0f));
+
+	m_hMeshSphere = PMeshLoadSingle("models/sphere.gltf")->HMesh();
 
 	SpawnScene("models/fakelevel.gltf");
 
@@ -581,6 +583,25 @@ int SortUinodeRenderOrder(const void * pVa, const void * pVb)
 		return -1;
 	else
 		return 1;
+}
+
+void SGame::EnsureMeshIn3dCbuffer(SMesh3D * pMesh, int * piBIndex, int * piBVert3D, D3D11_MAPPED_SUBRESOURCE * pMappedsubresVerts3D, D3D11_MAPPED_SUBRESOURCE * pMappedsubresIndex)
+{
+	if (pMesh->m_iVertdata != -1)
+		return;
+
+	pMesh->m_cVerts = pMesh->m_aryVertdata.size();
+	pMesh->m_iVertdata = *piBVert3D / sizeof(SVertData3D);
+	pMesh->m_cIndicies = pMesh->m_aryIIndex.size();
+	pMesh->m_iIndexdata = *piBIndex / sizeof(unsigned short);
+
+	unsigned int cBVert = sizeof(SVertData3D) * pMesh->m_aryVertdata.size();
+	memcpy((char *) pMappedsubresVerts3D->pData + *piBVert3D, pMesh->m_aryVertdata.data(), cBVert);
+	*piBVert3D += cBVert;
+
+	unsigned int cBIndex = sizeof(unsigned short) * pMesh->m_aryIIndex.size();
+	memcpy((char *) pMappedsubresIndex->pData + *piBIndex, pMesh->m_aryIIndex.data(), cBIndex);
+	*piBIndex += cBIndex;
 }
 
 void SGame::MainLoop()
@@ -831,22 +852,12 @@ void SGame::MainLoop()
 		for (SDrawNode3D * pDrawnode3D : arypDrawnode3DToRender)
 		{
 			SMesh3D * pMesh = pDrawnode3D->m_hMesh.PT();
-			if (pMesh->m_iVertdata != -1)
-				continue;
-
-			pMesh->m_cVerts = pMesh->m_aryVertdata.size();
-			pMesh->m_iVertdata = iBVert3D / sizeof(SVertData3D);
-			pMesh->m_cIndicies = pMesh->m_aryIIndex.size();
-			pMesh->m_iIndexdata = iBIndex / sizeof(unsigned short);
-
-			unsigned int cBVert = sizeof(SVertData3D) * pMesh->m_aryVertdata.size();
-			memcpy((char *) mappedSubresourceVerts3D.pData + iBVert3D, pMesh->m_aryVertdata.data(), cBVert);
-			iBVert3D += cBVert;
-
-			unsigned int cBIndex = sizeof(unsigned short) * pMesh->m_aryIIndex.size();
-			memcpy((char *) mappedSubresourceIndex.pData + iBIndex, pMesh->m_aryIIndex.data(), cBIndex);
-			iBIndex += cBIndex;
+			EnsureMeshIn3dCbuffer(pMesh, &iBIndex, &iBVert3D, &mappedSubresourceVerts3D, &mappedSubresourceIndex);
 		}
+
+		// Ensures sphere mesh for debug drawing
+
+		EnsureMeshIn3dCbuffer(m_hMeshSphere.PT(), &iBIndex, &iBVert3D, &mappedSubresourceVerts3D, &mappedSubresourceIndex);
 
 		for (SUiNode * pUinode : arypUinodeToRender)
 		{
@@ -873,6 +884,9 @@ void SGame::MainLoop()
 			memcpy((char *) mappedSubresourceIndex.pData + iBIndex, pMesh->m_aryIIndex.data(), cBIndex);
 			iBIndex += cBIndex;
 		}
+
+		ASSERT(iBIndex < cIndexMax * sizeof(unsigned short));
+		ASSERT(iBVert3D < cVertsMax * sizeof(SVertData3D));
 
 		g_game.m_pD3ddevicecontext->Unmap(m_cbufferIndex, 0);
 		g_game.m_pD3ddevicecontext->Unmap(m_cbufferVertex3D, 0);
@@ -974,9 +988,24 @@ void SGame::MainLoop()
 
 			// Draw 3d nodes
 
-			Draw3D(&arypDrawnode3DToRender, pCamera3D, i == 0);
+			Mat matWorldToClip = pCamera3D->MatWorldToClip();
+
+			Draw3D(&arypDrawnode3DToRender, matWorldToClip, i == 0);
+
+			// Draw debug draw stuff
+
+			if (i == 1)
+			{
+				SMaterial * pMaterialWireframe = m_hMaterialWireframe.PT();
+				SMesh3D * pMesh3d = m_hMeshSphere.PT();
+				for (const SSphere & sphere : m_arySpheresToDraw)
+				{
+					Draw3DSingle(pMaterialWireframe, pMesh3d, MatTranslate(sphere.m_pos), matWorldToClip);
+				}
+			}
 
 			// Draw ui nodes
+
 			if (i == 1)
 			{
 				for (SUiNode * pUinode : arypUinodeToRender)
@@ -1029,6 +1058,8 @@ void SGame::MainLoop()
 
 		m_pD3dswapchain->Present(1, 0);
 
+		m_arySpheresToDraw.clear();
+
 		for (int i = 0; i < DIM(m_mpVkFJustPressed); i++)
 		{
 			m_mpVkFJustPressed[i] = false;
@@ -1042,6 +1073,11 @@ void SGame::MainLoop()
 void SGame::PrintConsole(const std::string & str, float dT)
 {
 	m_hConsole->Print(str, g_game.m_dTSyst + dT);
+}
+
+void SGame::DebugDrawSphere(Point posSphere, float sRadius)
+{
+	m_arySpheresToDraw.push_back({ posSphere, sRadius });
 }
 
 void SGame::SetEdits(EDITS edits)

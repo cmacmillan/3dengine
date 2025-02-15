@@ -1,0 +1,17 @@
+_ - Frustum culling
+_ - Batch by shader and material
+X - Fix camera ztilt bug where it keeps pointing up
+X - Shadow mapping
+_ - shadow cascades
+_ - hdri, tonemapping, bloom
+_ - phys wireframe view
+_ - cook torrance lighting
+_ - baked lighting
+_ - asset compiler
+_ - instancing, static combining meshes (remember we want to frustum cull so that should be a large consideration if we statically combine. Probably just instance for now)
+_ - build up draw calls in a seperate thread
+_ - Raycast against boxes and draw intersection point
+_ - Player capsule & movement phys
+_ - Animation & skeleton import
+_ - raw input for mouse
+_ - keep cursor inside the screen

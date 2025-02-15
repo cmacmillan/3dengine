@@ -4,10 +4,49 @@
 #include "texture.h"
 #include "sun.h"
 
-void Draw3D(std::vector<SDrawNode3D *> * parypDrawnode3DToRender, SCamera3D * pCamera, bool fDrawAsShadowcaster)
+void Draw3DSingle(const SMaterial * pMaterial, const SMesh3D * pMesh, Mat matModel, Mat matWorldToClip)
 {
-	Mat matWorldToClip = pCamera->MatWorldToClip();
+	ID3D11DeviceContext1 * pD3ddevicecontext = g_game.m_pD3ddevicecontext;
+	const SShader * pShader = pMaterial->m_hShader.PT();
 
+	ASSERT(pShader->m_data.m_shaderk == SHADERK_3D);
+
+	pD3ddevicecontext->RSSetState(pShader->m_data.m_pD3drasterizerstate);
+	pD3ddevicecontext->OMSetDepthStencilState(pShader->m_data.m_pD3ddepthstencilstate, 0);
+
+	pD3ddevicecontext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	pD3ddevicecontext->IASetInputLayout(pShader->m_data.m_pD3dinputlayout);
+
+	pD3ddevicecontext->VSSetShader(pShader->m_data.m_pD3dvertexshader, nullptr, 0);
+	pD3ddevicecontext->PSSetShader(pShader->m_data.m_pD3dfragshader, nullptr, 0);
+
+	ID3D11Buffer * aD3dbuffer[] = { g_game.m_cbufferDrawnode3D, g_game.m_cbufferGlobals };
+	pD3ddevicecontext->VSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
+	pD3ddevicecontext->PSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
+
+	unsigned int cbVert = sizeof(SVertData3D);
+	unsigned int s_cbMeshOffset = 0;
+
+	pD3ddevicecontext->IASetVertexBuffers(0, 1, &g_game.m_cbufferVertex3D, &cbVert, &s_cbMeshOffset);	// BB don't constantly do this
+	pD3ddevicecontext->IASetIndexBuffer(g_game.m_cbufferIndex, DXGI_FORMAT_R16_UINT, 0);					//  ...
+
+	D3D11_MAPPED_SUBRESOURCE mappedSubresource;
+	pD3ddevicecontext->Map(g_game.m_cbufferDrawnode3D, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
+	SDrawNodeRenderConstants * pDrawnode3Drc = (SDrawNodeRenderConstants *) (mappedSubresource.pData);
+
+	pDrawnode3Drc->FillOut(matModel, matWorldToClip);
+
+	pD3ddevicecontext->Unmap(g_game.m_cbufferDrawnode3D, 0);
+
+	BindMaterialTextures(pMaterial, pShader);
+
+	pD3ddevicecontext->DrawIndexed(pMesh->m_cIndicies, pMesh->m_iIndexdata, pMesh->m_iVertdata);
+
+	UnbindTextures(pShader);
+}
+
+void Draw3D(std::vector<SDrawNode3D *> * parypDrawnode3DToRender, Mat matWorldToClip, bool fDrawAsShadowcaster)
+{
 	ID3D11DeviceContext1 * pD3ddevicecontext = g_game.m_pD3ddevicecontext;
 	for (SDrawNode3D * pDrawnode3D : *parypDrawnode3DToRender)
 	{
@@ -32,45 +71,9 @@ void Draw3D(std::vector<SDrawNode3D *> * parypDrawnode3DToRender, SCamera3D * pC
 			continue;
 
 		ASSERT(pDrawnode3D->FIsDerivedFrom(TYPEK_DrawNode3D));
-		ASSERT(pShader->m_data.m_shaderk == SHADERK_3D);
 
-		pD3ddevicecontext->RSSetState(pShader->m_data.m_pD3drasterizerstate);
-		pD3ddevicecontext->OMSetDepthStencilState(pShader->m_data.m_pD3ddepthstencilstate, 0);
-
-		const SMesh3D & mesh = *pDrawnode3D->m_hMesh;
-
-		pD3ddevicecontext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		pD3ddevicecontext->IASetInputLayout(pShader->m_data.m_pD3dinputlayout);
-
-		pD3ddevicecontext->VSSetShader(pShader->m_data.m_pD3dvertexshader, nullptr, 0);
-		pD3ddevicecontext->PSSetShader(pShader->m_data.m_pD3dfragshader, nullptr, 0);
-
-		ID3D11Buffer * aD3dbuffer[] = { g_game.m_cbufferDrawnode3D, g_game.m_cbufferGlobals };
-		pD3ddevicecontext->VSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
-		pD3ddevicecontext->PSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
-
-		unsigned int cbVert = sizeof(SVertData3D);
-		unsigned int s_cbMeshOffset = 0;
-
-		pD3ddevicecontext->IASetVertexBuffers(0, 1, &g_game.m_cbufferVertex3D, &cbVert, &s_cbMeshOffset);	// BB don't constantly do this
-		pD3ddevicecontext->IASetIndexBuffer(g_game.m_cbufferIndex, DXGI_FORMAT_R16_UINT, 0);					//  ...
-
-		D3D11_MAPPED_SUBRESOURCE mappedSubresource;
-		pD3ddevicecontext->Map(g_game.m_cbufferDrawnode3D, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
-		SDrawNodeRenderConstants * pDrawnode3Drc = (SDrawNodeRenderConstants *) (mappedSubresource.pData);
-
-		Mat matModel = pDrawnode3D->MatObjectToWorld();
-		pDrawnode3Drc->FillOut(matModel, matWorldToClip);
-
-		pD3ddevicecontext->Unmap(g_game.m_cbufferDrawnode3D, 0);
-
-		BindMaterialTextures(pMaterial, pShader);
-
-		pD3ddevicecontext->DrawIndexed(mesh.m_cIndicies, mesh.m_iIndexdata, mesh.m_iVertdata);
-
-		UnbindTextures(pShader);
+		Draw3DSingle(pMaterial, pDrawnode3D->m_hMesh.PT(), pDrawnode3D->MatObjectToWorld(), matWorldToClip);
 	}
-
 }
 
 void UnbindTextures(const SShader * pShader)

@@ -19,6 +19,9 @@
     <Filter Include="External">
       <UniqueIdentifier>{13b0b75d-7f1d-4c68-8898-71413e12dfe5}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Documents">
+      <UniqueIdentifier>{fce56ab3-00d4-47de-9841-f4b01d64c371}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="cpp\engine.cpp">
@@ -229,5 +232,10 @@
     <FxCompile Include="shaders\3dwireframe.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="documents\todo.txt">
+      <Filter>Documents</Filter>
+    </Text>
   </ItemGroup>
 </Project>
