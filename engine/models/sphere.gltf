@@ -20,7 +20,7 @@
 	],
 	"meshes":[
 		{
-			"name":"Icosphere",
+			"name":"Icosphere.001",
 			"primitives":[
 				{
 					"attributes":{
@@ -37,14 +37,14 @@
 		{
 			"bufferView":0,
 			"componentType":5126,
-			"count":960,
+			"count":240,
 			"max":[
-				1,
+				0.9510578513145447,
 				0.9999999403953552,
 				1
 			],
 			"min":[
-				-0.9999999403953552,
+				-0.9510578513145447,
 				-0.9999999403953552,
 				-1
 			],
@@ -53,51 +53,51 @@
 		{
 			"bufferView":1,
 			"componentType":5126,
-			"count":960,
+			"count":240,
 			"type":"VEC3"
 		},
 		{
 			"bufferView":2,
 			"componentType":5126,
-			"count":960,
+			"count":240,
 			"type":"VEC2"
 		},
 		{
 			"bufferView":3,
 			"componentType":5123,
-			"count":960,
+			"count":240,
 			"type":"SCALAR"
 		}
 	],
 	"bufferViews":[
 		{
 			"buffer":0,
-			"byteLength":11520,
+			"byteLength":2880,
 			"byteOffset":0,
 			"target":34962
 		},
 		{
 			"buffer":0,
-			"byteLength":11520,
-			"byteOffset":11520,
-			"target":34962
-		},
-		{
-			"buffer":0,
-			"byteLength":7680,
-			"byteOffset":23040,
+			"byteLength":2880,
+			"byteOffset":2880,
 			"target":34962
 		},
 		{
 			"buffer":0,
 			"byteLength":1920,
-			"byteOffset":30720,
+			"byteOffset":5760,
+			"target":34962
+		},
+		{
+			"buffer":0,
+			"byteLength":480,
+			"byteOffset":7680,
 			"target":34963
 		}
 	],
 	"buffers":[
 		{
-			"byteLength":32640,
+			"byteLength":8160,
 			"uri":"sphere.bin"
 		}
 	]

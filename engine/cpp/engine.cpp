@@ -827,6 +827,9 @@ void SGame::MainLoop()
 			pMesh->m_iVertdata = -1;
 		}
 
+		m_hMeshSphere->m_iIndexdata = -1;
+		m_hMeshSphere->m_iVertdata = -1;
+
 		for (SUiNode * pUinode : arypUinodeToRender)
 		{
 			SMesh3D * pMesh = pUinode->m_hMesh.PT();
