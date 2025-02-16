@@ -17,6 +17,8 @@ struct SCamera3D : SNode3D // camera3D
 	Mat MatClipToCamera();
 	Mat MatClipToWorld();
 
+	Point PosWorldFromPosNdc(Point posNdc);
+
 	float m_radFovHorizontal = -1;
 	float m_xNearClip = -1;
 	float m_xFarClip = -1;

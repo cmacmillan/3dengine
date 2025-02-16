@@ -93,7 +93,18 @@ void SpawnNode(tinygltf::Model * pModel, int iNode, SNode * pNodeParent)
 					// BB Janky code to add spawn in a child drawnode as well
 					//  Ideally we'd call spawnnode again somehow
 
-					pNodeParent = pNode3d;
+					if (pNode->translation.size() > 0)
+						pNode3d->SetPosLocal(Point(float(pNode->translation[0]), float(pNode->translation[1]), float(pNode->translation[2])));
+
+					if (pNode->rotation.size() > 0)
+						pNode3d->SetQuatLocal(Quat(float(pNode->rotation[3]), float(pNode->rotation[0]), float(pNode->rotation[1]), float(pNode->rotation[2])));
+
+					if (pNode->scale.size() > 0)
+						pNode3d->SetVecScaleLocal(Vector(float(pNode->scale[0]), float(pNode->scale[1]), float(pNode->scale[2])));
+
+					// BB Not spawning as a child because I want both the physcube and the drawnode to have transforms
+					//pNodeParent = pNode3d;
+
 					pNode3d = nullptr;
 #endif
 				}

@@ -118,7 +118,7 @@ struct SGame // game
 	void VkPressed(int vk);
 	void VkReleased(int vk);
 	void PrintConsole(const std::string & str, float dT = 0.0);
-	void DebugDrawSphere(Point posSphere, float sRadius, float dT = 0.0);
+	void DebugDrawSphere(Point posSphere, float sRadius = 1.0f, float dT = 0.0);
 	void DebugDrawCube(Point pos, Vector vecScale, Quat quat, float dT = 0.0);
 	void EnsureMeshIn3dCbuffer(
 			SMesh3D * pMesh, 
@@ -164,6 +164,8 @@ struct SGame // game
 
 	std::list<SDebugDraw> m_lDdToDraw = {};
 
+	Point m_posRaycastDbg = Point(0.0f, 0.0f, 0.0f);
+	Vector m_normalRaycastDbg = Vector(1.0f, 0.0f, 0.0f);
 	SMesh3DHandle m_hMeshSphere = -1;
 	SMesh3DHandle m_hMeshCube = -1;
 

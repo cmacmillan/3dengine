@@ -93,8 +93,6 @@ Vector VecComponentwiseMultiply(const Vector & vec1, const Vector & vec2);
 Vector VecComponentwiseDivide(const Vector & vec1, const Vector & vec2);
 Vector VecComponentwiseMin(const Vector & vec1, const Vector & vec2);
 Vector VecComponentwiseMax(const Vector & vec1, const Vector & vec2);
-float GMinInVec(const Vector & vec);
-float GMaxInVec(const Vector & vec);
 
 Vector VecPerpendicular(const Vector & vec);
 
@@ -125,7 +123,7 @@ Vector VecLerp(const Vector & vec1, const Vector vec2, float uLerp);
 Point PosZero();
 
 bool FIsNear(const Point & pos0, const Point & pos1);
-Point PosComponentwiseMultiply(const Point & pos, const Vector & vec);
+
 
 float SLength(const Vector & vec);
 Vector VecNormalize(const Vector & vec);
@@ -163,13 +161,13 @@ struct Mat
 	Mat MatInverse() const;
 };
 
-extern Mat g_matIdentity;
-extern Vector g_vecXAxis;
-extern Vector g_vecYAxis;
-extern Vector g_vecZAxis;
-extern Vector g_vecZero;
-extern Vector g_vecOne;
-extern Point g_posZero;
+const extern Mat g_matIdentity;
+const extern Vector g_vecXAxis;
+const extern Vector g_vecYAxis;
+const extern Vector g_vecZAxis;
+const extern Vector g_vecZero;
+const extern Vector g_vecOne;
+const extern Point g_posZero;
 
 Mat operator*(float g, const Mat & mat);
 
@@ -194,7 +192,7 @@ struct Quat
 	Quat operator*(const Quat & quat) const;
 };
 
-extern Quat g_quatIdentity;
+const extern Quat g_quatIdentity;
 
 // NOTE a positive radAngle = clockwise rotation about the normal since our coordinate system is right handed
 

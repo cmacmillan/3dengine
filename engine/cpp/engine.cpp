@@ -16,6 +16,7 @@
 #include "render.h"
 #include "sun.h"
 #include "player.h"
+#include "phys.h"
 
 #include <exception>
 
@@ -709,27 +710,31 @@ void SGame::MainLoop()
 		g_game.m_hCamera3DShadow->SetQuatWorld(QuatLookAt(-m_hSun->VecZWorld(),m_hSun->VecYWorld()));
 
 		m_hPlaneTest2->SetQuatLocal(QuatAxisAngle(g_vecYAxis, m_dT * 10.0f) * m_hPlaneTest2->QuatLocal());
-
+	
 		{
-			SCamera3D * pCam = m_hCamera3DMain.PT();
-			Mat matClipToCamera = pCam->MatClipToCamera();
+			if (m_mpVkFDown[VK_P])
+			{
+				SCamera3D * pCam = m_hCamera3DMain.PT();
+				float xNdc = GMapRange(0.0f, vecWinSize.m_x, -1.0f, 1.0f, m_xCursor);
+				float yNdc = GMapRange(0.0f, vecWinSize.m_y, 1.0f, -1.0f, m_yCursor);
+				Point posFar = pCam->PosWorldFromPosNdc(Point(xNdc, yNdc, 0.0f));
+				Vector normalRay = VecNormalize(posFar - pCam->PosWorld());
 
-			float uLerp = .5f * (GSin(m_dTSyst) + 1.0f);
-			float xCam = Lerp(pCam->m_xNearClip, pCam->m_xFarClip, uLerp);
-			float zFinal = Lerp(1.0f, 0.0f, uLerp);
+				m_posRaycastDbg = pCam->PosWorld();
+				m_normalRaycastDbg = normalRay;
+			}
 
-			float4 posNdc = float4(0.0f, 0.0f, zFinal, 1.0f);
-
-			// Multiplying by xCam since that's what ends up in the w component
-
-			float4 posResult = (posNdc * xCam) * matClipToCamera;
-
-			// NOTE W isn't 1.0 here, I think this is because this isn't really a reversible operation
-
-			Point posWFixed = Point(posResult.m_x, posResult.m_y, posResult.m_z);
-			Point posWorld = posWFixed * pCam->MatObjectToWorld();
-			DebugDrawSphere(posWorld, 50.0f, 0.0f);
+			std::vector<SIntersection> aryIntersection;
+			IntersectRayWithAllPhys(m_posRaycastDbg, m_normalRaycastDbg, &aryIntersection);
+			for (const SIntersection & intersection : aryIntersection)
+			{
+				DebugDrawSphere(intersection.m_pos, 1.0f);
+			}
 		}
+		//DebugDrawSphere(m_hCamera3DMain->PosWorldFromPosNdc(Point(
+																//, 
+																//, 
+																//.5f * (GSin(m_dTSyst) + 1.0))), 50.0f, 0.0f);
 
 		///////////////////////////////
 
@@ -1043,6 +1048,7 @@ void SGame::MainLoop()
 				SMesh3D * pMeshCube = m_hMeshCube.PT();
 				for (const SDebugDraw & dd : m_lDdToDraw)
 				{
+					MatInverse(dd.m_mat);
 					switch (dd.m_ddk)
 					{
 					case DDK_Cube:

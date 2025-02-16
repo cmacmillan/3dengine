@@ -38,3 +38,25 @@ Mat SCamera3D::MatClipToWorld()
 {
 	return MatCameraToClip() * MatObjectToWorld();
 }
+
+Point SCamera3D::PosWorldFromPosNdc(Point posNdc)
+{
+	// z near = 1, z far = 0, x & y range -1 to 1
+
+	// Clamp to bounds
+
+	posNdc = Point(VecComponentwiseMin(VecComponentwiseMax(Vector(posNdc), Vector(-1.0f, -1.0f, 0.0f)), Vector(1.0f, 1.0f, 1.0f)));
+
+	Mat matClipToCamera = MatClipToCamera();
+
+	float xCam = GMapRange(1.0f, 0.0f, m_xNearClip, m_xFarClip, posNdc.m_vec.m_z);
+
+	// Multiplying by xCam since that's what ends up in the w component
+
+	float4 posResult = (posNdc.m_vec * xCam) * matClipToCamera;
+
+	// NOTE W isn't 1.0 here, I think this is because this isn't really a reversible operation
+
+	Point posWFixed = Point(posResult.m_x, posResult.m_y, posResult.m_z);
+	return posWFixed * MatObjectToWorld();
+}

@@ -242,16 +242,6 @@ Vector VecComponentwiseMax(const Vector & vec1, const Vector & vec2)
 				GMax(vec1.Z(), vec2.Z()));
 }
 
-float GMinInVec(const Vector & vec)
-{
-	return GMin(GMin(vec.X(), vec.Y()), vec.Z());
-}
-
-float GMaxInVec(const Vector & vec)
-{
-	return GMax(GMax(vec.X(), vec.Y()), vec.Z());
-}
-
 Vector VecPerpendicular(const Vector & vec)
 {
 	if (GAbs(GDot(vec, g_vecXAxis)) < 0.9f)
@@ -292,14 +282,6 @@ Vector Point::operator-(const Point & pos) const
 	return m_vec - pos.m_vec;
 }
 
-Point PosComponentwiseMultiply(const Point & pos, const Vector & vec)
-{
-	return Point(
-				pos.X() * vec.X(),
-				pos.Y() * vec.Y(),
-				pos.Z() * vec.Z());
-}
-
 Point PosLerp(const Point & pos1, const Point pos2, float uLerp)
 {
 	uLerp = GMax(GMin(uLerp, 1.0f), 0.0f);
@@ -324,14 +306,14 @@ Vector VecProjectOnTangent(const Vector & vec, const Vector & normal)
 
 // Mat
 
-Mat g_matIdentity = Mat(float4(1, 0, 0, 0), float4(0, 1, 0, 0), float4(0, 0, 1, 0), float4(0, 0, 0, 1));
-Vector g_vecXAxis = Vector(1.0f, 0.0f, 0.0f);
-Vector g_vecYAxis = Vector(0.0f, 1.0f, 0.0f);
-Vector g_vecZAxis = Vector(0.0f, 0.0f, 1.0f);
-Vector g_vecZero = Vector(0.0f, 0.0f, 0.0f);
-Vector g_vecOne = Vector(1.0f, 1.0f, 1.0f);
-Point g_posZero = Point(0.0f, 0.0f, 0.0f);
-Quat g_quatIdentity = Quat(1.0f, 0.0f, 0.0f, 0.0f);
+const Mat g_matIdentity = Mat(float4(1, 0, 0, 0), float4(0, 1, 0, 0), float4(0, 0, 1, 0), float4(0, 0, 0, 1));
+const Vector g_vecXAxis = Vector(1.0f, 0.0f, 0.0f);
+const Vector g_vecYAxis = Vector(0.0f, 1.0f, 0.0f);
+const Vector g_vecZAxis = Vector(0.0f, 0.0f, 1.0f);
+const Vector g_vecZero = Vector(0.0f, 0.0f, 0.0f);
+const Vector g_vecOne = Vector(1.0f, 1.0f, 1.0f);
+const Point g_posZero = Point(0.0f, 0.0f, 0.0f);
+const Quat g_quatIdentity = Quat(1.0f, 0.0f, 0.0f, 0.0f);
 
 Mat::Mat()
 {

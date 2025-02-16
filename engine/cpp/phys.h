@@ -15,6 +15,7 @@ struct SIntersection // intersection
 {
 	Point m_pos;
 	float m_s;
+	SPhysCube * m_pPhyscube;
 };
 
 void IntersectRayWithAllPhys(Point posOrigin, Vector normalDirection, std::vector<SIntersection> * paryIntersection);

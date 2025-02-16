@@ -16,3 +16,4 @@ _ - Animation & skeleton import
 _ - raw input for mouse
 _ - keep cursor inside the screen
 _ - prevent crashing & assets when things are zero scale, just skip drawing them instead
+_ - minimize crashes engine
