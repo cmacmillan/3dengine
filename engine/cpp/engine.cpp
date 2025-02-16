@@ -710,6 +710,27 @@ void SGame::MainLoop()
 
 		m_hPlaneTest2->SetQuatLocal(QuatAxisAngle(g_vecYAxis, m_dT * 10.0f) * m_hPlaneTest2->QuatLocal());
 
+		{
+			SCamera3D * pCam = m_hCamera3DMain.PT();
+			Mat matClipToCamera = pCam->MatClipToCamera();
+
+			float uLerp = .5f * (GSin(m_dTSyst) + 1.0f);
+			float xCam = Lerp(pCam->m_xNearClip, pCam->m_xFarClip, uLerp);
+			float zFinal = Lerp(1.0f, 0.0f, uLerp);
+
+			float4 posNdc = float4(0.0f, 0.0f, zFinal, 1.0f);
+
+			// Multiplying by xCam since that's what ends up in the w component
+
+			float4 posResult = (posNdc * xCam) * matClipToCamera;
+
+			// NOTE W isn't 1.0 here, I think this is because this isn't really a reversible operation
+
+			Point posWFixed = Point(posResult.m_x, posResult.m_y, posResult.m_z);
+			Point posWorld = posWFixed * pCam->MatObjectToWorld();
+			DebugDrawSphere(posWorld, 50.0f, 0.0f);
+		}
+
 		///////////////////////////////
 
 		// Run update functions on all nodes

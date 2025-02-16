@@ -3,6 +3,7 @@
 // Summary of rules concerning the coordinate systems of this engine:
 //  ALL COORDINATE SYSTEMS ARE RIGHT HANDED INCLUDING CLIP SPACE
 //  This means our clip space is z=1.0 at near plane z=0.0 at far plane
+//  Our clip space is lower left x=-1 y=-1, upper right x=1, y=1
 //  Our 3d coordinate system is x=forward, y=left, z=up
 //  This gets projected into a clip space which is x=right, y=up, z=back (right handed)
 //  Our 2d coordinate system is x=right, y=up, z=back

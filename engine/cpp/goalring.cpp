@@ -12,5 +12,5 @@ void SGoalRing::Update()
 
 	SetQuatLocal(QuatLocal() * QuatAxisAngle(g_vecYAxis, g_game.m_dT));
 
-	g_game.DebugDrawSphere(PosWorld(), 1.0f + GSin(g_game.m_dTSyst));
+	g_game.DebugDrawSphere(PosWorld(), 1.0f + GSin(g_game.m_dTSyst*10.)+.01f, .2f);
 }
