@@ -60,3 +60,11 @@ Point SCamera3D::PosWorldFromPosNdc(Point posNdc)
 	Point posWFixed = Point(posResult.m_x, posResult.m_y, posResult.m_z);
 	return posWFixed * MatObjectToWorld();
 }
+
+Point SCamera3D::PosNdcFromPosWindow(float2 posWindow, float xDepthWorld)
+{
+	float2 vecWinSize = g_game.VecWinSize();
+	float xNdc = GMapRange(0.0f, vecWinSize.m_x, -1.0f, 1.0f, posWindow.m_x);
+	float yNdc = GMapRange(0.0f, vecWinSize.m_y, 1.0f, -1.0f, posWindow.m_y);
+	return Point(xNdc, yNdc, GMapRange(m_xNearClip, m_xFarClip, 1.0f, 0.0f, xDepthWorld));
+}

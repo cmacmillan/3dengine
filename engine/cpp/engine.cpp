@@ -715,9 +715,7 @@ void SGame::MainLoop()
 			if (m_mpVkFDown[VK_P])
 			{
 				SCamera3D * pCam = m_hCamera3DMain.PT();
-				float xNdc = GMapRange(0.0f, vecWinSize.m_x, -1.0f, 1.0f, m_xCursor);
-				float yNdc = GMapRange(0.0f, vecWinSize.m_y, 1.0f, -1.0f, m_yCursor);
-				Point posFar = pCam->PosWorldFromPosNdc(Point(xNdc, yNdc, 0.0f));
+				Point posFar = pCam->PosWorldFromPosNdc(pCam->PosNdcFromPosWindow(float2(m_xCursor, m_yCursor), pCam->m_xFarClip));
 				Vector normalRay = VecNormalize(posFar - pCam->PosWorld());
 
 				m_posRaycastDbg = pCam->PosWorld();
@@ -1048,7 +1046,6 @@ void SGame::MainLoop()
 				SMesh3D * pMeshCube = m_hMeshCube.PT();
 				for (const SDebugDraw & dd : m_lDdToDraw)
 				{
-					MatInverse(dd.m_mat);
 					switch (dd.m_ddk)
 					{
 					case DDK_Cube:
