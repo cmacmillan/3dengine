@@ -168,6 +168,7 @@ extern Vector g_vecXAxis;
 extern Vector g_vecYAxis;
 extern Vector g_vecZAxis;
 extern Vector g_vecZero;
+extern Vector g_vecOne;
 extern Point g_posZero;
 
 Mat operator*(float g, const Mat & mat);

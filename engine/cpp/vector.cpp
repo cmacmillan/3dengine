@@ -329,6 +329,7 @@ Vector g_vecXAxis = Vector(1.0f, 0.0f, 0.0f);
 Vector g_vecYAxis = Vector(0.0f, 1.0f, 0.0f);
 Vector g_vecZAxis = Vector(0.0f, 0.0f, 1.0f);
 Vector g_vecZero = Vector(0.0f, 0.0f, 0.0f);
+Vector g_vecOne = Vector(1.0f, 1.0f, 1.0f);
 Point g_posZero = Point(0.0f, 0.0f, 0.0f);
 Quat g_quatIdentity = Quat(1.0f, 0.0f, 0.0f, 0.0f);
 

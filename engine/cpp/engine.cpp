@@ -558,6 +558,7 @@ void SGame::Init(HINSTANCE hInstance)
 	hDrawnode3dSuzanne->SetPosWorld(Point(10.0f, -2.0f, 0.0f));
 
 	m_hMeshSphere = PMeshLoadSingle("models/sphere.gltf")->HMesh();
+	m_hMeshCube = PMeshLoadSingle("models/cube.gltf")->HMesh();
 
 	SpawnScene("models/fakelevel.gltf");
 
@@ -811,6 +812,19 @@ void SGame::MainLoop()
 		SConsole * pConsole = m_hConsole.PT();
 		pConsole->m_hTextConsole->SetText(pConsole->StrPrint());
 
+		// Clear expired debug draws
+
+		auto it = m_lDdToDraw.begin();
+		while (it != m_lDdToDraw.end())
+		{
+			auto itNext = std::next(it);
+			if (it->m_dTSystExpire < g_game.m_dTSyst)
+			{
+				m_lDdToDraw.erase(it);
+			}
+			it = itNext;
+		}
+
 		// Pack all the meshes into a big index and vertex buffer
 		//  See https://learn.microsoft.com/en-us/windows/win32/api/d3d11/ne-d3d11-d3d11_map
 		//  "A common use of these two flags involves filling dynamic index/vertex buffers with geometry that can be seen from the camera's current position. 
@@ -829,6 +843,9 @@ void SGame::MainLoop()
 
 		m_hMeshSphere->m_iIndexdata = -1;
 		m_hMeshSphere->m_iVertdata = -1;
+
+		m_hMeshCube->m_iIndexdata = -1;
+		m_hMeshCube->m_iVertdata = -1;
 
 		for (SUiNode * pUinode : arypUinodeToRender)
 		{
@@ -861,6 +878,7 @@ void SGame::MainLoop()
 		// Ensures sphere mesh for debug drawing
 
 		EnsureMeshIn3dCbuffer(m_hMeshSphere.PT(), &iBIndex, &iBVert3D, &mappedSubresourceVerts3D, &mappedSubresourceIndex);
+		EnsureMeshIn3dCbuffer(m_hMeshCube.PT(), &iBIndex, &iBVert3D, &mappedSubresourceVerts3D, &mappedSubresourceIndex);
 
 		for (SUiNode * pUinode : arypUinodeToRender)
 		{
@@ -1000,10 +1018,20 @@ void SGame::MainLoop()
 			if (i == 1)
 			{
 				SMaterial * pMaterialWireframe = m_hMaterialWireframe.PT();
-				SMesh3D * pMesh3d = m_hMeshSphere.PT();
-				for (const SSphere & sphere : m_arySpheresToDraw)
+				SMesh3D * pMeshSphere = m_hMeshSphere.PT();
+				SMesh3D * pMeshCube = m_hMeshCube.PT();
+				for (const SDebugDraw & dd : m_lDdToDraw)
 				{
-					Draw3DSingle(pMaterialWireframe, pMesh3d, MatTranslate(sphere.m_pos), matWorldToClip);
+					switch (dd.m_ddk)
+					{
+					case DDK_Cube:
+						Draw3DSingle(pMaterialWireframe, pMeshCube, dd.m_mat, matWorldToClip);
+						break;
+
+					case DDK_Sphere:
+						Draw3DSingle(pMaterialWireframe, pMeshSphere, dd.m_mat, matWorldToClip);
+						break;
+					}
 				}
 			}
 
@@ -1061,8 +1089,6 @@ void SGame::MainLoop()
 
 		m_pD3dswapchain->Present(1, 0);
 
-		m_arySpheresToDraw.clear();
-
 		for (int i = 0; i < DIM(m_mpVkFJustPressed); i++)
 		{
 			m_mpVkFJustPressed[i] = false;
@@ -1078,9 +1104,18 @@ void SGame::PrintConsole(const std::string & str, float dT)
 	m_hConsole->Print(str, g_game.m_dTSyst + dT);
 }
 
-void SGame::DebugDrawSphere(Point posSphere, float sRadius)
+void SGame::DebugDrawSphere(Point posSphere, float sRadius, float dT)
 {
-	m_arySpheresToDraw.push_back({ posSphere, sRadius });
+	// NOTE sphere model is radius 1
+
+	m_lDdToDraw.push_back({ DDK_Sphere, MatScale(sRadius * g_vecOne) * MatTranslate(posSphere), g_game.m_dTSyst + dT });
+}
+
+void SGame::DebugDrawCube(Point pos, Vector vecScale, Quat quat, float dT)
+{
+	// NOTE cube model is -1 to 1
+
+	m_lDdToDraw.push_back({ DDK_Cube, MatScale(vecScale) * MatRotate(quat) * MatTranslate(pos), g_game.m_dTSyst + dT });
 }
 
 void SGame::SetEdits(EDITS edits)

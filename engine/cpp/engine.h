@@ -93,6 +93,18 @@ enum EDITS
 	EDITS_Nil = -1,
 };
 
+enum DDK
+{
+	DDK_Sphere = 0,
+	DDK_Cube = 1
+};
+
+struct SDebugDraw
+{
+	DDK		m_ddk;
+	Mat		m_mat;
+	double	m_dTSystExpire;
+};
 
 struct SGame // game 
 {
@@ -106,7 +118,8 @@ struct SGame // game
 	void VkPressed(int vk);
 	void VkReleased(int vk);
 	void PrintConsole(const std::string & str, float dT = 0.0);
-	void DebugDrawSphere(Point posSphere, float sRadius);
+	void DebugDrawSphere(Point posSphere, float sRadius, float dT = 0.0);
+	void DebugDrawCube(Point pos, Vector vecScale, Quat quat, float dT = 0.0);
 	void EnsureMeshIn3dCbuffer(
 			SMesh3D * pMesh, 
 			int * piBIndex, 
@@ -147,17 +160,12 @@ struct SGame // game
 
 	EDITS m_edits = EDITS_Nil;
 
-	struct SSphere
-	{
-		Point m_pos;
-		float m_sRadius;
-	};
-
 	SMaterialHandle m_hMaterialWireframe = -1;
 
-	std::vector<SSphere> m_arySpheresToDraw = {};
+	std::list<SDebugDraw> m_lDdToDraw = {};
 
 	SMesh3DHandle m_hMeshSphere = -1;
+	SMesh3DHandle m_hMeshCube = -1;
 
 	// TODO should just have a map of each typek to an array of instantiated objects of that type (would need to include derived classes too)
 
