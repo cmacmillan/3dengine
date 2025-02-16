@@ -63,7 +63,7 @@ void SpawnNode(tinygltf::Model * pModel, int iNode, SNode * pNodeParent)
 	if (pNode->extras.IsObject())
 	{
 		tinygltf::Value * pValue;
-		if (FTryGetValueFromKey(pMpStrValue, "class", &pValue))
+		if (FTryGetValueFromKey(pMpStrValue, "0_class", &pValue))
 		{
 			ASSERT(pValue->IsString());
 			if (!pValue->IsString())

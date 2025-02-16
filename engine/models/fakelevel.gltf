@@ -28,6 +28,9 @@
 	"scene":0,
 	"scenes":[
 		{
+			"extras":{
+				"selected_class":2
+			},
 			"name":"Scene",
 			"nodes":[
 				0,
@@ -53,6 +56,9 @@
 	],
 	"nodes":[
 		{
+			"extras":{
+				"class":"Physbox"
+			},
 			"mesh":0,
 			"name":"Ground",
 			"scale":[
@@ -63,6 +69,7 @@
 		},
 		{
 			"extras":{
+				"0_class":"DrawNode",
 				"material":"greybox"
 			},
 			"mesh":1,
@@ -131,6 +138,7 @@
 		},
 		{
 			"extras":{
+				"0_class":"DrawNode",
 				"material":"wireframe"
 			},
 			"mesh":6,
@@ -318,7 +326,8 @@
 				14
 			],
 			"extras":{
-				"class":"GoalRing"
+				"0_class":"GoalRing",
+				"material":"default"
 			},
 			"mesh":15,
 			"name":"GoalRing",
@@ -346,7 +355,7 @@
 				}
 			},
 			"extras":{
-				"class":"Sun"
+				"0_class":"Sun"
 			},
 			"name":"Sun",
 			"rotation":[
@@ -377,7 +386,7 @@
 		},
 		{
 			"extras":{
-				"class":"player"
+				"0_class":"Player"
 			},
 			"name":"Player",
 			"translation":[
@@ -388,7 +397,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":17,
 			"name":"PhysCube",
@@ -411,7 +420,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":18,
 			"name":"Cube.005",
@@ -434,7 +443,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":19,
 			"name":"PhysCube3",
@@ -457,7 +466,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":20,
 			"name":"PhysCube4",
@@ -480,7 +489,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":21,
 			"name":"PhysCube5",
@@ -503,7 +512,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":22,
 			"name":"StepPhys",
@@ -520,7 +529,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":23,
 			"name":"StepPhys.001",
@@ -537,7 +546,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":24,
 			"name":"StepPhys.002",
@@ -554,7 +563,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":25,
 			"name":"StepPhys.003",
@@ -571,7 +580,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":26,
 			"name":"StepPhys.004",
@@ -588,7 +597,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":27,
 			"name":"StepPhys.005",
@@ -605,7 +614,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":28,
 			"name":"StepPhys.006",
@@ -622,7 +631,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":29,
 			"name":"StepPhys.007",
@@ -639,7 +648,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":30,
 			"name":"StepPhys.008",
@@ -656,7 +665,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":31,
 			"name":"StepPhys.009",
@@ -673,7 +682,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":32,
 			"name":"StepPhys.010",
@@ -690,7 +699,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":33,
 			"name":"StepPhys.011",
@@ -707,7 +716,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":34,
 			"name":"StepPhys.012",
@@ -724,7 +733,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":35,
 			"name":"StepPhys.013",
@@ -741,7 +750,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":36,
 			"name":"StepPhys.014",
@@ -758,7 +767,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":37,
 			"name":"StepPhys.015",
@@ -775,7 +784,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":38,
 			"name":"StepPhys.016",
@@ -792,7 +801,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":39,
 			"name":"StepPhys.017",
@@ -809,7 +818,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":40,
 			"name":"StepPhys.018",
@@ -826,7 +835,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":41,
 			"name":"StepPhys.019",
@@ -843,7 +852,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":42,
 			"name":"StepPhys.020",
@@ -860,7 +869,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":43,
 			"name":"StepPhys.021",
@@ -877,7 +886,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":44,
 			"name":"StepPhys.022",
@@ -894,7 +903,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":45,
 			"name":"StepPhys.023",
@@ -911,7 +920,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":46,
 			"name":"StepPhys.024",
@@ -928,7 +937,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":47,
 			"name":"StepPhys.025",
@@ -945,7 +954,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":48,
 			"name":"StepPhys.026",
@@ -962,7 +971,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":49,
 			"name":"StepPhys.027",
@@ -979,7 +988,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":50,
 			"name":"StepPhys.028",
@@ -996,7 +1005,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":51,
 			"name":"StepPhys.029",
@@ -1013,7 +1022,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":52,
 			"name":"StepPhys.030",
@@ -1030,7 +1039,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":53,
 			"name":"StepPhys.031",
@@ -1047,7 +1056,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":54,
 			"name":"StepPhys.032",
@@ -1064,7 +1073,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":55,
 			"name":"StepPhys.033",
@@ -1081,7 +1090,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":56,
 			"name":"StepPhys.034",
@@ -1098,7 +1107,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":57,
 			"name":"StepPhys.035",
@@ -1115,7 +1124,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":58,
 			"name":"StepPhys.036",
@@ -1132,7 +1141,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":59,
 			"name":"StepPhys.037",
@@ -1149,7 +1158,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":60,
 			"name":"StepPhys.038",
@@ -1166,7 +1175,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":61,
 			"name":"StepPhys.039",
@@ -1183,7 +1192,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":62,
 			"name":"StepPhys.040",
@@ -1200,7 +1209,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":63,
 			"name":"StepPhys.041",
@@ -1217,7 +1226,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":64,
 			"name":"StepPhys.042",
@@ -1234,7 +1243,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":65,
 			"name":"StepPhys.043",
@@ -1251,7 +1260,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":66,
 			"name":"StepPhys.044",
@@ -1268,7 +1277,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":67,
 			"name":"StepPhys.045",
@@ -1285,7 +1294,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":68,
 			"name":"StepPhys.046",
@@ -1302,7 +1311,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":69,
 			"name":"StepPhys.047",
@@ -1319,7 +1328,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":70,
 			"name":"StepPhys.048",
@@ -1336,7 +1345,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":71,
 			"name":"StepPhys.049",
@@ -1353,7 +1362,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":72,
 			"name":"StepPhys.050",
@@ -1370,7 +1379,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":73,
 			"name":"StepPhys.051",
@@ -1387,7 +1396,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":74,
 			"name":"StepPhys.052",
@@ -1404,7 +1413,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":75,
 			"name":"StepPhys.053",
@@ -1421,7 +1430,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":76,
 			"name":"StepPhys.054",
@@ -1438,7 +1447,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":77,
 			"name":"StepPhys.055",
@@ -1455,7 +1464,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":78,
 			"name":"StepPhys.056",
@@ -1472,7 +1481,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":79,
 			"name":"StepPhys.057",
@@ -1489,7 +1498,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":80,
 			"name":"StepPhys.058",
@@ -1506,7 +1515,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":81,
 			"name":"StepPhys.059",
@@ -1523,7 +1532,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":82,
 			"name":"StepPhys.060",
@@ -1540,7 +1549,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":83,
 			"name":"StepPhys.061",
@@ -1557,7 +1566,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":84,
 			"name":"StepPhys.062",
@@ -1574,7 +1583,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":85,
 			"name":"StepPhys.063",
@@ -1591,7 +1600,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":86,
 			"name":"StepPhys.064",
@@ -1608,7 +1617,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":87,
 			"name":"StepPhys.065",
@@ -1625,7 +1634,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":88,
 			"name":"StepPhys.066",
@@ -1642,7 +1651,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":89,
 			"name":"StepPhys.067",
@@ -1659,7 +1668,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":90,
 			"name":"StepPhys.068",
@@ -1676,7 +1685,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":91,
 			"name":"StepPhys.069",
@@ -1693,7 +1702,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":92,
 			"name":"StepPhys.070",
@@ -1791,7 +1800,7 @@
 		},
 		{
 			"extras":{
-				"class":"physcube"
+				"0_class":"PhysCube"
 			},
 			"mesh":93,
 			"name":"PhysCube5.001",

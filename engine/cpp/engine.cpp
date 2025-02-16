@@ -712,7 +712,7 @@ void SGame::MainLoop()
 		m_hPlaneTest2->SetQuatLocal(QuatAxisAngle(g_vecYAxis, m_dT * 10.0f) * m_hPlaneTest2->QuatLocal());
 	
 		{
-			if (m_mpVkFDown[VK_P])
+			if (m_mpVkFDown[VK_RBUTTON])
 			{
 				SCamera3D * pCam = m_hCamera3DMain.PT();
 				Point posFar = pCam->PosWorldFromPosNdc(pCam->PosNdcFromPosWindow(float2(m_xCursor, m_yCursor), pCam->m_xFarClip));

@@ -10,10 +10,15 @@ _ - baked lighting
 _ - asset compiler
 _ - instancing, static combining meshes (remember we want to frustum cull so that should be a large consideration if we statically combine. Probably just instance for now)
 _ - build up draw calls in a seperate thread
-_ - Raycast against boxes and draw intersection point
+X - Raycast against boxes and draw intersection point
 _ - Player capsule & movement phys
 _ - Animation & skeleton import
 _ - raw input for mouse
 _ - keep cursor inside the screen
 _ - prevent crashing & assets when things are zero scale, just skip drawing them instead
 _ - minimize crashes engine
+_ - phys acceleration bvh (probably don't use an octree since we allow overlapping bb colliders)
+_ - sphere physics
+_ - gpu particles (should support shader hotloading)
+_ - click on phys to center flycam
+_ - Draw lines
