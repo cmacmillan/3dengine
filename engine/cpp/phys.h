@@ -19,3 +19,17 @@ struct SIntersection // intersection
 };
 
 void IntersectRayWithAllPhys(Point posOrigin, Vector normalDirection, std::vector<SIntersection> * paryIntersection);
+
+struct SDynSphere : SNode3D // dynsphere 
+{
+	typedef SNode3D super;
+	SDynSphereHandle HPhyscube() { return (SDynSphereHandle) m_nHandle; }
+
+	SDynSphere(SNodeHandle hNodeParent, const std::string & strName, TYPEK typek = TYPEK_DynSphere);
+
+	void Update() override;
+
+	bool m_fFirstUpdate = true;
+	Point m_posPrev;
+	float m_dTPrev;
+};

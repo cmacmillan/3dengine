@@ -21,4 +21,6 @@ _ - phys acceleration bvh (probably don't use an octree since we allow overlappi
 _ - sphere physics
 _ - gpu particles (should support shader hotloading)
 _ - click on phys to center flycam
-_ - Draw lines
+_ - Debug draw line
+_ - Load all the meshes in the buffer one time, rather than creating a unique mesh per drawnode
+_ - normal mapping

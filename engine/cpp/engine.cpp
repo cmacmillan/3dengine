@@ -729,6 +729,8 @@ void SGame::MainLoop()
 				DebugDrawSphere(intersection.m_pos, 1.0f);
 			}
 		}
+
+		g_game.PrintConsole(StrPrintf("unique mesh count:%i\n", g_objman.m_mpTypekAryPObj[TYPEK_Mesh3D].size()));
 		//DebugDrawSphere(m_hCamera3DMain->PosWorldFromPosNdc(Point(
 																//, 
 																//, 

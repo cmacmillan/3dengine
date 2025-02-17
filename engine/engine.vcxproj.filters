@@ -22,6 +22,9 @@
     <Filter Include="Documents">
       <UniqueIdentifier>{fce56ab3-00d4-47de-9841-f4b01d64c371}</UniqueIdentifier>
     </Filter>
+    <Filter Include="python">
+      <UniqueIdentifier>{6c7088b3-9b3c-4c7a-85fe-66c9a9d32ae4}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="cpp\engine.cpp">
@@ -237,5 +240,10 @@
     <Text Include="documents\todo.txt">
       <Filter>Documents</Filter>
     </Text>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="python\3dEngineBlenderIntegration.py">
+      <Filter>python</Filter>
+    </None>
   </ItemGroup>
 </Project>

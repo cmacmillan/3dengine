@@ -218,6 +218,9 @@
   <ItemGroup>
     <Text Include="documents\todo.txt" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="python\3dEngineBlenderIntegration.py" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

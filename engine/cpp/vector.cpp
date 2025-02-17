@@ -242,6 +242,38 @@ Vector VecComponentwiseMax(const Vector & vec1, const Vector & vec2)
 				GMax(vec1.Z(), vec2.Z()));
 }
 
+Point PosComponentwiseMultiply(const Point & pos1, const Point & pos2)
+{
+	return Point(
+				pos1.X() * pos2.X(),
+				pos1.Y() * pos2.Y(),
+				pos1.Z() * pos2.Z());
+}
+
+Point PosComponentwiseDivide(const Point & pos1, const Point & pos2)
+{
+	return Point(
+				pos1.X() / pos2.X(),
+				pos1.Y() / pos2.Y(),
+				pos1.Z() / pos2.Z());
+}
+
+Point PosComponentwiseMin(const Point & pos1, const Point & pos2)
+{
+	return Point(
+				GMin(pos1.X(), pos2.X()),
+				GMin(pos1.Y(), pos2.Y()),
+				GMin(pos1.Z(), pos2.Z()));
+}
+
+Point PosComponentwiseMax(const Point & pos1, const Point & pos2)
+{
+	return Point(
+				GMax(pos1.X(), pos2.X()),
+				GMax(pos1.Y(), pos2.Y()),
+				GMax(pos1.Z(), pos2.Z()));
+}
+
 Vector VecPerpendicular(const Vector & vec)
 {
 	if (GAbs(GDot(vec, g_vecXAxis)) < 0.9f)
@@ -372,6 +404,12 @@ float SLength(const Vector & vec)
 Vector VecNormalize(const Vector & vec)
 {
 	return vec / SLength(vec);
+}
+
+Vector VecReflect(const Vector & vecToReflect, const Vector & normal)
+{
+	Vector vecAlign = VecProjectOnNormal(vecToReflect, normal);
+	return (vecToReflect - vecAlign) - vecAlign;
 }
 
 Vector VecNormalizeElse(const Vector & vec, const Vector & vecElse)

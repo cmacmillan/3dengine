@@ -29,6 +29,10 @@ class_properties = [
         "properties": []
     },
     {
+        "0_class": "DynSphere",
+        "properties": []
+    },
+    {
         "0_class": "GoalRing",
         "inherits": "DrawNode",
         "properties": []

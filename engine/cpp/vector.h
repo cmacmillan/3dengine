@@ -89,11 +89,6 @@ struct Vector
 	Vector operator-() const;
 };
 
-Vector VecComponentwiseMultiply(const Vector & vec1, const Vector & vec2);
-Vector VecComponentwiseDivide(const Vector & vec1, const Vector & vec2);
-Vector VecComponentwiseMin(const Vector & vec1, const Vector & vec2);
-Vector VecComponentwiseMax(const Vector & vec1, const Vector & vec2);
-
 Vector VecPerpendicular(const Vector & vec);
 
 Vector operator*(float g, const Vector & vec);
@@ -124,6 +119,14 @@ Point PosZero();
 
 bool FIsNear(const Point & pos0, const Point & pos1);
 
+Vector VecComponentwiseMultiply(const Vector & vec1, const Vector & vec2);
+Vector VecComponentwiseDivide(const Vector & vec1, const Vector & vec2);
+Vector VecComponentwiseMin(const Vector & vec1, const Vector & vec2);
+Vector VecComponentwiseMax(const Vector & vec1, const Vector & vec2);
+Point PosComponentwiseMultiply(const Point & pos1, const Point & pos2);
+Point PosComponentwiseDivide(const Point & pos1, const Point & pos2);
+Point PosComponentwiseMin(const Point & pos1, const Point & pos2);
+Point PosComponentwiseMax(const Point & pos1, const Point & pos2);
 
 float SLength(const Vector & vec);
 Vector VecNormalize(const Vector & vec);
@@ -211,6 +214,7 @@ Vector VecNormalizeElse(const Vector & vec, const Vector & vecElse);
 
 Vector VecProjectOnNormal(const Vector & vec, const Vector & normal);
 Vector VecProjectOnTangent(const Vector & vec, const Vector & normal);
+Vector VecReflect(const Vector & vecToReflect, const Vector & normal);
 
 Mat MatTranslate(Point pos);
 Mat MatTranslate(Vector vec);
