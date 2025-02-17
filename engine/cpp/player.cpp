@@ -4,9 +4,9 @@
 #include "camera3d.h"
 #include "flycam.h"
 
-SPlayer::SPlayer(SNodeHandle hNodeParent, const std::string & strName, TYPEK typek) : super (hNodeParent, strName, typek)
+SPlayer::SPlayer(SNode * pNodeParent, const std::string & strName, TYPEK typek) : super(pNodeParent, strName, typek)
 {
-	m_hCamera3D = (new SCamera3D(HNode(), "PlayerCammera", RadFromDeg(103.0f), 0.1, 700.0f))->HCamera3D();
+	m_hCamera3D = (new SCamera3D(this, "PlayerCammera", RadFromDeg(103.0f), 0.1, 700.0f))->HCamera3D();
 	g_game.m_hPlayer = HPlayer();
 }
 

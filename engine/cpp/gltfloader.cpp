@@ -83,23 +83,23 @@ void SpawnNode(tinygltf::Model * pModel, int iNode, SNode * pNodeParent)
 
 				if (FMatchCaseInsensitive(str, "GoalRing"))
 				{
-					pNode3d = new SGoalRing(pNodeParent->HNode(), pNode->name);
+					pNode3d = new SGoalRing(pNodeParent, pNode->name);
 				}
 				else if (FMatchCaseInsensitive(str, "Sun"))
 				{
-					pNode3d = new SSun(pNodeParent->HNode(), pNode->name);
+					pNode3d = new SSun(pNodeParent, pNode->name);
 				}
 				else if (FMatchCaseInsensitive(str, "Player"))
 				{
-					pNode3d = new SPlayer(pNodeParent->HNode(), pNode->name);
+					pNode3d = new SPlayer(pNodeParent, pNode->name);
 				}
 				else if (FMatchCaseInsensitive(str, "PhysCube"))
 				{
-					pNode3d = new SPhysCube(pNodeParent->HNode(), pNode->name);
+					pNode3d = new SPhysCube(pNodeParent, pNode->name);
 				}
 				else if (FMatchCaseInsensitive(str, "DynSphere"))
 				{
-					pNode3d = new SDynSphere(pNodeParent->HNode(), pNode->name);
+					pNode3d = new SDynSphere(pNodeParent, pNode->name);
 				}
 				else if (FMatchCaseInsensitive(str, "DrawNode"))
 				{
@@ -122,11 +122,11 @@ void SpawnNode(tinygltf::Model * pModel, int iNode, SNode * pNodeParent)
 	{
 		if (pNode->mesh != -1)
 		{
-			pNode3d = new SDrawNode3D(pNodeParent->HNode(), pNode->name);
+			pNode3d = new SDrawNode3D(pNodeParent, pNode->name);
 		}
 		else
 		{
-			pNode3d = new SNode3D(pNodeParent->HNode(), pNode->name);
+			pNode3d = new SNode3D(pNodeParent, pNode->name);
 		}
 	}
 

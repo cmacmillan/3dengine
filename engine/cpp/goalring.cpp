@@ -2,7 +2,7 @@
 
 #include "engine.h"
 
-SGoalRing::SGoalRing(SNodeHandle hNodeParent, const std::string & strName, TYPEK typek) : super(hNodeParent, strName, typek)
+SGoalRing::SGoalRing(SNode * pNodeParent, const std::string & strName, TYPEK typek) : super(pNodeParent, strName, typek)
 {
 }
 

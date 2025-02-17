@@ -2,9 +2,9 @@
 #include "engine.h"
 #include "player.h"
 
-SFlyCam::SFlyCam(SNodeHandle hNodeParent, const std::string & strName, TYPEK typek) : super(hNodeParent, strName, typek)
+SFlyCam::SFlyCam(SNode * pNodeParent, const std::string & strName, TYPEK typek) : super(pNodeParent, strName, typek)
 {
-	m_hCamera3D = (new SCamera3D(HNode(), "FlyCamCamera", RadFromDeg(90.0f), 0.1, 700.0f))->HCamera3D();
+	m_hCamera3D = (new SCamera3D(this, "FlyCamCamera", RadFromDeg(90.0f), 0.1, 700.0f))->HCamera3D();
 
 	m_fMouseControls = true;
 }

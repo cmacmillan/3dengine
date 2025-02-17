@@ -1,6 +1,6 @@
 #include "uinode.h"
 
-SUiNode::SUiNode(SNodeHandle hNodeParent, const std::string & str, TYPEK typek) : super(hNodeParent, str, typek)
+SUiNode::SUiNode(SNode * pNodeParent, const std::string & str, TYPEK typek) : super(pNodeParent, str, typek)
 {
 }
 

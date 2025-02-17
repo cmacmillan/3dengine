@@ -1,7 +1,7 @@
 #include "phys.h"
 #include "engine.h"
 
-SPhysCube::SPhysCube(SNodeHandle hNodeParent, const std::string & strName, TYPEK typek) : super(hNodeParent, strName, typek)
+SPhysCube::SPhysCube(SNode * pNodeParent, const std::string & strName, TYPEK typek) : super(pNodeParent, strName, typek)
 {
 }
 
@@ -12,21 +12,12 @@ void SPhysCube::UpdateSelfAndChildTransformCache()
 {
 	super::UpdateSelfAndChildTransformCache();
 
-	//m_matObjectToWorldCache = m_transformLocal.Mat() * MatParentToWorld();
-	//m_quatObjectToWorldCache = QuatParentToWorld() * m_transformLocal.m_quat;
-
-	// On way to do this is to start at the root, heading down
-	//  We build up the matrix as usual, recording cumulative uniform scales in a variable (which we may or may not ever end up using)
-	//  Eventually we'll either hit the bottom, on encounter a non-uniform scale. After this, any rotation or translation is an error
-	//  Any type of scale is allowed
-	//  We record this as a matrix, and then a combined non-uniform scale vector
-
-	// Flip that logic
-	// Start at the bottom, heading up, 
-
 	m_vecNonuniformScale = g_vecOne;
 	m_gUniformScale = 1.0f;
 	m_matPhys = g_matIdentity;
+
+	// BB I don't think translation actually is a problem for nonuniform scales, only rotation
+	//  We'd have to adjust the rest of the scheme slightly to allow for that tho
 
 	bool fRotationOrTranslationEncountered = false;
 	SNode3D * pNode3d = this;
@@ -37,7 +28,7 @@ void SPhysCube::UpdateSelfAndChildTransformCache()
 		{
 			m_vecNonuniformScale = VecComponentwiseMultiply(m_vecNonuniformScale, vecScaleLocal);
 
-			if (!pNode3d->QuatLocal().FIsIdentity() || !pNode3d->PosLocal().FIsZero())
+			if (!pNode3d->QuatLocal().FIsIdentity() || !FIsNear(pNode3d->PosLocal(), g_posZero))
 			{
 				fRotationOrTranslationEncountered = true;
 				m_matPhys = MatRotate(pNode3d->QuatLocal()) * MatTranslate(pNode3d->PosLocal());
@@ -55,6 +46,14 @@ void SPhysCube::UpdateSelfAndChildTransformCache()
 	}
 
 	m_matPhysInverse = MatInverse(m_matPhys);
+}
+
+void SPhysCube::Update()
+{
+	// BB Every phys cube being a full entity with an update function is somewhat disgusting
+	//  ... Or every drawnode, for that matter
+
+	TWEAKABLE bool s_fDrawPhysCubes = false;
 }
 
 void IntersectRayWithAllPhys(Point posOrigin, Vector normalDirection, std::vector<SIntersection> * paryIntersection)
@@ -121,7 +120,7 @@ void IntersectRayWithAllPhys(Point posOrigin, Vector normalDirection, std::vecto
 	}
 }
 
-SDynSphere::SDynSphere(SNodeHandle hNodeParent, const std::string & strName, TYPEK typek) : super(hNodeParent, strName, typek)
+SDynSphere::SDynSphere(SNode * pNodeParent, const std::string & strName, TYPEK typek) : super(pNodeParent, strName, typek)
 {
 }
 
@@ -130,6 +129,11 @@ void SDynSphere::Update()
 	super::Update();
 
 	// NOTE written assuming the sphere has no parent
+
+	// BB This should be on a fixed timestep for a variety of reasons
+	//  To make phys behave consistently at different framerates
+	//  To avoid becoming a bottleneck for high framerates
+	//  To avoid precision issues at high framerates (due to small dT)
 
 	Point posWorld = PosWorld();
 
@@ -149,7 +153,7 @@ void SDynSphere::Update()
 
 	Vector vecForces = g_vecZero;
 
-	TWEAKABLE float s_gGravity = -9.8f;
+	TWEAKABLE float s_gGravity = -30.0f;//-9.8f;
 	Vector vecGravity = Vector(0.0f, 0.0f, s_gGravity);
 	vecForces = vecForces + vecGravity;
 
@@ -212,12 +216,27 @@ void SDynSphere::Update()
 
 	if (m_fCollision)
 	{
-		TWEAKABLE float s_rBounciness = 0.5f;
+		TWEAKABLE float s_rBounciness = 0.7f;
 		Vector dPosCumulative = posNew - posNewOriginal;
-		Vector normalCumulative = VecNormalize(dPosCumulative);
-		Vector dPosFromVelocityNew = VecReflect(dPosFromVelocity, normalCumulative);
-		m_posPrev = posNew - dPosFromVelocityNew * s_rBounciness;
+		float sDPosCumulative = SLength(dPosCumulative);
+		if (sDPosCumulative > 0.0f)
+		{
+			Vector normalCumulative = dPosCumulative / sDPosCumulative;
+			Vector dPosAligned = VecProjectOnNormal(dPosFromVelocity, normalCumulative);
+			Vector dPosPerp = dPosFromVelocity - dPosAligned;
+
+			// Proportional to the normal force
+
+			TWEAKABLE float s_gFriction = 0.01f;
+			float gNormalForce = 2.0f * SLength(dPosAligned) / dT;
+
+			Vector dPosFinal = -dPosAligned * s_rBounciness + dPosPerp * GMin(1.0f, 1.0f - gNormalForce * s_gFriction);
+
+			m_posPrev = posNew - dPosFinal;
+		}
 	}
+
+	ASSERT(!posNew.m_vec.FHasNans());
 
 	SetPosWorld(posNew);
 }

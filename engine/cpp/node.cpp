@@ -1,85 +1,92 @@
 #include "node.h"
 
-SNode::SNode(SNodeHandle hNodeParent, const std::string & str, TYPEK typek) :
+SNode::SNode(SNode * pNodeParent, const std::string & str, TYPEK typek) :
 	super(typek)
 {
-	SetParent(hNodeParent);
+	SetParent(pNodeParent);
 
 	m_strName = str;
 }
 
-SNode * SNode::PNodeParent()
+SNode::~SNode()
 {
-	if (m_hNodeParent == -1)
-		return nullptr;
-	return m_hNodeParent.PT();
+	// TODO reparent all children to the root node I guess?
+
+	ASSERT(!m_pNodeChildFirst);
+
+	SetParent(nullptr);
 }
 
-void SNode::SetParent(SNodeHandle hNodeParent)
+SNode * SNode::PNodeParent()
 {
-	if (m_hNodeParent == hNodeParent)
+	return m_pNodeParent;
+}
+
+void SNode::SetParent(SNode * pNodeParent)
+{
+	if (m_pNodeParent == pNodeParent)
 		return;
 
 	// Leave previous node
 
-	if (m_hNodeParent != -1)
+	if (m_pNodeParent != nullptr)
 	{
-		if (m_hNodeSiblingPrev != -1 && m_hNodeSiblingNext != -1)
+		if (m_pNodeSiblingPrev != nullptr && m_pNodeSiblingNext != nullptr)
 		{
 			// Have previous and next sibling
 
-			m_hNodeSiblingPrev->m_hNodeSiblingNext = m_hNodeSiblingNext;
-			m_hNodeSiblingNext->m_hNodeSiblingPrev = m_hNodeSiblingPrev;
-			m_hNodeSiblingPrev = -1;
-			m_hNodeSiblingNext = -1;
+			m_pNodeSiblingPrev->m_pNodeSiblingNext = m_pNodeSiblingNext;
+			m_pNodeSiblingNext->m_pNodeSiblingPrev = m_pNodeSiblingPrev;
+			m_pNodeSiblingPrev = nullptr;
+			m_pNodeSiblingNext = nullptr;
 		}
-		else if (m_hNodeSiblingPrev != -1 && m_hNodeSiblingNext == -1)
+		else if (m_pNodeSiblingPrev != nullptr && m_pNodeSiblingNext == nullptr)
 		{
 			// Have previous sibling only (we were the last sibling)
 
-			m_hNodeParent->m_hNodeChildLast = m_hNodeSiblingPrev;
-			m_hNodeSiblingPrev->m_hNodeSiblingNext = -1;
-			m_hNodeSiblingPrev = -1;
+			m_pNodeParent->m_pNodeChildLast = m_pNodeSiblingPrev;
+			m_pNodeSiblingPrev->m_pNodeSiblingNext = nullptr;
+			m_pNodeSiblingPrev = nullptr;
 		}
-		else if (m_hNodeSiblingPrev == -1 && m_hNodeSiblingNext != -1)
+		else if (m_pNodeSiblingPrev == nullptr && m_pNodeSiblingNext != nullptr)
 		{
 			// Have next sibiling only (we were the first sibling)
 
-			m_hNodeParent->m_hNodeChildFirst = m_hNodeSiblingNext;
-			m_hNodeSiblingNext->m_hNodeSiblingPrev = -1;
-			m_hNodeSiblingNext = -1;
+			m_pNodeParent->m_pNodeChildFirst = m_pNodeSiblingNext;
+			m_pNodeSiblingNext->m_pNodeSiblingPrev = nullptr;
+			m_pNodeSiblingNext = nullptr;
 		}
 		else
 		{
 			// Have no siblings
 
-			m_hNodeParent->m_hNodeChildFirst = -1;
-			m_hNodeParent->m_hNodeChildLast = -1;
+			m_pNodeParent->m_pNodeChildFirst = nullptr;
+			m_pNodeParent->m_pNodeChildLast = nullptr;
 		}
 	}
 
-	m_hNodeParent = hNodeParent;
+	m_pNodeParent = pNodeParent;
 
 	// Enter new node
 
-	if (m_hNodeParent != -1)
+	if (m_pNodeParent != nullptr)
 	{
 		// Append
 
 		// BB should probably eventually support setting specific index
 
-		if (m_hNodeParent->m_hNodeChildLast != -1)
+		if (m_pNodeParent->m_pNodeChildLast != nullptr)
 		{
-			ASSERT(m_hNodeParent->m_hNodeChildFirst != -1);
+			ASSERT(m_pNodeParent->m_pNodeChildFirst != nullptr);
 
-			m_hNodeParent->m_hNodeChildLast->m_hNodeSiblingNext = HNode();
-			m_hNodeSiblingPrev = m_hNodeParent->m_hNodeChildLast;
-			m_hNodeParent->m_hNodeChildLast = HNode();
+			m_pNodeParent->m_pNodeChildLast->m_pNodeSiblingNext = this;
+			m_pNodeSiblingPrev = m_pNodeParent->m_pNodeChildLast;
+			m_pNodeParent->m_pNodeChildLast = this;
 		}
 		else
 		{
-			m_hNodeParent->m_hNodeChildFirst = HNode();
-			m_hNodeParent->m_hNodeChildLast = HNode();
+			m_pNodeParent->m_pNodeChildFirst = this;
+			m_pNodeParent->m_pNodeChildLast = this;
 		}
 	}
 }

@@ -47,6 +47,11 @@ float2 operator/(float g, const float2 & vec)
 
 // float4
 
+bool float4::FHasNans()
+{
+	return isnan(m_x) || isnan(m_y) || isnan(m_z) || isnan(m_w);
+}
+
 float4 float4::operator/(float g) const
 {
 	return float4(m_x / g, m_y / g, m_z / g, m_w / g);
@@ -134,6 +139,14 @@ float4 & float4::operator-=(const float4 & vec)
 	return *this;
 }
 
+bool float4::operator==(const float4 & vec)
+{
+	return	m_x == vec.m_x &&
+			m_y == vec.m_y &&
+			m_z == vec.m_z &&
+			m_w == vec.m_w;
+}
+
 float GDot(const float4 & vec0, const float4 & vec1)
 {
 	return vec0.m_x * vec1.m_x + vec0.m_y * vec1.m_y + vec0.m_z * vec1.m_z + vec0.m_w * vec1.m_w;
@@ -210,6 +223,25 @@ Vector Vector::operator-() const
 	return -m_vec;
 }
 
+bool Vector::operator==(const Vector & vec)
+{
+	return	m_vec.m_x == vec.m_vec.m_x &&
+			m_vec.m_y == vec.m_vec.m_y &&
+			m_vec.m_z == vec.m_vec.m_z;
+}
+
+Vector & Vector::operator+=(const Vector & vec)
+{
+	*this = *this + vec;
+	return *this;
+}
+
+Vector & Vector::operator-=(const Vector & vec)
+{
+	*this = *this - vec;
+	return *this;
+}
+
 Vector VecComponentwiseMultiply(const Vector & vec1, const Vector & vec2)
 {
 	return Vector(
@@ -274,6 +306,16 @@ Point PosComponentwiseMax(const Point & pos1, const Point & pos2)
 				GMax(pos1.Z(), pos2.Z()));
 }
 
+Vector VectorFromVec4(const float4 & vec4)
+{
+	return Vector(vec4.m_x,vec4.m_y,vec4.m_z);
+}
+
+Point PointFromVec4(const float4 & vec4)
+{
+	return Point(vec4.m_x, vec4.m_y, vec4.m_z);
+}
+
 Vector VecPerpendicular(const Vector & vec)
 {
 	if (GAbs(GDot(vec, g_vecXAxis)) < 0.9f)
@@ -317,6 +359,25 @@ Point Point::operator-(const Vector & vec) const
 Vector Point::operator-(const Point & pos) const
 {
 	return m_vec - pos.m_vec;
+}
+
+Point & Point::operator+=(const Vector & vec)
+{
+	*this = *this + vec;
+	return *this;
+}
+
+Point & Point::operator-=(const Vector & vec)
+{
+	*this = *this - vec;
+	return *this;
+}
+
+bool Point::operator==(const Point & pos)
+{
+	return	m_vec.m_x == pos.m_vec.m_x &&
+			m_vec.m_y == pos.m_vec.m_y &&
+			m_vec.m_z == pos.m_vec.m_z;
 }
 
 Point PosLerp(const Point & pos1, const Point pos2, float uLerp)
@@ -564,6 +625,16 @@ bool FIsNear(const Point & pos0, const Point & pos1)
 	return FIsNear(pos0.m_vec, pos1.m_vec);
 }
 
+bool FIsExactly(const Point & pos0, const Point & pos1)
+{
+	return false;
+}
+
+bool FIsExactly(const Vector & vec0, const Point & vec1)
+{
+	return false;
+}
+
 bool FIsNear(const Mat & mat0, const Mat & mat1)
 {
 	for (int i = 0; i < 4; i++)
@@ -588,6 +659,11 @@ bool FIsNear(const Transform & transform1, const Transform & transform2)
 	return FIsNear(transform1.m_pos, transform2.m_pos) &&
 			FIsNear(transform1.m_quat, transform2.m_quat) &&
 			FIsNear(transform1.m_vecScale, transform2.m_vecScale);
+}
+
+bool Mat::FHasNans()
+{
+	return m_aVec[0].FHasNans() || m_aVec[1].FHasNans() || m_aVec[2].FHasNans() || m_aVec[3].FHasNans();
 }
 
 Mat Mat::operator*(const Mat & mat) const

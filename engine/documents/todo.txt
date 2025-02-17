@@ -18,9 +18,13 @@ _ - keep cursor inside the screen
 _ - prevent crashing & assets when things are zero scale, just skip drawing them instead
 _ - minimize crashes engine
 _ - phys acceleration bvh (probably don't use an octree since we allow overlapping bb colliders)
-_ - sphere physics
+X - sphere physics
 _ - gpu particles (should support shader hotloading)
 _ - click on phys to center flycam
 _ - Debug draw line
 _ - Load all the meshes in the buffer one time, rather than creating a unique mesh per drawnode
 _ - normal mapping
+_ - Figure out how we're gonna deal with the fact that linked blender prefabs will require re-exporting all levels when one of the prefabs changes. (maybe some sort of "linked prefab markup", so it's a normal linked prefab in the blender scene, but we dump with info about where the prefab really came from)
+_ - timescaling (pg up/pg down)
+X - implement += -= for points, vectors and vec4s
+_ - fix issue where sphere hitting near the edge of box can get pushed out in the wrong direction (potentially sweep a capsule from the start to the end and find the intersection point that way)

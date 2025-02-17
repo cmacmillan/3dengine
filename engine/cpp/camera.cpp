@@ -1,8 +1,8 @@
 #include "camera3d.h"
 #include "engine.h"
 
-SCamera3D::SCamera3D(SNodeHandle hNodeParent,  const std::string & strName, float radFovHorizontal, float xNearClip, float xFarClip, TYPEK typek) :
-	super(hNodeParent, strName, typek),
+SCamera3D::SCamera3D(SNode * pNodeParent,  const std::string & strName, float radFovHorizontal, float xNearClip, float xFarClip, TYPEK typek) :
+	super(pNodeParent, strName, typek),
 	m_radFovHorizontal(radFovHorizontal),
 	m_xNearClip(xNearClip),
 	m_xFarClip(xFarClip)

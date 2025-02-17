@@ -9,7 +9,8 @@ void Draw3DSingle(const SMaterial * pMaterial, const SMesh3D * pMesh, Mat matMod
 	ID3D11DeviceContext1 * pD3ddevicecontext = g_game.m_pD3ddevicecontext;
 	const SShader * pShader = pMaterial->m_hShader.PT();
 
-	ASSERT(pShader->m_data.m_shaderk == SHADERK_3D);
+	if (pShader->m_data.m_shaderk == SHADERK_Error)
+		return;
 
 	pD3ddevicecontext->RSSetState(pShader->m_data.m_pD3drasterizerstate);
 	pD3ddevicecontext->OMSetDepthStencilState(pShader->m_data.m_pD3ddepthstencilstate, 0);
@@ -66,9 +67,6 @@ void Draw3D(std::vector<SDrawNode3D *> * parypDrawnode3DToRender, Mat matWorldTo
 			pMaterial = g_game.m_hMaterialShadowcaster.PT();
 			pShader = pMaterial->m_hShader.PT();
 		}
-
-		if (pShader->m_data.m_shaderk == SHADERK_Error)
-			continue;
 
 		ASSERT(pDrawnode3D->FIsDerivedFrom(TYPEK_DrawNode3D));
 

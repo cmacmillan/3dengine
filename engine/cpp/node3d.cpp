@@ -1,15 +1,15 @@
 #include "node3d.h"
 
-SNode3D::SNode3D(SNodeHandle hNodeParent, const std::string & str, TYPEK typek) :
-	super(hNodeParent, str, typek),
+SNode3D::SNode3D(SNode * pNodeParent, const std::string & str, TYPEK typek) :
+	super(pNodeParent, str, typek),
 	m_transformLocal()
 {
 	UpdateSelfAndChildTransformCache();
 }
 
-void SNode3D::SetParent(SNodeHandle hNodeParent)
+void SNode3D::SetParent(SNode * pNodeParent)
 {
-	super::SetParent(hNodeParent);
+	super::SetParent(pNodeParent);
 
 	UpdateSelfAndChildTransformCache();
 }
@@ -17,7 +17,7 @@ void SNode3D::SetParent(SNodeHandle hNodeParent)
 SNode3D * SNode3D::PNode3DParent()
 {
 	SNode3D * pNode3D = nullptr;
-	if (SNode * pNode = m_hNodeParent.PT())
+	if (SNode * pNode = m_pNodeParent)
 	{
 		if (pNode->FIsDerivedFrom(TYPEK_Node3D))
 		{
@@ -59,15 +59,14 @@ void SNode3D::UpdateSelfAndChildTransformCache()
 	m_matObjectToWorldCache = m_transformLocal.Mat() * MatParentToWorld();
 	m_quatObjectToWorldCache = QuatParentToWorld() * m_transformLocal.m_quat;
 
-	SNodeHandle hNode = m_hNodeChildFirst;
-	while (hNode != -1)
+	SNode * pNode = m_pNodeChildFirst;
+	while (pNode != nullptr)
 	{
-		SNode * pNode = hNode.PT();
 		if (pNode->FIsDerivedFrom(TYPEK_Node3D))
 		{
 			static_cast<SNode3D *>(pNode)->UpdateSelfAndChildTransformCache();
 		}
-		hNode = pNode->m_hNodeSiblingNext;
+		pNode = pNode->m_pNodeSiblingNext;
 	}
 }
 

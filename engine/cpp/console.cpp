@@ -2,9 +2,9 @@
 #include "engine.h"
 #include "text.h"
 
-SConsole::SConsole(SNodeHandle hNodeParent, const std::string & strName, TYPEK typek) :super(hNodeParent, strName, typek)
+SConsole::SConsole(SNode * pNodeParent, const std::string & strName, TYPEK typek) :super(pNodeParent, strName, typek)
 {
-	m_hTextConsole = (new SText(g_game.m_hFont, HNode(), "ConsoleText"))->HText();
+	m_hTextConsole = (new SText(g_game.m_hFont, this, "ConsoleText"))->HText();
 	m_hTextConsole->m_hMaterial = g_game.m_hMaterialText;
 	m_hTextConsole->m_vecScale = float2(0.2f, 0.2f);
 	m_hTextConsole->m_gSort = 10.0f;

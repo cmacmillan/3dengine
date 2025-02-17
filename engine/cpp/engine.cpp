@@ -134,7 +134,7 @@ void SGame::Init(HINSTANCE hInstance)
 {
 	STimingContext timectx = STimingContext("Init", 15.0f);
 
-	m_hNodeRoot = (new SNode(-1, "RootNode"))->HNode();
+	m_hNodeRoot = (new SNode(nullptr, "RootNode"))->HNode();
 
 	/*
 	// https://learn.microsoft.com/en-us/windows/win32/inputdev/using-raw-input
@@ -483,7 +483,7 @@ void SGame::Init(HINSTANCE hInstance)
 
 	// Console
 
-	m_hConsole = (new SConsole(m_hNodeRoot, "Console"))->HConsole();
+	m_hConsole = (new SConsole(m_hNodeRoot.PT(), "Console"))->HConsole();
 
 	// Load other shaders
 
@@ -492,16 +492,16 @@ void SGame::Init(HINSTANCE hInstance)
 
 	// Fps counter
 
-	(new SFpsCounter(m_hNodeRoot, "FpsCounter"));
+	(new SFpsCounter(m_hNodeRoot.PT(), "FpsCounter"));
 
 	// Camera
 
-	SFlyCam * pFlycam = (new SFlyCam(m_hNodeRoot, "FlyCam"));
+	SFlyCam * pFlycam = (new SFlyCam(m_hNodeRoot.PT(), "FlyCam"));
 	m_hFlycam = pFlycam->HFlycam();
 
 	// Shadow Camera
 
-	SCamera3D * pCamera = new SCamera3D(m_hNodeRoot, "ShadowCam", RadFromDeg(-1.0f), -500.0, 500.0f);
+	SCamera3D * pCamera = new SCamera3D(m_hNodeRoot.PT(), "ShadowCam", RadFromDeg(-1.0f), -500.0, 500.0f);
 	m_hCamera3DShadow = pCamera->HCamera3D();
 	pCamera->SetOrthographic(200.0f);
 
@@ -537,23 +537,23 @@ void SGame::Init(HINSTANCE hInstance)
 	m_hMaterialWireframe = pMaterialWireframe->HMaterial();
 
 	SMaterial * pMaterial3d = new SMaterial(hShader3D);
-	pMaterial3d->m_aryNamedtexture.push_back({ (new STexture("textures/testTexture1.png", false, false))->HTexture(),  "mainTexture"});
-	pMaterial3d->m_aryNamedtexture.push_back({ (new STexture("textures/testTexture2.png", false, false))->HTexture(),  "altTexture"});
+	pMaterial3d->m_aryNamedtexture.push_back({ (new STexture("textures/testTexture1.png", false, true))->HTexture(),  "mainTexture"});
+	pMaterial3d->m_aryNamedtexture.push_back({ (new STexture("textures/testTexture2.png", false, true))->HTexture(),  "altTexture"});
 
-	m_hPlaneTest = (new SDrawNode3D(m_hNodeRoot, "PlaneTest1"))->HDrawnode3D();
+	m_hPlaneTest = (new SDrawNode3D(m_hNodeRoot.PT(), "PlaneTest1"))->HDrawnode3D();
 	m_hPlaneTest->m_hMaterial = pMaterial3dNDotL->HMaterial();
 	m_hPlaneTest->SetPosWorld(Point(10.0f, 0.0f, 0.0f));
 	m_hPlaneTest->m_hMesh = m_hMeshQuad;
 
-	m_hPlaneTest2 = (new SDrawNode3D(m_hPlaneTest->HNode(), "PlaneTest2"))->HDrawnode3D();
+	m_hPlaneTest2 = (new SDrawNode3D(m_hPlaneTest.PT(), "PlaneTest2"))->HDrawnode3D();
 	m_hPlaneTest2->m_hMaterial = pMaterial3d->HMaterial();
 	m_hPlaneTest2->SetPosWorld(Point(10.0f, 2.0f, 0.0f));
 	m_hPlaneTest2->m_hMesh = m_hMeshQuad;
 
 	SMesh3D * pMeshSuzzane = PMeshLoadSingle("models/suzanne.gltf");
-	SDrawNode3DHandle hDrawnode3dSuzanne = (new SDrawNode3D(m_hPlaneTest->HNode(), "PlaneTest2"))->HDrawnode3D();
+	SDrawNode3DHandle hDrawnode3dSuzanne = (new SDrawNode3D(m_hPlaneTest.PT(), "PlaneTest2"))->HDrawnode3D();
 	hDrawnode3dSuzanne->m_hMaterial = pMaterial3dNDotL->HMaterial();
-	hDrawnode3dSuzanne->m_hMaterial->m_aryNamedtexture.push_back({ (new STexture("textures/uvchecker.jpg",false,false))->HTexture(), "mainTexture" });
+	hDrawnode3dSuzanne->m_hMaterial->m_aryNamedtexture.push_back({ (new STexture("textures/uvchecker.jpg",false,true))->HTexture(), "mainTexture" });
 	hDrawnode3dSuzanne->m_hMaterial->m_aryNamedtexture.push_back({ m_hTextureShadow, "sunShadowTexture" });
 	hDrawnode3dSuzanne->m_hMesh = pMeshSuzzane->HMesh();
 	hDrawnode3dSuzanne->SetPosWorld(Point(10.0f, -2.0f, 0.0f));
@@ -744,13 +744,13 @@ void SGame::MainLoop()
 
 		struct SVisitNode
 		{
-			SNodeHandle m_hNode;
+			SNode * m_pNode;
 			bool m_fVisited;
 		};
 
 		std::vector<SNodeHandle> aryhNode;
 		std::vector<SVisitNode> aryhNodeStack;
-		aryhNodeStack.push_back({ m_hNodeRoot, false });
+		aryhNodeStack.push_back({ m_hNodeRoot.PT(), false});
 		while (aryhNodeStack.size() > 0)
 		{
 			SVisitNode visitnode = aryhNodeStack[aryhNodeStack.size() - 1];
@@ -758,19 +758,19 @@ void SGame::MainLoop()
 
 			if (visitnode.m_fVisited)
 			{
-				if (visitnode.m_hNode->m_hNodeSiblingNext != -1)
+				if (visitnode.m_pNode->m_pNodeSiblingNext != nullptr)
 				{
-					aryhNodeStack.push_back({ visitnode.m_hNode->m_hNodeSiblingNext, false });
+					aryhNodeStack.push_back({ visitnode.m_pNode->m_pNodeSiblingNext, false });
 				}
 			}
 			else
 			{
-				aryhNode.push_back(visitnode.m_hNode);
+				aryhNode.push_back(visitnode.m_pNode->HNode());
 
-				aryhNodeStack.push_back({ visitnode.m_hNode, true});
-				if (visitnode.m_hNode->m_hNodeChildFirst != -1)
+				aryhNodeStack.push_back({ visitnode.m_pNode, true});
+				if (visitnode.m_pNode->m_pNodeChildFirst != nullptr)
 				{
-					aryhNodeStack.push_back({ visitnode.m_hNode->m_hNodeChildFirst, false });
+					aryhNodeStack.push_back({ visitnode.m_pNode->m_pNodeChildFirst, false });
 				}
 			}
 		}
@@ -849,6 +849,18 @@ void SGame::MainLoop()
 				m_lDdToDraw.erase(it);
 			}
 			it = itNext;
+		}
+
+		// Ensure no degenerate matricies
+
+		for (SDrawNode3D * pDrawnode3D : arypDrawnode3DToRender)
+		{
+			Mat mat = pDrawnode3D->MatObjectToWorld();
+			ASSERT(SLength(VectorFromVec4(mat.m_aVec[0])) != 0.0f);
+			ASSERT(SLength(VectorFromVec4(mat.m_aVec[1])) != 0.0f);
+			ASSERT(SLength(VectorFromVec4(mat.m_aVec[2])) != 0.0f);
+			ASSERT(mat.m_aVec[3].m_w == 1.0f);
+			ASSERT(!mat.FHasNans());
 		}
 
 		// Pack all the meshes into a big index and vertex buffer

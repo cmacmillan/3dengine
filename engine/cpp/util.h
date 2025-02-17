@@ -11,7 +11,6 @@
 #include <string>
 #include <stdexcept>
 
-#define ASSERT assert
 #define VERIFY(arg) if (!(arg)) { ASSERT(false); }
 #define CASSERT(arg) static_assert(arg, "static assert failed!\n");
 #define DIM(a) sizeof(a)/sizeof(a[0])
@@ -20,6 +19,10 @@
 // TODO make const version of this for ship
 
 #define TWEAKABLE static
+
+// TODO compile out asserts in ship
+
+#define ASSERT assert
 
 void DoNothing();
 

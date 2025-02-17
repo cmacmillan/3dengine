@@ -40,6 +40,7 @@ struct float4
 					m_z(z), 
 					m_w(w) 
 					{}
+	bool		FHasNans();
 
 	float4		operator/(float g) const;
 	float4		operator*(float g) const;
@@ -54,6 +55,8 @@ struct float4
 	float4 &	operator/=(float g);
 	float4 &	operator+=(const float4 & vec);
 	float4 &	operator-=(const float4 & vec);
+
+	bool		operator==(const float4 & vec);
 
 	float m_x;
 	float m_y; 
@@ -71,22 +74,28 @@ struct Point;
 
 struct Vector
 {
-	Vector() : m_vec() {}
-	Vector(const float4 & vec);
-	Vector(const Point & pos);
-	Vector(float x, float y, float z) : m_vec(x, y, z, 0.0f) {}
-	float	SLength() const;
-	Vector	VecNormalized() const;
-	float	X() const { return m_vec.m_x; }
-	float	Y() const { return m_vec.m_y; }
-	float	Z() const { return m_vec.m_z; }
+				Vector() : m_vec() {}
+				Vector(const float4 & vec);
+				Vector(const Point & pos);
+				Vector(float x, float y, float z) : m_vec(x, y, z, 0.0f) {}
+
+	float		SLength() const;
+	Vector		VecNormalized() const;
+	float		X() const { return m_vec.m_x; }
+	float		Y() const { return m_vec.m_y; }
+	float		Z() const { return m_vec.m_z; }
+
+	Vector		operator+(const Vector & vec) const;
+	Vector		operator-(const Vector & vec) const;
+	Vector		operator*(float g) const;
+	Vector		operator/(float g) const;
+	Point		operator+(const Point & pos) const;
+	Vector		operator-() const;
+	bool		operator==(const Vector & vec);
+	Vector &	operator+=(const Vector & vec);
+	Vector &	operator-=(const Vector & vec);
+
 	float4  m_vec;
-	Vector operator+(const Vector & vec) const;
-	Vector operator-(const Vector & vec) const;
-	Vector operator*(float g) const;
-	Vector operator/(float g) const;
-	Point operator+(const Point & pos) const;
-	Vector operator-() const;
 };
 
 Vector VecPerpendicular(const Vector & vec);
@@ -99,18 +108,22 @@ bool FIsNear(const Vector & vec0, const Vector & vec1);
 
 struct Point
 {
-	Point() : m_vec() {}
-	Point(const float4 & vec);
-	Point(const Vector & vec);
-	Point(float x, float y, float z) : m_vec(x, y, z, 1.0f) {}
+			Point() : m_vec() {}
+			Point(const float4 & vec);
+			Point(const Vector & vec);
+			Point(float x, float y, float z) : m_vec(x, y, z, 1.0f) {}
 	float	X() const { return m_vec.m_x; }
 	float	Y() const { return m_vec.m_y; }
 	float	Z() const { return m_vec.m_z; }
 	bool	FIsZero();
+	Point	operator+(const Vector & vec) const;
+	Point	operator-(const Vector & vec) const;
+	Vector	operator-(const Point & pos) const;
+	Point &	operator+=(const Vector & vec);
+	Point &	operator-=(const Vector & vec);
+	bool	operator==(const Point & pos);
+
 	float4	m_vec;
-	Point operator+(const Vector & vec) const;
-	Point operator-(const Vector & vec) const;
-	Vector operator-(const Point & pos) const;
 };
 
 Point PosLerp(const Point & pos1, const Point pos2, float uLerp);
@@ -128,6 +141,9 @@ Point PosComponentwiseMultiply(const Point & pos1, const Point & pos2);
 Point PosComponentwiseDivide(const Point & pos1, const Point & pos2);
 Point PosComponentwiseMin(const Point & pos1, const Point & pos2);
 Point PosComponentwiseMax(const Point & pos1, const Point & pos2);
+
+Vector VectorFromVec4(const float4 & vec4);
+Point PointFromVec4(const float4 & vec4);
 
 float SLength(const Vector & vec);
 Vector VecNormalize(const Vector & vec);
@@ -158,6 +174,7 @@ struct Mat
 	Vector VecY() { return m_aVec[1]; }
 	Vector VecZ() { return m_aVec[2]; }
 	Point Pos() { return m_aVec[3]; }
+	bool FHasNans();
 	float4 m_aVec[4];
 	Mat operator*(const Mat & mat) const;
 	Mat operator*(float g) const;

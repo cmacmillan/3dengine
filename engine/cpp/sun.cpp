@@ -1,7 +1,7 @@
 #include "sun.h"
 #include "engine.h"
 
-SSun::SSun(SNodeHandle hNodeParent, const std::string & strName, TYPEK typek) : super(hNodeParent, strName, typek)
+SSun::SSun(SNode * pNodeParent, const std::string & strName, TYPEK typek) : super(pNodeParent, strName, typek)
 {
 	g_game.m_hSun = HSun();
 }

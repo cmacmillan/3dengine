@@ -1,7 +1,7 @@
 // ShaderKind:3D
 // DepthEnable: On
-// DepthWrite: On
-// DepthFunc: Greater
+// DepthFunc: Always
+// DepthWrite: Off
 // FillMode: Wireframe
 // CullMode: None 
 // Shadowcast: Off

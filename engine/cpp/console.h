@@ -9,7 +9,7 @@ struct SConsole : SUiNode // console
 	typedef SUiNode super;
 	SConsoleHandle	HConsole() { return (SConsoleHandle) m_nHandle; }
 
-					SConsole(SNodeHandle hNodeParent, const std::string & strName, TYPEK typek = TYPEK_Console);
+					SConsole(SNode * pNodeParent, const std::string & strName, TYPEK typek = TYPEK_Console);
 
 	void			Update() override;
 	std::string		StrPrint();

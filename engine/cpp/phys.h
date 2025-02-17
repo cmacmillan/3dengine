@@ -8,8 +8,9 @@ struct SPhysCube : SNode3D // physcube
 	typedef SNode3D super;
 	SPhysCubeHandle HPhyscube() { return (SPhysCubeHandle) m_nHandle; }
 
-	SPhysCube(SNodeHandle hNodeParent, const std::string & strName, TYPEK typek = TYPEK_PhysCube);
+	SPhysCube(SNode * pNodeParent, const std::string & strName, TYPEK typek = TYPEK_PhysCube);
 	void UpdateSelfAndChildTransformCache() override;
+	void Update() override;
 
 	Vector m_vecNonuniformScale;	// The non-uniform scale component which is allowed to live at the bottom of the hierarchy
 	float m_gUniformScale;			// The scale we'd need to incorporate if we wanted to actually get world-space distance
@@ -31,7 +32,7 @@ struct SDynSphere : SNode3D // dynsphere
 	typedef SNode3D super;
 	SDynSphereHandle HPhyscube() { return (SDynSphereHandle) m_nHandle; }
 
-	SDynSphere(SNodeHandle hNodeParent, const std::string & strName, TYPEK typek = TYPEK_DynSphere);
+	SDynSphere(SNode * pNodeParent, const std::string & strName, TYPEK typek = TYPEK_DynSphere);
 
 	void Update() override;
 
