@@ -95,6 +95,9 @@ void AuditGRound();
 int NFloor(float g);
 int NCeil(float g);
 
+float GSign(float g);
+int NSign(int n);
+
 inline char ChToLower(char ch)
 {
 	if (ch >= 'A' && ch <= 'Z')

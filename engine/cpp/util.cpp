@@ -110,6 +110,20 @@ int NCeil(float g)
 	return int(std::ceil(g));
 }
 
+float GSign(float g)
+{
+	if (g < 0.0f)
+		return -1.0f;
+	return 1.0f;
+}
+
+int NSign(int n)
+{
+	if (n < 0)
+		return -1;
+	return 1;
+}
+
 bool FIsUpper(char ch)
 {
 	return 'A' <= ch && ch <= 'Z';

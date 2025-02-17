@@ -8,6 +8,13 @@ SNode::SNode(SNodeHandle hNodeParent, const std::string & str, TYPEK typek) :
 	m_strName = str;
 }
 
+SNode * SNode::PNodeParent()
+{
+	if (m_hNodeParent == -1)
+		return nullptr;
+	return m_hNodeParent.PT();
+}
+
 void SNode::SetParent(SNodeHandle hNodeParent)
 {
 	if (m_hNodeParent == hNodeParent)

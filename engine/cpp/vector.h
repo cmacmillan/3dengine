@@ -106,6 +106,7 @@ struct Point
 	float	X() const { return m_vec.m_x; }
 	float	Y() const { return m_vec.m_y; }
 	float	Z() const { return m_vec.m_z; }
+	bool	FIsZero();
 	float4	m_vec;
 	Point operator+(const Vector & vec) const;
 	Point operator-(const Vector & vec) const;
@@ -187,6 +188,7 @@ struct Quat
 
 	Quat Inverse() const;
 	float SLength() const;
+	bool FIsIdentity() const;
 
 	// Quaternion = a + bi + cj + dk
 

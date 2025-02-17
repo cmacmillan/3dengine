@@ -8,6 +8,55 @@ SPhysCube::SPhysCube(SNodeHandle hNodeParent, const std::string & strName, TYPEK
 const Point g_posBoxLow = Point(-1.0f, -1.0f, -1.0f);
 const Point g_posBoxHigh = Point(1.0f, 1.0f, 1.0f);
 
+void SPhysCube::UpdateSelfAndChildTransformCache()
+{
+	super::UpdateSelfAndChildTransformCache();
+
+	//m_matObjectToWorldCache = m_transformLocal.Mat() * MatParentToWorld();
+	//m_quatObjectToWorldCache = QuatParentToWorld() * m_transformLocal.m_quat;
+
+	// On way to do this is to start at the root, heading down
+	//  We build up the matrix as usual, recording cumulative uniform scales in a variable (which we may or may not ever end up using)
+	//  Eventually we'll either hit the bottom, on encounter a non-uniform scale. After this, any rotation or translation is an error
+	//  Any type of scale is allowed
+	//  We record this as a matrix, and then a combined non-uniform scale vector
+
+	// Flip that logic
+	// Start at the bottom, heading up, 
+
+	m_vecNonuniformScale = g_vecOne;
+	m_gUniformScale = 1.0f;
+	m_matPhys = g_matIdentity;
+
+	bool fRotationOrTranslationEncountered = false;
+	SNode3D * pNode3d = this;
+	while (pNode3d != nullptr)
+	{
+		Vector vecScaleLocal = pNode3d->VecScaleLocal();
+		if (!fRotationOrTranslationEncountered)
+		{
+			m_vecNonuniformScale = VecComponentwiseMultiply(m_vecNonuniformScale, vecScaleLocal);
+
+			if (!pNode3d->QuatLocal().FIsIdentity() || !pNode3d->PosLocal().FIsZero())
+			{
+				fRotationOrTranslationEncountered = true;
+				m_matPhys = MatRotate(pNode3d->QuatLocal()) * MatTranslate(pNode3d->PosLocal());
+			}
+		}
+		else
+		{
+			ASSERT(vecScaleLocal.X() == vecScaleLocal.Y() && vecScaleLocal.Y() == vecScaleLocal.Z());
+			m_gUniformScale *= vecScaleLocal.X();
+
+			m_matPhys = m_matPhys * pNode3d->MatObjectToParent();
+		}
+
+		pNode3d = pNode3d->PNode3DParent();
+	}
+
+	m_matPhysInverse = MatInverse(m_matPhys);
+}
+
 void IntersectRayWithAllPhys(Point posOrigin, Vector normalDirection, std::vector<SIntersection> * paryIntersection)
 {
 	for (SObject * pObj : g_objman.m_mpTypekAryPObj[TYPEK_PhysCube])
@@ -125,30 +174,40 @@ void SDynSphere::Update()
 	{
 		SPhysCube & physcube = *static_cast<SPhysCube *>(pObj);
 
-		Mat matObjToWorld = physcube.MatObjectToWorld();
-		Mat matWorldToObj = MatInverse(matObjToWorld); // Should probably be caching the inverse in node3d
+		Point posNewLocal = posNew * physcube.m_matPhysInverse;
 
-		Point posNewLocal = posNew * matWorldToObj;
+		Vector vecSign = Vector(GSign(posNewLocal.X()), GSign(posNewLocal.Y()), GSign(posNewLocal.Z()));
 
-		// Clamp point physcube bounds
+		Vector dPosToEdge = VecComponentwiseMultiply(vecSign, Vector(posNewLocal)) - physcube.m_vecNonuniformScale;
 
-		Point posLocalClamped = PosComponentwiseMax(PosComponentwiseMin(posNewLocal, g_posBoxHigh), g_posBoxLow);
+		float sMax = GMax(GMax(dPosToEdge.X(), dPosToEdge.Y()), dPosToEdge.Z());
 
-		Point posNewClamped = posLocalClamped * matObjToWorld;
-
-		Vector dPosClamp = posNewClamped - posNew;
-		float sDist = SLength(dPosClamp);
-		if (sDist > sRadius)
+		if (sMax > sRadius)
 			continue; // no collision
 
 		m_fCollision = true;
 
-		ASSERT(!FIsNear(sDist, 0.0f)); // BB deal with being fully inside the collider later
+		Vector vecPush;
+		if (dPosToEdge.X() > dPosToEdge.Y() && dPosToEdge.X() > dPosToEdge.Z())
+		{
+			// push out along x
 
-		float sDelta = sRadius - sDist;
-		Vector normalClamp = dPosClamp / sDist;
+			vecPush = Vector(vecSign.X() * (sRadius - dPosToEdge.X()), 0.0f, 0.0f);
+		}
+		else if (dPosToEdge.Y() > dPosToEdge.Z())
+		{
+			// push out along y
 
-		posNew = posNew - normalClamp * sDelta;
+			vecPush = Vector(0.0f, vecSign.X() * (sRadius - dPosToEdge.Y()), 0.0f);
+		}
+		else
+		{
+			// push out along z
+
+			vecPush = Vector(0.0f, 0.0f, vecSign.Z() * (sRadius - dPosToEdge.Z()));
+		}
+
+		posNew = posNew + vecPush * physcube.m_matPhys;
 	}
 
 	if (m_fCollision)
@@ -157,7 +216,7 @@ void SDynSphere::Update()
 		Vector dPosCumulative = posNew - posNewOriginal;
 		Vector normalCumulative = VecNormalize(dPosCumulative);
 		Vector dPosFromVelocityNew = VecReflect(dPosFromVelocity, normalCumulative);
-		m_posPrev = posNew + dPosFromVelocity * s_rBounciness;
+		m_posPrev = posNew - dPosFromVelocityNew * s_rBounciness;
 	}
 
 	SetPosWorld(posNew);

@@ -299,6 +299,11 @@ Point::Point(const Vector & vec)
 	m_vec.m_w = 1.0f;
 }
 
+bool Point::FIsZero()
+{
+	return m_vec.m_x == 0.0f && m_vec.m_y == 0.0f && m_vec.m_z == 0.0f;
+}
+
 Point Point::operator+(const Vector & vec) const
 {
 	return m_vec + vec.m_vec;
@@ -641,6 +646,11 @@ Quat Quat::Inverse() const
 float Quat::SLength() const
 {
 	return GSqrt(m_a * m_a + m_b * m_b + m_c * m_c + m_d * m_d);
+}
+
+bool Quat::FIsIdentity() const
+{
+	return m_a == 1.0f && m_b == 0.0f && m_c == 0.0f && m_d == 0.0f;
 }
 
 Quat QuatAxisAngle(const Vector & normal, float radAngle)

@@ -28,6 +28,14 @@ SNode3D * SNode3D::PNode3DParent()
 	return nullptr;
 }
 
+void SNode3D::SetPosQuatScaleLocal(Point pos, Quat quat, Vector vecScale)
+{
+	m_transformLocal.m_pos = pos;
+	m_transformLocal.m_quat = quat;
+	m_transformLocal.m_vecScale = vecScale;
+	UpdateSelfAndChildTransformCache();
+}
+
 void SNode3D::SetPosLocal(Point pos)
 {
 	m_transformLocal.m_pos = pos;

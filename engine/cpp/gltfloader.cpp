@@ -60,6 +60,13 @@ void SpawnNode(tinygltf::Model * pModel, int iNode, SNode * pNodeParent)
 	SNode3D * pNode3d = nullptr;
 	std::map<std::string, tinygltf::Value> * pMpStrValue = &pNode->extras.object_value_;
 
+#if 1
+	if (strcmp(pNode->name.c_str(), "SimpleBox") == 0)
+	{
+		DoNothing();
+	}
+#endif
+
 	if (pNode->extras.IsObject())
 	{
 		tinygltf::Value * pValue;
@@ -160,17 +167,20 @@ void SpawnNode(tinygltf::Model * pModel, int iNode, SNode * pNodeParent)
 		typek = TypekSuper(typek);
 	}
 
-
-	// TODO each of these call UpdateSelfAndChildTransformCache, create some combined version
+	Point pos = g_posZero;
+	Quat quat = g_quatIdentity;
+	Vector vecScale = g_vecOne;
 
 	if (pNode->translation.size() > 0)
-		pNode3d->SetPosLocal(Point(float(pNode->translation[0]), float(pNode->translation[1]), float(pNode->translation[2])));
+		pos = Point(float(pNode->translation[0]), float(pNode->translation[1]), float(pNode->translation[2]));
 
 	if (pNode->rotation.size() > 0)
-		pNode3d->SetQuatLocal(Quat(float(pNode->rotation[3]), float(pNode->rotation[0]), float(pNode->rotation[1]), float(pNode->rotation[2])));
+		quat = Quat(float(pNode->rotation[3]), float(pNode->rotation[0]), float(pNode->rotation[1]), float(pNode->rotation[2]));
 
 	if (pNode->scale.size() > 0)
-		pNode3d->SetVecScaleLocal(Vector(float(pNode->scale[0]), float(pNode->scale[1]), float(pNode->scale[2])));
+		vecScale = Vector(float(pNode->scale[0]), float(pNode->scale[1]), float(pNode->scale[2]));
+
+	pNode3d->SetPosQuatScaleLocal(pos, quat, vecScale);
 
 	for (int iNodeChild : pNode->children)
 	{

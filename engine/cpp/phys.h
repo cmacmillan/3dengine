@@ -9,6 +9,12 @@ struct SPhysCube : SNode3D // physcube
 	SPhysCubeHandle HPhyscube() { return (SPhysCubeHandle) m_nHandle; }
 
 	SPhysCube(SNodeHandle hNodeParent, const std::string & strName, TYPEK typek = TYPEK_PhysCube);
+	void UpdateSelfAndChildTransformCache() override;
+
+	Vector m_vecNonuniformScale;	// The non-uniform scale component which is allowed to live at the bottom of the hierarchy
+	float m_gUniformScale;			// The scale we'd need to incorporate if we wanted to actually get world-space distance
+	Mat m_matPhys;					// Excludes any non-uniform scale at the bottom of the hierarchy
+	Mat m_matPhysInverse;			//  ...
 };
 
 struct SIntersection // intersection

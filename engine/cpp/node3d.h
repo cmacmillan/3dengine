@@ -14,6 +14,8 @@ struct SNode3D : SNode // node3D
 
 	SNode3D * PNode3DParent();
 
+	void SetPosQuatScaleLocal(Point pos, Quat quat, Vector vecScale);
+
 	Point PosLocal() const { return m_transformLocal.m_pos; }
 	Point PosWorld() const { return m_matObjectToWorldCache.m_aVec[3]; }
 	void SetPosLocal(Point pos);
@@ -28,15 +30,15 @@ struct SNode3D : SNode // node3D
 	void SetVecScaleLocal(Vector vecScale);
 
 	Mat MatObjectToWorld() const { return m_matObjectToWorldCache;  }
+	Mat MatObjectToParent() { return m_transformLocal.Mat(); }
 
 	Vector VecXWorld() const { return Vector(m_matObjectToWorldCache.m_aVec[0]); }
 	Vector VecYWorld() const { return Vector(m_matObjectToWorldCache.m_aVec[1]); }
 	Vector VecZWorld() const { return Vector(m_matObjectToWorldCache.m_aVec[2]); }
 
-	void UpdateSelfAndChildTransformCache();
+	virtual void UpdateSelfAndChildTransformCache();
 
 protected:
-	Mat MatObjectToParent() { return m_transformLocal.Mat(); }
 	Quat QuatWorldToParent();
 	Quat QuatParentToWorld();
 	Mat MatWorldToParent();

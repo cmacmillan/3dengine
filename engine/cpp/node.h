@@ -8,6 +8,8 @@ struct SNode : SObject // node
 	SNodeHandle HNode() { return (SNodeHandle) m_nHandle; }
 
 	SNode(SNodeHandle hNodeParent, const std::string & strName, TYPEK typek = TYPEK_Node);
+	SNode * PNodeParent();
+
 	virtual void SetParent(SNodeHandle hNodeParent);
 
 	virtual void Update() {}
