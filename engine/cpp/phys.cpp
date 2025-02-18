@@ -1,6 +1,5 @@
 #include "phys.h"
 #include "engine.h"
-#include <algorithm> // For sort
 
 SPhysCube::SPhysCube(SNode * pNodeParent, const std::string & strName, TYPEK typek) : super(pNodeParent, strName, typek)
 {
@@ -185,244 +184,39 @@ void SDynSphere::Update()
 		SPhysCube & physcube = *static_cast<SPhysCube *>(pObj);
 
 		Point posNewLocal = posNew * physcube.m_matPhysInverse;
-		float sRadiusLocal = sRadius / physcube.m_gUniformScale;
 
-		// TODO first do a coarse check with a raycast against an inflated box w/the slab method
+		Vector vecSign = Vector(GSign(posNewLocal.X()), GSign(posNewLocal.Y()), GSign(posNewLocal.Z()));
 
-		// TODO handle moving physcube. Could basically say where was the sphere relative to us last frame, where does it want to end up relative to us this frame (even tho we've moved)
+		Vector dPosToEdge = VecComponentwiseMultiply(vecSign, Vector(posNewLocal)) - physcube.m_vecNonuniformScale;
 
-		// NOTE that instead of being in terms of time, this is ranges from 0-1 as a uDPos basically
+		float sMax = GMax(GMax(dPosToEdge.X(), dPosToEdge.Y()), dPosToEdge.Z());
 
-		Point posOgLocal = posWorld * physcube.m_matPhysInverse;
-		Vector vLocal = posNewLocal - posOgLocal;
+		if (sMax > sRadius)
+			continue; // no collision
 
-		Vector vecTMin = VecComponentwiseDivide(- physcube.m_vecNonuniformScale - posOgLocal, vLocal);
-		Vector vecTMax = VecComponentwiseDivide(physcube.m_vecNonuniformScale - posOgLocal, vLocal);
+		m_fCollision = true;
 
-		// NOTE vLocal can be zero in any dimension
-
-		float aT[8];
-		int cT = 0;
-		aT[cT++] = 0.0f;
-		aT[cT++] = 1.0f;
-		if (vLocal.X() != 0.0f)
+		Vector vecPush;
+		if (dPosToEdge.X() > dPosToEdge.Y() && dPosToEdge.X() > dPosToEdge.Z())
 		{
-			aT[cT++] = vecTMin.X();
-			aT[cT++] = vecTMax.X();
+			// push out along x
+
+			vecPush = Vector(vecSign.X() * (sRadius - dPosToEdge.X()), 0.0f, 0.0f);
+		}
+		else if (dPosToEdge.Y() > dPosToEdge.Z())
+		{
+			// push out along y
+
+			vecPush = Vector(0.0f, vecSign.X() * (sRadius - dPosToEdge.Y()), 0.0f);
+		}
+		else
+		{
+			// push out along z
+
+			vecPush = Vector(0.0f, 0.0f, vecSign.Z() * (sRadius - dPosToEdge.Z()));
 		}
 
-		if (vLocal.Y() != 0.0f)
-		{
-			aT[cT++] = vecTMin.Y();
-			aT[cT++] = vecTMax.Y();
-		}
-
-		if (vLocal.Z() != 0.0f)
-		{
-			aT[cT++] = vecTMin.Z();
-			aT[cT++] = vecTMax.Z();
-		}
-
-		std::sort(aT, aT + cT);
-
-		int iMic = -1;
-		int iMac = -1;
-		for (int i = 0; i < cT; i++)
-		{
-			if (aT[i] == 0.0f)
-			{
-				iMic = i;
-			}
-			else if (aT[i] == 1.0f)
-			{
-				iMac = i;
-				break;
-			}
-		}
-
-		bool fHit = false;
-		float dTHit;
-		for (int i = iMic; i < iMac; i++)
-		{
-			float dTPrev = aT[i];
-			float dTNext = aT[i+1];
-
-			struct STrack
-			{
-				float m_g; // fixed coordinate
-				float m_v; // velocity
-				float m_s; // origin
-			};
-
-			// NOTE this relies on the cube being symmetrical
-
-			// BB janky way to figure out what quadrant we're in
-
-			float dTMiddle = (dTPrev + dTNext) * 0.5f;
-
-			Point posMiddle = posOgLocal + dTMiddle * vLocal;
-			bool fTrackX = GAbs(posMiddle.X()) < physcube.m_vecNonuniformScale.m_vec.m_x;
-			bool fTrackY = GAbs(posMiddle.Y()) < physcube.m_vecNonuniformScale.m_vec.m_y;
-			bool fTrackZ = GAbs(posMiddle.Z()) < physcube.m_vecNonuniformScale.m_vec.m_z;
-
-			STrack aTrack[3];
-			int cTrack = 0;
-
-			if (!fTrackX)
-			{
-				aTrack[cTrack].m_g = GSign(posMiddle.X()) * physcube.m_vecNonuniformScale.m_vec.m_x;
-				aTrack[cTrack].m_v = vLocal.X();
-				aTrack[cTrack].m_s = posOgLocal.X();
-				cTrack++;
-			}
-
-			if (!fTrackY)
-			{
-				aTrack[cTrack].m_g = GSign(posMiddle.Y()) * physcube.m_vecNonuniformScale.m_vec.m_y;
-				aTrack[cTrack].m_v = vLocal.Y();
-				aTrack[cTrack].m_s = posOgLocal.Y();
-				cTrack++;
-			}
-
-			if (!fTrackZ)
-			{
-				aTrack[cTrack].m_g = GSign(posMiddle.Z()) * physcube.m_vecNonuniformScale.m_vec.m_z;
-				aTrack[cTrack].m_v = vLocal.Z();
-				aTrack[cTrack].m_s = posOgLocal.Z();
-				cTrack++;
-			}
-
-			// derived in https://www.wolframcloud.com/env/chasemacmillan/capsuleAABBintersection.nb
-
-			// NOTE that tMin and tMax aren't necessarily tMin<tMax
-			float tMin = -1.0f;
-			float tMax = -1.0f;
-			switch (cTrack)
-			{
-			case 0: // Completely inside
-				// BB a bit of a guess
-				ASSERT(false);
-				tMin = dTPrev;
-				tMax = dTNext;
-				break;
-			case 1: // Face
-				{
-					const STrack & trackA = aTrack[0];
-					tMin = (trackA.m_g - sRadiusLocal - trackA.m_s) / trackA.m_v;
-					tMax = (trackA.m_g + sRadiusLocal - trackA.m_s) / trackA.m_v;
-				}
-				break;
-			case 2: // Edge
-				{
-					const STrack & trackA = aTrack[0];
-					const STrack & trackB = aTrack[1];
-
-					float a =	trackA.m_v * trackA.m_v +
-								trackB.m_v * trackB.m_v;
-
-					float b =	-2.0f * trackA.m_g * trackA.m_v + 2.0f * trackA.m_s * trackA.m_v
-								-2.0f * trackB.m_g * trackB.m_v + 2.0f * trackB.m_s * trackB.m_v;
-
-					float c =	trackA.m_g * trackA.m_g +
-								trackB.m_g * trackB.m_g
-								- sRadiusLocal * sRadiusLocal
-								- 2.0f * trackA.m_g * trackA.m_s + trackA.m_s * trackA.m_s
-								- 2.0f * trackB.m_g * trackB.m_s + trackB.m_s * trackB.m_s;
-					float adT[2];
-					int cdT = CSolveQuadratic(a, b, c, adT);
-					if (cdT == 0)
-						continue;
-					else if (cdT == 1)
-					{
-						tMin = adT[0];
-						tMax = adT[0];
-					}
-					else
-					{
-						tMin = adT[0];
-						tMax = adT[1];
-					}
-				}
-				break;
-			case 3: // Corner
-				{
-					const STrack & trackA = aTrack[0];
-					const STrack & trackB = aTrack[1];
-					const STrack & trackC = aTrack[2];
-
-					float a =	trackA.m_v * trackA.m_v +
-								trackB.m_v * trackB.m_v + 
-								trackC.m_v * trackC.m_v;
-
-					float b =	-2.0f * trackA.m_g * trackA.m_v + 2.0f * trackA.m_s * trackA.m_v
-								-2.0f * trackB.m_g * trackB.m_v + 2.0f * trackB.m_s * trackB.m_v
-								-2.0f * trackC.m_g * trackC.m_v + 2.0f * trackC.m_s * trackC.m_v;
-
-					float c =	trackA.m_g * trackA.m_g +
-								trackB.m_g * trackB.m_g +
-								trackC.m_g * trackC.m_g
-								- sRadiusLocal * sRadiusLocal
-								- 2.0f * trackA.m_g * trackA.m_s + trackA.m_s * trackA.m_s
-								- 2.0f * trackB.m_g * trackB.m_s + trackB.m_s * trackB.m_s
-								- 2.0f * trackC.m_g * trackC.m_s + trackC.m_s * trackC.m_s;
-					float adT[2];
-					int cdT = CSolveQuadratic(a, b, c, adT);
-					if (cdT == 0)
-						continue;
-					else if (cdT == 1)
-					{
-						tMin = adT[0];
-						tMax = adT[0];
-					}
-					else
-					{
-						tMin = adT[0];
-						tMax = adT[1];
-					}
-				}
-				break;
-			default: // Should never happen
-				ASSERT(false);
-				continue;
-			}
-
-			if (GAbs(tMax) < 0.1f)
-			{
-				DoNothing();
-			}
-
-			float s_gEpsilon = .01f;
-
-			if (FIsNear(tMin, 0.0f, s_gEpsilon) || FIsNear(tMax, 0.0f, s_gEpsilon))
-			{
-				fHit = true;
-				dTHit = 0.0f;
-				break;
-			}
-			else if (FIsNear(tMin, 1.0f, s_gEpsilon) || FIsNear(tMax, 1.0f, s_gEpsilon))
-			{
-				fHit = true;
-				dTHit = 1.0f;
-				break;
-			}
-			else if (0.0f <= tMin && tMin <= 1.0f)
-			{
-				fHit = true;
-				dTHit = tMin;
-				break;
-			}
-			else if (0.0f <= tMax && tMax <= 1.0f)
-			{
-				fHit = true;
-				dTHit = tMax;
-				break;
-			}
-		}
-
-		if (!fHit)
-			continue;
-
-		posNew = (posOgLocal + vLocal * dTHit) * physcube.m_matPhys;	
+		posNew = posNew + vecPush * physcube.m_matPhys;
 	}
 
 	if (m_fCollision)
