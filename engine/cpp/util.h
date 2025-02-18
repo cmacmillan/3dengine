@@ -86,6 +86,8 @@ float GSqrt(float g);
 float GPow(float gBase, float gExponent);
 int NPow(int nBase, int nExponent);
 
+int CSolveQuadratic(float a, float b, float c, float * aG);
+
 float RadFromDeg(float deg);
 float DegFromRad(float rad);
 

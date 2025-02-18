@@ -119,7 +119,7 @@ struct SGame // game
 	void VkReleased(int vk);
 	void PrintConsole(const std::string & str, float dT = 0.0);
 	void DebugDrawSphere(Point posSphere, float sRadius = 1.0f, float dT = 0.0);
-	void DebugDrawCube(Point pos, Vector vecScale, Quat quat, float dT = 0.0);
+	void DebugDrawCube(const Mat & mat, float dT = 0.0);
 	void EnsureMeshIn3dCbuffer(
 			SMesh3D * pMesh, 
 			int * piBIndex, 

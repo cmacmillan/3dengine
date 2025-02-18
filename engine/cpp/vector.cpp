@@ -467,6 +467,11 @@ float SLength(const Vector & vec)
 	return GSqrt(vec.X() * vec.X() + vec.Y() * vec.Y() + vec.Z() * vec.Z());
 }
 
+float SLengthSqr(const Vector & vec)
+{
+	return vec.X() * vec.X() + vec.Y() * vec.Y() + vec.Z() * vec.Z();
+}
+
 Vector VecNormalize(const Vector & vec)
 {
 	return vec / SLength(vec);

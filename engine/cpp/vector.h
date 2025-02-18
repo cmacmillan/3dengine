@@ -146,6 +146,7 @@ Vector VectorFromVec4(const float4 & vec4);
 Point PointFromVec4(const float4 & vec4);
 
 float SLength(const Vector & vec);
+float SLengthSqr(const Vector & vec);
 Vector VecNormalize(const Vector & vec);
 
 // Row major, so vectors are horizontal

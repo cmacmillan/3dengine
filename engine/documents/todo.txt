@@ -4,7 +4,7 @@ X - Fix camera ztilt bug where it keeps pointing up
 X - Shadow mapping
 _ - shadow cascades
 _ - hdri, tonemapping, bloom
-_ - phys wireframe view
+X - phys wireframe view
 _ - cook torrance lighting
 _ - baked lighting
 _ - asset compiler
@@ -27,4 +27,4 @@ _ - normal mapping
 _ - Figure out how we're gonna deal with the fact that linked blender prefabs will require re-exporting all levels when one of the prefabs changes. (maybe some sort of "linked prefab markup", so it's a normal linked prefab in the blender scene, but we dump with info about where the prefab really came from)
 _ - timescaling (pg up/pg down)
 X - implement += -= for points, vectors and vec4s
-_ - fix issue where sphere hitting near the edge of box can get pushed out in the wrong direction (potentially sweep a capsule from the start to the end and find the intersection point that way)
+_ - fix issue where sphere hitting near the edge of box can get pushed out in the wrong direction (potentially sweep a capsule from the start to the end and find the intersection point that way). Or maybe something where we pick the face that puts us closest to where we came from or something

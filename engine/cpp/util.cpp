@@ -63,6 +63,28 @@ int NPow(int nBase, int nExponent)
 	return pow(nBase, nExponent);
 }
 
+int CSolveQuadratic(float a, float b, float c, float * aG)
+{
+	if (a == 0.0f)
+		return 0;
+
+	float gInner = b * b - 4.0f * a * c;
+
+	if (gInner < 0.0f)
+		return 0;
+
+	float gDenom = (2.0f * a);
+	if (gInner == 0.0f)
+	{
+		aG[0] = -b / gDenom;
+		return 1;
+	}
+
+	aG[0] = (-b - GSqrt(gInner)) / gDenom;
+	aG[1] = (-b + GSqrt(gInner)) / gDenom;
+	return 2;
+}
+
 float RadFromDeg(float deg)
 {
 	return deg * PI / 180.0f;

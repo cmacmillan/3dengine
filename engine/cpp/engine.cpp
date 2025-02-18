@@ -1149,11 +1149,11 @@ void SGame::DebugDrawSphere(Point posSphere, float sRadius, float dT)
 	m_lDdToDraw.push_back({ DDK_Sphere, MatScale(sRadius * g_vecOne) * MatTranslate(posSphere), g_game.m_dTSyst + dT });
 }
 
-void SGame::DebugDrawCube(Point pos, Vector vecScale, Quat quat, float dT)
+void SGame::DebugDrawCube(const Mat & mat, float dT)
 {
 	// NOTE cube model is -1 to 1
 
-	m_lDdToDraw.push_back({ DDK_Cube, MatScale(vecScale) * MatRotate(quat) * MatTranslate(pos), g_game.m_dTSyst + dT });
+	m_lDdToDraw.push_back({ DDK_Cube, mat, g_game.m_dTSyst + dT });
 }
 
 void SGame::SetEdits(EDITS edits)
