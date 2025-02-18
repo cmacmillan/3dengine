@@ -292,6 +292,8 @@ void SDynSphere::Update()
 				cTrack++;
 			}
 
+			// derived in https://www.wolframcloud.com/env/chasemacmillan/capsuleAABBintersection.nb
+
 			// NOTE that tMin and tMax aren't necessarily tMin<tMax
 			float tMin = -1.0f;
 			float tMax = -1.0f;
