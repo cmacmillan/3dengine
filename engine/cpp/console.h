@@ -13,12 +13,12 @@ struct SConsole : SUiNode // console
 
 	void			Update() override;
 	std::string		StrPrint();
-	void			Print(std::string str, double dTSyst);
+	void			Print(std::string str, double systRealtimeExpire);
 
 	struct SEntry // entry
 	{
 		std::string m_str = {};
-		double		m_dTSystExpire = 0.0;
+		double		m_systRealtimeExpire = 0.0;
 	};
 
 	STextHandle m_hTextConsole = -1;

@@ -140,7 +140,7 @@ void BindGlobalsForCamera(SCamera3D * pCamera, SCamera3D * pCameraShadow)
 	D3D11_MAPPED_SUBRESOURCE mappedSubresourceGlobals;
 	pD3ddevicecontext->Map(g_game.m_cbufferGlobals, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresourceGlobals);
 	ShaderGlobals * pShaderglobals = (ShaderGlobals *) (mappedSubresourceGlobals.pData);
-	pShaderglobals->m_t = g_game.m_dTSyst;
+	pShaderglobals->m_t = g_game.m_syst;
 	pShaderglobals->m_dT = g_game.m_dT;
 	pShaderglobals->m_vecWinSize = g_game.VecWinSize();
 	pShaderglobals->m_matCameraToWorld = pCamera->MatObjectToWorld();

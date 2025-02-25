@@ -125,6 +125,31 @@ void IntersectRayWithAllPhys(Point posOrigin, Vector normalDirection, std::vecto
 	}
 }
 
+bool FRaycast(Point posOrigin, Vector normalDirection, Point * pPosIntersection)
+{
+	// TODO make this better
+
+	std::vector<SIntersection> aryIntersection;
+	IntersectRayWithAllPhys(posOrigin, normalDirection, &aryIntersection);
+
+	if (aryIntersection.size() == 0)
+		return false;
+
+	float sMin = FLT_MAX;
+	Point posBest = g_posZero;
+	for (const SIntersection & intersection : aryIntersection)
+	{
+		if (intersection.m_s < sMin)
+		{
+			sMin = intersection.m_s;
+			posBest = intersection.m_pos;
+		}
+	}
+	ASSERT(sMin != FLT_MAX);
+	*pPosIntersection = posBest;
+	return true;
+}
+
 SDynSphere::SDynSphere(SNode * pNodeParent, const std::string & strName, TYPEK typek) : super(pNodeParent, strName, typek)
 {
 }

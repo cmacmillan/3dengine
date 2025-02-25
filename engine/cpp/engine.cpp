@@ -46,24 +46,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPSTR /*lpC
 
 /////////////////
 
-float2 SGame::VecWinSize()
-{
-	RECT winRect;
-	GetClientRect(m_hwnd, &winRect);
-
-	float dxWindow = winRect.right - winRect.left;
-	float dyWindow = winRect.bottom - winRect.top;
-	return float2(dxWindow, dyWindow);
-}
-
-float2 SGame::VecWinTopLeft()
-{
-	RECT winRect;
-	GetWindowRect(m_hwnd, &winRect);
-
-	return float2(winRect.left, winRect.top);
-}
-
 SGame::SGame()
 {
 	for (int i = 0; i < DIM(m_mpVkFDown); i++)
@@ -72,6 +54,19 @@ SGame::SGame()
 		m_mpVkFJustPressed[i] = false;
 		m_mpVkFJustReleased[i] = false;
 	}
+
+	for (int i = 0; i < DIM(m_arySystRealtimeHistoryLeftClick.m_a); i++)
+	{
+		m_arySystRealtimeHistoryLeftClick.Append(SYST_INVALID);
+	}
+}
+
+static int s_irdT = 2;
+static const float s_ardT[] = { .1f, .5f, 1.0f, 1.5f, 5.0f };
+
+float SGame::RDT()
+{
+	return s_ardT[s_irdT];
 }
 
 int aVkCompute[] = {
@@ -124,11 +119,49 @@ int aVkCompute[] = {
 	VK_TAB,
 	VK_RETURN,
 
+	VK_PRIOR, // page up
+	VK_NEXT, // page down
+
 	VK_LEFT,
 	VK_RIGHT,
 	VK_UP,
 	VK_DOWN,
 };
+
+float2 SGame::VecWinSize()
+{
+	RECT winRect;
+	GetClientRect(m_hwnd, &winRect);
+
+	float dxWindow = winRect.right - winRect.left;
+	float dyWindow = winRect.bottom - winRect.top;
+	return float2(dxWindow, dyWindow);
+}
+
+float2 SGame::VecCursor()
+{
+	return float2(m_xCursor, m_yCursor);
+}
+
+bool SGame::FRaycastCursor(Point * pPosResult)
+{
+	SCamera3D * pCamera = g_game.m_hCamera3DMain.PT();
+
+	Point posNdc = pCamera->PosNdcFromPosWindow(g_game.VecCursor(), Lerp(pCamera->m_xNearClip, pCamera->m_xFarClip, 0.5f));
+	Point posWorld = pCamera->PosWorldFromPosNdc(posNdc);
+
+	Vector normalRay = VecNormalizeElse(posWorld - pCamera->PosWorld(), g_vecXAxis);
+	
+	return FRaycast(pCamera->PosWorld(), normalRay, pPosResult);
+}
+
+float2 SGame::VecWinTopLeft()
+{
+	RECT winRect;
+	GetWindowRect(m_hwnd, &winRect);
+
+	return float2(winRect.left, winRect.top);
+}
 
 void SGame::Init(HINSTANCE hInstance)
 {
@@ -612,14 +645,19 @@ void SGame::MainLoop()
 	while (isRunning)
 	{
 		{
-			double m_dTSystPrev = m_dTSyst;
+			double systRealtimePrev = m_systRealtime;
 			LARGE_INTEGER perfCount;
 			QueryPerformanceCounter(&perfCount);
 
-			m_dTSyst = (double) (perfCount.QuadPart - m_startPerfCount) / (double) m_perfCounterFrequency;
-			m_dT = (float) (m_dTSyst - m_dTSystPrev);
-			if (m_dT > (1.f / 60.f))
-				m_dT = (1.f / 60.f);
+			m_systRealtime = (double) (perfCount.QuadPart - m_startPerfCount) / (double) m_perfCounterFrequency;
+			m_dTRealtime = float(m_systRealtime - systRealtimePrev);
+
+			const double dTFrameMax = 1.0 / 60.0; // NOTE deliberate double math
+			double dTScaled = (m_dTRealtime > dTFrameMax) ? dTFrameMax : m_dTRealtime;
+			dTScaled *= RDT();
+
+			m_syst += dTScaled;
+			m_dT = float(dTScaled);
 		}
 
 		MSG msg = {};
@@ -654,6 +692,24 @@ void SGame::MainLoop()
 				}
 			}
 		}
+
+		if (m_mpVkFJustPressed[VK_LBUTTON])
+		{
+			int iSystRealtimeOldest = -1;
+			double systRealtimeOldest = FLT_MAX;
+			for (int i = 0; i < DIM(m_arySystRealtimeHistoryLeftClick.m_a); i++)
+			{
+				double systRealtime = m_arySystRealtimeHistoryLeftClick[i];
+				if (systRealtime <= systRealtimeOldest)
+				{
+					iSystRealtimeOldest = i;
+					systRealtimeOldest = systRealtime;
+				}
+			}
+			ASSERT(iSystRealtimeOldest != -1);
+			m_arySystRealtimeHistoryLeftClick[iSystRealtimeOldest] = m_systRealtime;
+		}
+
 
 		if (m_fDidWindowResize)
 		{
@@ -704,6 +760,21 @@ void SGame::MainLoop()
 
 		UpdateEdits();
 
+		// Update delta time
+
+		{
+			bool fPageUp = m_mpVkFJustPressed[VK_PRIOR];
+			bool fPageDown = m_mpVkFJustPressed[VK_NEXT];
+			if (fPageDown || fPageUp)
+			{
+				s_irdT += fPageUp ? 1 : -1;
+				s_irdT = NClamp(s_irdT, 0, DIM(s_ardT) - 1);
+				PrintConsole(StrPrintf("rdT:%f\n", RDT()), 1.0f);
+			}
+		}
+
+
+
 		////////// GAMEPLAY CODE (JANK)
 	
 		g_game.m_hCamera3DShadow->SetPosWorld(m_hSun->PosWorld());
@@ -731,10 +802,6 @@ void SGame::MainLoop()
 		}
 
 		g_game.PrintConsole(StrPrintf("unique mesh count:%i\n", g_objman.m_mpTypekAryPObj[TYPEK_Mesh3D].size()));
-		//DebugDrawSphere(m_hCamera3DMain->PosWorldFromPosNdc(Point(
-																//, 
-																//, 
-																//.5f * (GSin(m_dTSyst) + 1.0))), 50.0f, 0.0f);
 
 		///////////////////////////////
 
@@ -844,7 +911,7 @@ void SGame::MainLoop()
 		while (it != m_lDdToDraw.end())
 		{
 			auto itNext = std::next(it);
-			if (it->m_dTSystExpire < g_game.m_dTSyst)
+			if (it->m_systRealtimeExpire < g_game.m_systRealtime)
 			{
 				m_lDdToDraw.erase(it);
 			}
@@ -1137,23 +1204,23 @@ void SGame::MainLoop()
 	}
 }
 
-void SGame::PrintConsole(const std::string & str, float dT)
+void SGame::PrintConsole(const std::string & str, float dTRealtime)
 {
-	m_hConsole->Print(str, g_game.m_dTSyst + dT);
+	m_hConsole->Print(str, g_game.m_systRealtime + dTRealtime);
 }
 
-void SGame::DebugDrawSphere(Point posSphere, float sRadius, float dT)
+void SGame::DebugDrawSphere(Point posSphere, float sRadius, float dTRealtime)
 {
 	// NOTE sphere model is radius 1
 
-	m_lDdToDraw.push_back({ DDK_Sphere, MatScale(sRadius * g_vecOne) * MatTranslate(posSphere), g_game.m_dTSyst + dT });
+	m_lDdToDraw.push_back({ DDK_Sphere, MatScale(sRadius * g_vecOne) * MatTranslate(posSphere), g_game.m_systRealtime + dTRealtime });
 }
 
-void SGame::DebugDrawCube(const Mat & mat, float dT)
+void SGame::DebugDrawCube(const Mat & mat, float dTRealtime)
 {
 	// NOTE cube model is -1 to 1
 
-	m_lDdToDraw.push_back({ DDK_Cube, mat, g_game.m_dTSyst + dT });
+	m_lDdToDraw.push_back({ DDK_Cube, mat, g_game.m_systRealtime + dTRealtime });
 }
 
 void SGame::SetEdits(EDITS edits)
@@ -1173,8 +1240,8 @@ void SGame::SetEdits(EDITS edits)
 	case EDITS_Editor:
 		{
 			pFlycam->m_posCenter = pPlayer->PosWorld();
-			pFlycam->SetQuatLocal(g_quatIdentity);
-			pFlycam->m_sRadiusCenter = 10.0f;
+			pFlycam->SetQuatLocal(QuatAxisAngle(g_vecYAxis, RadFromDeg(20.0f)));
+			pFlycam->m_sRadiusCenter = FLYCAM_RADIUS_DEFAULT;
 			m_hCamera3DMain = pFlycam->m_hCamera3D;
 		}
 		break;
@@ -1263,22 +1330,6 @@ void SGame::UpdateEdits()
 		ASSERT(false);
 		break;
 	}
-}
-
-void SGame::VkPressed(int vk)
-{
-   ASSERT(vk> 0 && vk < DIM(m_mpVkFDown));
-   if (!m_mpVkFDown[vk])
-		   m_mpVkFJustPressed[vk] = true;
-   m_mpVkFDown[vk] = true;
-}
-
-void SGame::VkReleased(int vk)
-{
-   ASSERT(vk> 0 && vk < DIM(m_mpVkFDown));
-   if (m_mpVkFDown[vk])
-		   m_mpVkFJustReleased[vk] = true;
-   m_mpVkFDown[vk] = false;
 }
 
 LRESULT SGame::LresultWindowProcedure(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)

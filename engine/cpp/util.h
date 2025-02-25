@@ -16,6 +16,10 @@
 #define DIM(a) sizeof(a)/sizeof(a[0])
 #define PI 3.141592653589793f
 
+// Syst invalid is a large negative value
+
+#define SYST_INVALID -FLT_MAX
+
 // TODO make const version of this for ship
 
 #define TWEAKABLE static
@@ -26,33 +30,14 @@
 
 void DoNothing();
 
-inline float GMin(float g1, float g2)
-{
-	if (g1 < g2)
-		return g1;
-	return g2;
-}
+float GMin(float g1, float g2);
+float GMax(float g1, float g2);
+float GClamp(float gValue, float gMin, float gMax);
+int NMin(int n1, int n2);
+int NMax(int n1, int n2);
+int NClamp(int nValue, int nMin, int nMax);
 
-inline float GMax(float g1, float g2)
-{
-	if (g1 > g2)
-		return g1;
-	return g2;
-}
 
-inline int NMin(int n1, int n2)
-{
-	if (n1 < n2)
-		return n1;
-	return n2;
-}
-
-inline int NMax(int n1, int n2)
-{
-	if (n1 > n2)
-		return n1;
-	return n2;
-}
 
 template<typename T>
 int IFind(const std::vector<T> & aryT, const T & t)

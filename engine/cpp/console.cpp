@@ -24,9 +24,9 @@ std::string SConsole::StrPrint()
 	return str;
 }
 
-void SConsole::Print(std::string str, double dTSyst)
+void SConsole::Print(std::string str, double systRealtimeExpire)
 {
-	m_lEntry.push_back({ str, dTSyst });
+	m_lEntry.push_back({ str, systRealtimeExpire });
 }
 
 void SConsole::Update()
@@ -37,7 +37,7 @@ void SConsole::Update()
 	while (it != m_lEntry.end())
 	{
 		auto itNext = std::next(it);
-		if (it->m_dTSystExpire < g_game.m_dTSyst)
+		if (it->m_systRealtimeExpire < g_game.m_systRealtime)
 		{
 			m_lEntry.erase(it);
 		}

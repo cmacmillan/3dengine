@@ -33,17 +33,17 @@ void SFpsCounter::Update()
 
 	float2 vecWinSize = g_game.VecWinSize();
 
-	m_cdT = NMin(++m_cdT, DIM(m_adT));
+	m_cdT = NMin(++m_cdT, DIM(m_adTRealtime));
 	m_idT = (m_idT + 1) % m_cdT;
-	m_adT[m_idT] = g_game.m_dTSyst - m_dTSyst;
-	m_dTSyst = g_game.m_dTSyst;
+	m_adTRealtime[m_idT] = g_game.m_systRealtime - m_systRealtime;
+	m_systRealtime = g_game.m_systRealtime;
 
 	float gdTAvg = 0.0f;
 	float dTWorst = 0.0f;
 	for (int i = 0; i < m_cdT; i++)
 	{
-		gdTAvg += m_adT[i];
-		dTWorst = GMax(dTWorst, m_adT[i]);
+		gdTAvg += m_adTRealtime[i];
+		dTWorst = GMax(dTWorst, m_adTRealtime[i]);
 	}
 	gdTAvg /= m_cdT;
 

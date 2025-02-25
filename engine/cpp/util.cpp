@@ -2,6 +2,44 @@
 
 #include <cstdarg>
 
+float GMin(float g1, float g2)
+{
+	if (g1 < g2)
+		return g1;
+	return g2;
+}
+
+float GMax(float g1, float g2)
+{
+	if (g1 > g2)
+		return g1;
+	return g2;
+}
+
+float GClamp(float gValue, float gMin, float gMax)
+{
+	return GMin(GMax(gValue, gMin), gMax);
+}
+
+int NMin(int n1, int n2)
+{
+	if (n1 < n2)
+		return n1;
+	return n2;
+}
+
+int NMax(int n1, int n2)
+{
+	if (n1 > n2)
+		return n1;
+	return n2;
+}
+
+int NClamp(int nValue, int nMin, int nMax)
+{
+	return NMin(NMax(nValue, nMin), nMax);
+}
+
 float GMapRange(float a1, float a2, float b1, float b2, float g)
 {
 	float gLerp = (g - a1) / (a2 - a1);

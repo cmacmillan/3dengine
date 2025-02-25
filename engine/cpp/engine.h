@@ -103,7 +103,7 @@ struct SDebugDraw
 {
 	DDK		m_ddk;
 	Mat		m_mat;
-	double	m_dTSystExpire;
+	double	m_systRealtimeExpire;
 };
 
 struct SGame // game 
@@ -114,12 +114,12 @@ struct SGame // game
 	void MainLoop();
 	LRESULT LresultWindowProcedure(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
 	float2 VecWinSize();
+	float2 VecCursor();
 	float2 VecWinTopLeft();
-	void VkPressed(int vk);
-	void VkReleased(int vk);
-	void PrintConsole(const std::string & str, float dT = 0.0);
-	void DebugDrawSphere(Point posSphere, float sRadius = 1.0f, float dT = 0.0);
-	void DebugDrawCube(const Mat & mat, float dT = 0.0);
+	bool FRaycastCursor(Point * pPosResult);
+	void PrintConsole(const std::string & str, float dTRealtime = 0.0);
+	void DebugDrawSphere(Point posSphere, float sRadius = 1.0f, float dTRealtime = 0.0);
+	void DebugDrawCube(const Mat & mat, float dTRealtime = 0.0);
 	void EnsureMeshIn3dCbuffer(
 			SMesh3D * pMesh, 
 			int * piBIndex, 
@@ -129,6 +129,8 @@ struct SGame // game
 
 	void SetEdits(EDITS edits);
 	void UpdateEdits();
+
+	float RDT();
 
 	// TODO add QueuePrintConsole for debugging rendering stuff
 
@@ -194,6 +196,7 @@ struct SGame // game
 	bool m_mpVkFJustPressed[0xFF];
 	bool m_mpVkFJustReleased[0xFF];
 	float m_sScroll = 0.0f;
+	SFixArray<double, 8> m_arySystRealtimeHistoryLeftClick = {};
 
 	// D3D
 
@@ -218,7 +221,10 @@ struct SGame // game
 	// Timing
 
 	float m_dT = 0.0f;
-	double m_dTSyst = 0.0;
+	float m_dTRealtime = 0.0f;
+
+	double m_syst = 0.0;
+	double m_systRealtime = 0.0;
 
 	LONGLONG m_startPerfCount = 0;
 	LONGLONG m_perfCounterFrequency = 0;

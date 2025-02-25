@@ -26,6 +26,7 @@ struct SIntersection // intersection
 };
 
 void IntersectRayWithAllPhys(Point posOrigin, Vector normalDirection, std::vector<SIntersection> * paryIntersection);
+bool FRaycast(Point posOrigin, Vector normalDirection, Point * pPosIntersection);
 
 struct SDynSphere : SNode3D // dynsphere 
 {
