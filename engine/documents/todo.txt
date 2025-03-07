@@ -29,3 +29,7 @@ X - timescaling (pg up/pg down)
 X - implement += -= for points, vectors and vec4s
 _ - fix issue where sphere hitting near the edge of box can get pushed out in the wrong direction (potentially sweep a capsule from the start to the end and find the intersection point that way). Or maybe something where we pick the face that puts us closest to where we came from or something
 _ - Implement continuous sphere collision detection. If a sphere moves more than .25 it's radius kick on the continuous detection
+_ - Support pausing without crashing
+_ - Add a "reload the scene" 'r' button
+_ - figure out what's up with stair collision
+_ - Fixed update. Get things like phys and character movement (but not camera movement) running in a fixed update function

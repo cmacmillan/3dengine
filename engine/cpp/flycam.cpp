@@ -14,36 +14,40 @@ void SFlyCam::Update()
 	if (g_game.m_edits != EDITS_Editor)
 		return;
 
-	float gMoveSpeed = g_game.m_mpVkFDown[VK_SHIFT] ? 40.0f : (g_game.m_mpVkFDown[VK_M] ? 1.0f : 10.0f);
-
 	// Look for double clicks
-	TWEAKABLE float s_dTDoubleClick = 0.5f;
-	int cSystDoubleClick = 0;
-	for (int i = 0; i < g_game.m_arySystRealtimeHistoryLeftClick.CCapacity(); i++)
+
 	{
-		double systRealtime = g_game.m_arySystRealtimeHistoryLeftClick[i];
-		if (systRealtime == SYST_INVALID)
-			continue;
-		if (systRealtime > m_systRealtimeLastDoubleClick && systRealtime + s_dTDoubleClick > g_game.m_systRealtime)
+		TWEAKABLE float s_dTDoubleClick = 0.5f;
+
+		int cSystDoubleClick = 0;
+		for (int i = 0; i < g_game.m_arySystRealtimeHistoryLeftClick.CCapacity(); i++)
 		{
-			cSystDoubleClick++;
+			double systRealtime = g_game.m_arySystRealtimeHistoryLeftClick[i];
+
+			if (systRealtime == SYST_INVALID)
+				continue;
+
+			if (systRealtime > m_systRealtimeLastDoubleClick && systRealtime + s_dTDoubleClick > g_game.m_systRealtime)
+			{
+				cSystDoubleClick++;
+			}
 		}
-	}
 
-	if (cSystDoubleClick >= 2)
-	{
-		// Double click occured
-
-		m_systRealtimeLastDoubleClick = g_game.m_systRealtime;
-
-		Point posRaycast;
-		if (g_game.FRaycastCursor(&posRaycast))
+		if (cSystDoubleClick >= 2)
 		{
-			m_systRealtimeDetatched = g_game.m_systRealtime;
-			m_posCenterDetatched = m_posCenter;
-			m_sRadiusCenterDetatched = m_sRadiusCenter;
-			m_posCenter = posRaycast;
-			m_sRadiusCenter = FLYCAM_RADIUS_DEFAULT;
+			// Double click occured
+
+			m_systRealtimeLastDoubleClick = g_game.m_systRealtime;
+
+			Point posRaycast;
+			if (g_game.FRaycastCursor(&posRaycast))
+			{
+				m_systRealtimeDetatched = g_game.m_systRealtime;
+				m_posCenterDetatched = m_posCenter;
+				m_sRadiusCenterDetatched = m_sRadiusCenter;
+				m_posCenter = posRaycast;
+				m_sRadiusCenter = FLYCAM_RADIUS_DEFAULT;
+			}
 		}
 	}
 
@@ -96,9 +100,11 @@ void SFlyCam::Update()
 
 	if (fMiddleMouseInteracting)
 	{
-		float gMoveSpeed = .05f;
-		m_posCenter = m_posCenter + gMoveSpeed * dX * VecYWorld();
-		m_posCenter = m_posCenter + gMoveSpeed * dY * VecZWorld();
+		TWEAKABLE float s_gDragSpeedMin = 0.001f;
+		TWEAKABLE float s_rDragRadiusScalar = 0.001f;
+		float gScalar = GMax(s_gDragSpeedMin, m_sRadiusCenter * s_rDragRadiusScalar);
+		m_posCenter = m_posCenter + gScalar * dX * VecYWorld();
+		m_posCenter = m_posCenter + gScalar* dY * VecZWorld();
 	}
 
 	if (fInteracting)
@@ -106,6 +112,8 @@ void SFlyCam::Update()
 		m_xCursorPrev = g_game.m_xCursor;
 		m_yCursorPrev = g_game.m_yCursor;
 	}
+
+	float gMoveSpeed = g_game.m_mpVkFDown[VK_SHIFT] ? 40.0f : (g_game.m_mpVkFDown[VK_M] ? 1.0f : 10.0f);
 
 	if (g_game.m_mpVkFDown[VK_SPACE])
 		m_posCenter = m_posCenter + g_vecZAxis * gMoveSpeed * g_game.m_dT;
@@ -129,7 +137,7 @@ void SFlyCam::Update()
 
 	Vector vecTowardsCenter = VecRotate(g_vecXAxis, m_transformLocal.m_quat);
 
-	TWEAKABLE float s_dTDetatched = 0.2f;
+	TWEAKABLE float s_dTDetatched = 0.1f;
 	if (s_dTDetatched + m_systRealtimeDetatched > g_game.m_systRealtime)
 	{
 		float uLerp = GClamp((g_game.m_systRealtime - m_systRealtimeDetatched) / s_dTDetatched, 0.0f, 1.0f);
