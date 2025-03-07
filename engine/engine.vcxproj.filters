@@ -215,6 +215,9 @@
     <ClInclude Include="cpp\phys.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="shaders\text2d.hlsl">
@@ -245,5 +248,24 @@
     <None Include="python\3dEngineBlenderIntegration.py">
       <Filter>python</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="engine.rc">
+      <Filter>Resource Files</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="textures\icon48x48.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="textures\icon48x48background.png">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="textures\icon48x48.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="textures\icon16x16.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
   </ItemGroup>
 </Project>

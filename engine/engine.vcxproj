@@ -186,6 +186,7 @@
     <ClInclude Include="cpp\uinode.h" />
     <ClInclude Include="cpp\util.h" />
     <ClInclude Include="cpp\vector.h" />
+    <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="shaders\3dwireframe.hlsl">
@@ -220,6 +221,15 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="python\3dEngineBlenderIntegration.py" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="engine.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="textures\icon16x16.ico" />
+    <Image Include="textures\icon48x48.ico" />
+    <Image Include="textures\icon48x48.png" />
+    <Image Include="textures\icon48x48background.png" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

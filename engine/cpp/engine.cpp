@@ -18,6 +18,10 @@
 #include "player.h"
 #include "phys.h"
 
+#include "../resource.h"
+
+#include "file.h"
+
 #include <exception>
 
 #pragma comment(lib, "d3d11.lib")
@@ -169,7 +173,7 @@ void SGame::Init(HINSTANCE hInstance)
 
 	m_hNodeRoot = (new SNode(nullptr, "RootNode"))->HNode();
 
-	/*
+#if TODO
 	// https://learn.microsoft.com/en-us/windows/win32/inputdev/using-raw-input
 	RAWINPUTDEVICE aRid[] =
 	{
@@ -182,19 +186,36 @@ void SGame::Init(HINSTANCE hInstance)
 	};
 
 	VERIFY(RegisterRawInputDevices(aRid, DIM(aRid), sizeof(aRid[0])));
-	*/
+#endif
 
 	// Open a window
 	{
+		// Load the icon images
+
+		// https://stackoverflow.com/questions/23852864/loading-an-icon-in-windows-program
+		HICON hIcon = static_cast<HICON>(LoadImage(
+											hInstance,
+											MAKEINTRESOURCE(ID_3DENGINEICON),
+											IMAGE_ICON,
+											48, 48,		// Default size
+											LR_DEFAULTCOLOR));
+
+		HICON hIconSm = static_cast<HICON>(LoadImage(
+											hInstance,
+											MAKEINTRESOURCE(ID_3DENGINEICONSMALL),
+											IMAGE_ICON,
+											16,16,		// Default size
+											LR_DEFAULTCOLOR));
+
 		WNDCLASSEXW winClass = {};
 		winClass.cbSize = sizeof(WNDCLASSEXW);
 		winClass.style = CS_HREDRAW | CS_VREDRAW;
 		winClass.lpfnWndProc = &WndProc;
 		winClass.hInstance = hInstance;
-		winClass.hIcon = LoadIconW(0, IDI_APPLICATION);
+		winClass.hIcon = hIcon;
+		winClass.hIconSm = hIconSm;
 		winClass.hCursor = LoadCursorW(0, IDC_ARROW);
-		winClass.lpszClassName = L"MyWindowClass";
-		winClass.hIconSm = LoadIconW(0, IDI_APPLICATION);
+		winClass.lpszClassName = L"3DEngineClass";
 
 		if (!RegisterClassExW(&winClass))
 		{
@@ -210,7 +231,7 @@ void SGame::Init(HINSTANCE hInstance)
 		m_hwnd = CreateWindowExW(
 					WS_EX_OVERLAPPEDWINDOW,
 					winClass.lpszClassName,
-					L"Engine",
+					L"3D Engine",
 					//(WS_OVERLAPPEDWINDOW | WS_VISIBLE) & ~WS_SYSMENU,
 					WS_OVERLAPPEDWINDOW | WS_VISIBLE,
 					CW_USEDEFAULT, 
@@ -1337,7 +1358,7 @@ LRESULT SGame::LresultWindowProcedure(HWND hwnd, UINT msg, WPARAM wparam, LPARAM
 	LRESULT result = 0;
 	switch (msg)
 	{
-		/*
+		#if TODO
 		case WM_INPUT: 
 		{
 			// https://learn.microsoft.com/en-us/windows/win32/inputdev/using-raw-input
@@ -1388,7 +1409,7 @@ LRESULT SGame::LresultWindowProcedure(HWND hwnd, UINT msg, WPARAM wparam, LPARAM
 
 			return 0;
 		} 
-		*/
+		#endif
 
 		case WM_MOUSEMOVE:
 			{

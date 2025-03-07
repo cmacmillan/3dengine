@@ -19,3 +19,5 @@ struct SFile
 };
 
 bool FTryReadFile(const char * pChzPath, SFile * pFile);
+
+std::string StrGetLastError();

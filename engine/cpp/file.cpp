@@ -22,7 +22,8 @@ SFile::~SFile()
 // https://stackoverflow.com/questions/1387064/how-to-get-the-error-message-from-the-error-code-returned-by-getlasterror
 
 //Returns the last Win32 error, in string format. Returns an empty string if there is no error.
-std::string GetLastErrorAsString()
+
+std::string StrGetLastError()
 {
     //Get the error message ID, if any.
     DWORD errorMessageID = ::GetLastError();
@@ -58,7 +59,7 @@ bool SFile::FTryRead(const char * pChzPath)
 
 	if (m_hFile == INVALID_HANDLE_VALUE)
 	{
-		std::string str = GetLastErrorAsString();
+		std::string str = StrGetLastError();
 		return false;
 	}
 
