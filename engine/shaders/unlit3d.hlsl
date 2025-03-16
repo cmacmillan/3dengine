@@ -7,8 +7,7 @@
 // DepthFunc: Greater
 // END_INFO
 
-#pragma pack_matrix(row_major)
-
+#include "util.hlsl"
 #include "3dcommon.hlsl"
 #include "globals.hlsl"
 

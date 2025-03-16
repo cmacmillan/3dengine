@@ -13,6 +13,7 @@
 // DepthFunc: Always
 // END_INFO
 
+#include "util.hlsl"
 #include "globals.hlsl"
 
 cbuffer constants : register(b1)

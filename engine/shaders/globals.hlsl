@@ -1,3 +1,6 @@
+#ifndef __GLOBALS_HLSL__
+#define __GLOBALS_HLSL__
+
 cbuffer globals : register(b0)
 {
     float time;
@@ -13,3 +16,5 @@ cbuffer globals : register(b0)
 	float	xClipFar;
 	float2	vecPadding;
 };
+
+#endif // end include guard
