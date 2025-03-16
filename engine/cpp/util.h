@@ -15,6 +15,7 @@
 #define CASSERT(arg) static_assert(arg, "static assert failed!\n");
 #define DIM(a) sizeof(a)/sizeof(a[0])
 #define PI 3.141592653589793f
+#define TAU 6.28318530718f
 
 // Syst invalid is a large negative value
 

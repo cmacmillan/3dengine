@@ -99,6 +99,7 @@ struct Vector
 };
 
 Vector VecPerpendicular(const Vector & vec);
+Vector VecCylind(float rad, float sXy, float sZ);
 
 Vector operator*(float g, const Vector & vec);
 Vector operator/(float g, const Vector & vec);

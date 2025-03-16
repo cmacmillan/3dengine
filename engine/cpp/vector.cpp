@@ -326,6 +326,11 @@ Vector VecPerpendicular(const Vector & vec)
 	return VecCross(vec, g_vecYAxis);
 }
 
+Vector VecCylind(float rad, float sXy, float sZ)
+{
+	return Vector(GCos(rad) * sXy, GSin(rad) * sXy, sZ);
+}
+
 // Point
 
 Point PosZero() { return Point(0, 0, 0); }

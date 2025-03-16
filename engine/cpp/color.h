@@ -20,5 +20,8 @@ struct SRgba
 extern SRgba g_rgbaRed;
 extern SRgba g_rgbaBlue;
 extern SRgba g_rgbaGreen;
+extern SRgba g_rgbaYellow;
+extern SRgba g_rgbaPink;
+extern SRgba g_rgbaCyan;
 
 void AuditRgba();

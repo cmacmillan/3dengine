@@ -303,29 +303,6 @@ void SDynSphere::Update()
 
 // Eventually we're gonna compute a time of impact for each box, any times of impact that are within some epsilon should be considered to have happened at the same time
 
-#if 1
-void DoStuff()
-{
-#if 0
-	Vector normalSupport = g_vecXAxis;
-
-	SDynSphere * pDynsphere;
-	SPhysCube * pPhyscube;
-	Vector dPosSweep;
-
-	SFixArray<Point, 4> aryPos;
-
-	// BB using local cube scale
-	// BB using local sphere x scale
-
-	aryPos.Append(PosSupportSweptSphere(pDynsphere->PosWorld(), pDynsphere->VecScaleLocal().X(), dPosSweep, normalSupport) - PosSupportBox(pPhyscube->PosWorld(), pPhyscube->VecScaleLocal(), -normalSupport));
-
-	normalSupport = -Vector(aryPos[0]);
-
-	float sMin = FLT_MAX;
-#endif
-}
-
 Point PosSupportSweptSphere(Point posSphere, float sRadius, Vector dPosSweep, Vector normalSupport)
 {
 	float gDot = GDot(normalSupport, dPosSweep);
@@ -333,7 +310,7 @@ Point PosSupportSweptSphere(Point posSphere, float sRadius, Vector dPosSweep, Ve
 	return posTest + sRadius * normalSupport;
 }
 
-Point PosSupportBox(const Mat & matPhys, Vector vecNonuniformScale,  Vector normalSupport)
+Point PosSupportBox(const Mat & matPhys, Vector vecNonuniformScale, Vector normalSupport)
 {
 	// BB constructing vectors here
 
@@ -357,22 +334,63 @@ Point PosSupportBox(const Mat & matPhys, Vector vecNonuniformScale,  Vector norm
 	return pos;
 }
 
+Point PosMinkSweptSphereBox(Point posSphere, float sRadius, Vector dPosSweep, const Mat & matPhys, Vector vecNonuniformScale, Vector normalSupport)
+{
+	return PosSupportSweptSphere(posSphere, sRadius, dPosSweep, normalSupport) - PosSupportBox(matPhys, vecNonuniformScale, -normalSupport);
+}
+
 void TestGjk(const Mat & matCubePhys, Vector vecNonuniformScale, Point posSphere, float sRadiusSphere)
 {
-	Vector normalSupport;
-	{
-		TWEAKABLE Vector s_vecSupport = Vector(.3f, -.2f, .1f);
-		normalSupport = VecNormalize(s_vecSupport);
-	}
-
 	TWEAKABLE Vector s_dPosSweep = Vector(5.0f, 5.0f, 5.0f);
 
-	g_game.DebugDrawCube(MatScale(vecNonuniformScale)*matCubePhys);
-	g_game.DebugDrawSphere(posSphere, sRadiusSphere);
-	g_game.DebugDrawSphere(posSphere + s_dPosSweep, sRadiusSphere);
-	g_game.DebugDrawArrow(matCubePhys.m_aVec[3], normalSupport * 4.0f, 0.1f, 0.0f, g_rgbaRed);
-	g_game.DebugDrawSphere(PosSupportBox(matCubePhys, vecNonuniformScale, normalSupport), 0.25f, 0.0f, g_rgbaRed);
-	g_game.DebugDrawSphere(PosSupportSweptSphere(posSphere, sRadiusSphere, s_dPosSweep, normalSupport), 0.25f, 0.0f, g_rgbaRed);
+	{
+		Vector normalSupport;
+		{
+			TWEAKABLE Vector s_vecSupport = Vector(.3f, -.2f, .1f);
+			normalSupport = VecNormalize(s_vecSupport);
+		}
+
+		g_game.DebugDrawCube(MatScale(vecNonuniformScale) * matCubePhys);
+		g_game.DebugDrawSphere(posSphere, sRadiusSphere);
+		g_game.DebugDrawSphere(posSphere + s_dPosSweep, sRadiusSphere);
+		g_game.DebugDrawArrow(matCubePhys.m_aVec[3], normalSupport * 4.0f, 0.1f, 0.0f, g_rgbaRed);
+		g_game.DebugDrawSphere(PosSupportBox(matCubePhys, vecNonuniformScale, normalSupport), 0.25f, 0.0f, g_rgbaRed);
+		g_game.DebugDrawSphere(PosSupportSweptSphere(posSphere, sRadiusSphere, s_dPosSweep, normalSupport), 0.25f, 0.0f, g_rgbaRed);
+
+		TWEAKABLE int s_cGhostSphere = 10;
+		for (int i = 0; i < s_cGhostSphere; i++)
+		{
+			g_game.DebugDrawSphere(posSphere + s_dPosSweep * ((i + 1) / float(s_cGhostSphere)), sRadiusSphere, 0.0f, SRgba(0.0f, 1.0f, 0.0f, 0.1f));
+		}
+
+		TWEAKABLE int s_cI = 10;
+		TWEAKABLE int s_cJ = 10;
+		TWEAKABLE Point s_posMinkowskiOrigin = Point(5.0f, 0.0f, 3.0f);
+		g_game.DebugDrawSphere(s_posMinkowskiOrigin, 0.5f, 0.0f, g_rgbaCyan);
+		for (int i = 0; i < s_cI; i++)
+		{
+			for (int j = 0; j < s_cJ; j++)
+			{
+				float radJ = PI * j / float(s_cJ - 1.0f) - PI / 2.0f;
+				Vector normal = VecCylind(TAU * i / float(s_cI), GCos(radJ), GSin(radJ));
+				g_game.DebugDrawSphere(s_posMinkowskiOrigin + PosMinkSweptSphereBox(posSphere, sRadiusSphere, s_dPosSweep, matCubePhys, vecNonuniformScale, normal), 0.5f, 0.0f, SRgba(0.0f, 0.0f, 1.0f, 0.3f));
+			}
+		}
+	}
+
+	//// Actual algo
+
+	{
+		Vector normalSupport = g_vecXAxis;
+
+		SFixArray<Point, 4> aryPos;
+
+		aryPos.Append(PosMinkSweptSphereBox(posSphere, sRadiusSphere, s_dPosSweep, matCubePhys, vecNonuniformScale, normalSupport));
+
+		normalSupport = -Vector(aryPos[0]);
+
+		float sMin = FLT_MAX;
+	}
 }
 
 void TestGjk()
@@ -382,16 +400,25 @@ void TestGjk()
 	if (!s_fDebug)
 		return;
 
+#if 0
 	TWEAKABLE int s_iPhyscubeTest = 0;
 	TWEAKABLE int s_iDynsphereTest = 0;
 	auto & aryPhyscube = g_objman.m_mpTypekAryPObj[TYPEK_PhysCube];
 	auto & aryDynsphere = g_objman.m_mpTypekAryPObj[TYPEK_DynSphere];
 	SDynSphere * pDynsphere = (SDynSphere *) aryDynsphere[s_iDynsphereTest];
 	SPhysCube * pPhyscube = (SPhysCube *)aryPhyscube[s_iPhyscubeTest];
-
 	TestGjk(pPhyscube->m_matPhys, pPhyscube->m_vecNonuniformScale, pDynsphere->PosWorld(), pDynsphere->SRadius());
-}
 #endif
+
+	TWEAKABLE float s_sRadius = 1.0f;
+	TWEAKABLE Point s_posSphere = Point(-1.0f, -5.0f, 5.0f);
+	TWEAKABLE Point s_posBox = Point(0.0f, 0.0f, 5.0f);
+	TWEAKABLE Vector s_vecScaleBox = Point(3.0f, 3.0f, 3.0f);
+	TWEAKABLE float s_radRotatebox = 0.0f;
+	TWEAKABLE Vector s_vecRotateBox = Vector(1.0f, 0.0f, 0.0f);
+
+	TestGjk(MatRotate(QuatAxisAngle(VecNormalize(s_vecRotateBox), s_radRotatebox)) * MatTranslate(s_posBox), s_vecScaleBox, s_posSphere, s_sRadius);
+}
 
 
 
