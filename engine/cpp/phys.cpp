@@ -300,7 +300,8 @@ void SDynSphere::Update()
 // support = max point in a given direction
 // support(a) - support(b) gives us a point in the 3d minkoski space, kinda weird since we're subtracting points, but it's a difference vector
 // casey's condition is "go as far as possible in the given direction"
-// These other folks use once the
+
+// Eventually we're gonna compute a time of impact for each box, any times of impact that are within some epsilon should be considered to have happened at the same time
 
 #if 1
 void DoStuff()
@@ -356,23 +357,39 @@ Point PosSupportBox(const Mat & matPhys, Vector vecNonuniformScale,  Vector norm
 	return pos;
 }
 
+void TestGjk(const Mat & matCubePhys, Vector vecNonuniformScale, Point posSphere, float sRadiusSphere)
+{
+	Vector normalSupport;
+	{
+		TWEAKABLE Vector s_vecSupport = Vector(.3f, -.2f, .1f);
+		normalSupport = VecNormalize(s_vecSupport);
+	}
+
+	TWEAKABLE Vector s_dPosSweep = Vector(5.0f, 5.0f, 5.0f);
+
+	g_game.DebugDrawCube(MatScale(vecNonuniformScale)*matCubePhys);
+	g_game.DebugDrawSphere(posSphere, sRadiusSphere);
+	g_game.DebugDrawSphere(posSphere + s_dPosSweep, sRadiusSphere);
+	g_game.DebugDrawArrow(matCubePhys.m_aVec[3], normalSupport * 4.0f, 0.1f, 0.0f, g_rgbaRed);
+	g_game.DebugDrawSphere(PosSupportBox(matCubePhys, vecNonuniformScale, normalSupport), 0.25f, 0.0f, g_rgbaRed);
+	g_game.DebugDrawSphere(PosSupportSweptSphere(posSphere, sRadiusSphere, s_dPosSweep, normalSupport), 0.25f, 0.0f, g_rgbaRed);
+}
+
 void TestGjk()
 {
+	TWEAKABLE bool s_fDebug = true;
+
+	if (!s_fDebug)
+		return;
+
 	TWEAKABLE int s_iPhyscubeTest = 0;
 	TWEAKABLE int s_iDynsphereTest = 0;
 	auto & aryPhyscube = g_objman.m_mpTypekAryPObj[TYPEK_PhysCube];
 	auto & aryDynsphere = g_objman.m_mpTypekAryPObj[TYPEK_DynSphere];
 	SDynSphere * pDynsphere = (SDynSphere *) aryDynsphere[s_iDynsphereTest];
 	SPhysCube * pPhyscube = (SPhysCube *)aryPhyscube[s_iPhyscubeTest];
-	g_game.DebugDrawCube(pPhyscube->MatObjectToWorld());
-	g_game.DebugDrawSphere(pDynsphere->PosWorld(), pDynsphere->VecScaleLocal().X());
 
-	TWEAKABLE Vector s_vecSupport = g_vecXAxis;
-	Vector normalSupport = VecNormalize(s_vecSupport);
-
-	g_game.DebugDrawArrow(pPhyscube->PosWorld(), normalSupport*4.0f);
-	g_game.DebugDrawSphere(PosSupportBox(pPhyscube->m_matPhys, pPhyscube->m_vecNonuniformScale, normalSupport));
-	DoNothing();
+	TestGjk(pPhyscube->m_matPhys, pPhyscube->m_vecNonuniformScale, pDynsphere->PosWorld(), pDynsphere->SRadius());
 }
 #endif
 

@@ -5,6 +5,10 @@
 // FillMode: Wireframe
 // CullMode: None 
 // Shadowcast: Off
+// BlendEnable: On
+// BlendOp: Add
+// SrcBlend: SrcAlpha
+// DestBlend: InvSrcAlpha
 // END_INFO
 
 #pragma pack_matrix(row_major)
@@ -14,6 +18,7 @@ cbuffer constants : register(b0)
     float4x4 matMVP;
     float4x4 matObjectToWorld;
     float4x4 matObjectToWorldInverseTranspose;
+    float4 rgba;
 };
 
 cbuffer globals : register(b1)
@@ -51,5 +56,5 @@ VS_Output vs_main(VS_Input input)
 
 float4 ps_main(VS_Output input) : SV_Target
 {
-    return float4(0.0f, 1.0f, 0.0f, 1.0f);
+    return rgba;
 }

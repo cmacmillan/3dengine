@@ -124,6 +124,7 @@
   <ItemGroup>
     <ClCompile Include="cpp\binarystream.cpp" />
     <ClCompile Include="cpp\camera.cpp" />
+    <ClCompile Include="cpp\color.cpp" />
     <ClCompile Include="cpp\console.cpp" />
     <ClCompile Include="cpp\drawnode3d.cpp" />
     <ClCompile Include="cpp\engine.cpp" />
@@ -154,6 +155,7 @@
   <ItemGroup>
     <ClInclude Include="cpp\binarystream.h" />
     <ClInclude Include="cpp\camera3d.h" />
+    <ClInclude Include="cpp\color.h" />
     <ClInclude Include="cpp\console.h" />
     <ClInclude Include="cpp\coordinatesystem.h" />
     <ClInclude Include="cpp\drawnode3d.h" />

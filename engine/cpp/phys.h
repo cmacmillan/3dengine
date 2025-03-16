@@ -37,6 +37,9 @@ struct SDynSphere : SNode3D // dynsphere
 
 	void Update() override;
 
+	float SRadius()
+		{ return VecScaleLocal().X(); }
+
 	bool m_fFirstUpdate = true;
 	Point m_posPrev;
 	float m_dTPrev;

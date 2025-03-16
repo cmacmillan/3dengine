@@ -19,6 +19,7 @@
 #include "drawnode3d.h"
 #include "uinode.h"
 #include "mesh.h"
+#include "color.h"
 
 #include <windows.h>
 #include <vector>
@@ -65,6 +66,8 @@
 #define VK_Y 0x59
 #define VK_Z 0x5A
 
+#define DEBUG_RAYCAST 0
+
 struct ShaderGlobals
 {
 	float m_t;
@@ -105,6 +108,7 @@ struct SDebugDraw
 {
 	DDK		m_ddk;
 	Mat		m_mat;
+	SRgba	m_rgba;
 	double	m_systRealtimeExpire;
 };
 
@@ -120,10 +124,10 @@ struct SGame // game
 	float2 VecWinTopLeft();
 	bool FRaycastCursor(Point * pPosResult);
 	void PrintConsole(const std::string & str, float dTRealtime = 0.0f);
-	void DebugDrawSphere(Point posSphere, float sRadius = 1.0f, float dTRealtime = 0.0f);
-	void DebugDrawCube(const Mat & mat, float dTRealtime = 0.0f);
-	void DebugDrawArrow(Point pos, Vector dPos, float sRadius = 0.1f, float dTRealtime = 0.0f);
-	void DebugDrawArrow(Point pos0, Point pos1, float sRadius = 0.1f, float dTRealtime = 0.0f);
+	void DebugDrawSphere(Point posSphere, float sRadius = 1.0f, float dTRealtime = 0.0f, SRgba rgba = SRgba(0.0f, 1.0f, 0.0f, 1.0f));
+	void DebugDrawCube(const Mat & mat, float dTRealtime = 0.0f, SRgba rgba = SRgba(0.0f, 1.0f, 0.0f, 1.0f));
+	void DebugDrawArrow(Point pos, Vector dPos, float sRadius = 0.1f, float dTRealtime = 0.0f, SRgba rgba = SRgba(0.0f, 1.0f, 0.0f, 1.0f));
+	void DebugDrawArrow(Point pos0, Point pos1, float sRadius = 0.1f, float dTRealtime = 0.0f, SRgba rgba = SRgba(0.0f, 1.0f, 0.0f, 1.0f));
 	void EnsureMeshIn3dCbuffer(
 			SMesh3D * pMesh, 
 			int * piBIndex, 
@@ -170,8 +174,10 @@ struct SGame // game
 
 	std::list<SDebugDraw> m_lDdToDraw = {};
 
+#if DEBUG_RAYCAST
 	Point m_posRaycastDbg = Point(0.0f, 0.0f, 0.0f);
 	Vector m_normalRaycastDbg = Vector(1.0f, 0.0f, 0.0f);
+#endif
 
 	// BB remember we have to manually include debug draw meshes in the vertex/index buffers
 

@@ -539,11 +539,11 @@ bool SShader::FTryLoadFromFile(SFile * pFile, SShaderData * pData, std::string *
 															{std::string("Src1Alpha"),		D3D11_BLEND_SRC1_ALPHA},
 															{std::string("InvSrc1Alpha"),	D3D11_BLEND_INV_SRC1_ALPHA}};
 
-	static SKv<std::string, D3D11_BLEND_OP> mpStrBlendop[] = {{std::string("Add"), D3D11_BLEND_OP_ADD},
-															{std::string("Subtract"), D3D11_BLEND_OP_SUBTRACT},
-															{std::string("RevSubtract"), D3D11_BLEND_OP_REV_SUBTRACT},
-															{std::string("Min"), D3D11_BLEND_OP_MIN},
-															{std::string("Max"), D3D11_BLEND_OP_MAX}};
+	static SKv<std::string, D3D11_BLEND_OP> mpStrBlendop[] = {	{std::string("Add"), D3D11_BLEND_OP_ADD},
+																{std::string("Subtract"), D3D11_BLEND_OP_SUBTRACT},
+																{std::string("RevSubtract"), D3D11_BLEND_OP_REV_SUBTRACT},
+																{std::string("Min"), D3D11_BLEND_OP_MIN},
+																{std::string("Max"), D3D11_BLEND_OP_MAX}};
 
 	// BlendEnable
 

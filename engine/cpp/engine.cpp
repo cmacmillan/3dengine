@@ -629,6 +629,7 @@ void SGame::Init(HINSTANCE hInstance)
 	AuditVectors();
 	AuditSlotheap();
 	AuditNFromStr();
+	AuditRgba();
 }
 
 int SortUinodeRenderOrder(const void * pVa, const void * pVb)
@@ -807,6 +808,7 @@ void SGame::MainLoop()
 
 		m_hPlaneTest2->SetQuatLocal(QuatAxisAngle(g_vecYAxis, m_dT * 10.0f) * m_hPlaneTest2->QuatLocal());
 	
+#if DEBUG_RAYCAST
 		{
 			if (m_mpVkFDown[VK_RBUTTON])
 			{
@@ -825,6 +827,7 @@ void SGame::MainLoop()
 				DebugDrawSphere(intersection.m_pos, 1.0f);
 			}
 		}
+#endif
 
 		g_game.PrintConsole(StrPrintf("unique mesh count:%i\n", g_objman.m_mpTypekAryPObj[TYPEK_Mesh3D].size()));
 
@@ -1167,19 +1170,19 @@ void SGame::MainLoop()
 					switch (dd.m_ddk)
 					{
 					case DDK_Cube:
-						Draw3DSingle(pMaterialWireframe, pMeshCube, dd.m_mat, matWorldToClip);
+						Draw3DSingle(pMaterialWireframe, pMeshCube, dd.m_mat, matWorldToClip, dd.m_rgba);
 						break;
 
 					case DDK_Sphere:
-						Draw3DSingle(pMaterialWireframe, pMeshSphere, dd.m_mat, matWorldToClip);
+						Draw3DSingle(pMaterialWireframe, pMeshSphere, dd.m_mat, matWorldToClip, dd.m_rgba);
 						break;
 
 					case DDK_ArrowBody:
-						Draw3DSingle(pMaterialWireframe, pMeshArrowBody, dd.m_mat, matWorldToClip);
+						Draw3DSingle(pMaterialWireframe, pMeshArrowBody, dd.m_mat, matWorldToClip, dd.m_rgba);
 						break;
 
 					case DDK_ArrowHead:
-						Draw3DSingle(pMaterialWireframe, pMeshArrowHead, dd.m_mat, matWorldToClip);
+						Draw3DSingle(pMaterialWireframe, pMeshArrowHead, dd.m_mat, matWorldToClip, dd.m_rgba);
 						break;
 					}
 				}
@@ -1254,27 +1257,27 @@ void SGame::PrintConsole(const std::string & str, float dTRealtime)
 	m_hConsole->Print(str, g_game.m_systRealtime + dTRealtime);
 }
 
-void SGame::DebugDrawSphere(Point posSphere, float sRadius, float dTRealtime)
+void SGame::DebugDrawSphere(Point posSphere, float sRadius, float dTRealtime, SRgba rgba)
 {
 	// NOTE sphere model is radius 1
 
-	m_lDdToDraw.push_back({ DDK_Sphere, MatScale(sRadius * g_vecOne) * MatTranslate(posSphere), g_game.m_systRealtime + dTRealtime });
+	m_lDdToDraw.push_back({ DDK_Sphere, MatScale(sRadius * g_vecOne) * MatTranslate(posSphere), rgba, g_game.m_systRealtime + dTRealtime });
 }
 
-void SGame::DebugDrawCube(const Mat & mat, float dTRealtime)
+void SGame::DebugDrawCube(const Mat & mat, float dTRealtime, SRgba rgba)
 {
 	// NOTE cube model is -1 to 1
 
-	m_lDdToDraw.push_back({ DDK_Cube, mat, g_game.m_systRealtime + dTRealtime });
+	m_lDdToDraw.push_back({ DDK_Cube, mat, rgba, g_game.m_systRealtime + dTRealtime });
 }
 
 
-void SGame::DebugDrawArrow(Point pos0, Point pos1, float sRadius, float dTRealtime)
+void SGame::DebugDrawArrow(Point pos0, Point pos1, float sRadius, float dTRealtime, SRgba rgba)
 {
-	DebugDrawArrow(pos0, pos1 - pos0, sRadius, dTRealtime);
+	DebugDrawArrow(pos0, pos1 - pos0, sRadius, dTRealtime, rgba);
 }
 
-void SGame::DebugDrawArrow(Point pos, Vector dPos, float sRadius, float dTRealtime)
+void SGame::DebugDrawArrow(Point pos, Vector dPos, float sRadius, float dTRealtime, SRgba rgba)
 {
 	// Arrow head and body are 0 to 1 in z, and -1 to 1 in x and  y
 
@@ -1291,10 +1294,10 @@ void SGame::DebugDrawArrow(Point pos, Vector dPos, float sRadius, float dTRealti
 	Mat matBody = MatScale(Vector(sRadius, sRadius, zScaleBody)) * matLocalToWorld;
 	Mat matHead = MatScale(Vector(sHead, sHead, sHead)) * MatTranslate(Vector(0.0f, 0.0f, zScaleBody)) * matLocalToWorld;
 
-	m_lDdToDraw.push_back({ DDK_ArrowBody, matBody, g_game.m_systRealtime + dTRealtime });
-	m_lDdToDraw.push_back({ DDK_ArrowHead, matHead, g_game.m_systRealtime + dTRealtime });
+	m_lDdToDraw.push_back({ DDK_ArrowBody, matBody, rgba, g_game.m_systRealtime + dTRealtime });
+	m_lDdToDraw.push_back({ DDK_ArrowHead, matHead, rgba, g_game.m_systRealtime + dTRealtime });
 
-	m_lDdToDraw.push_back({ DDK_Sphere, MatScale(sRadius * g_vecOne) * MatTranslate(pos + dPos), g_game.m_systRealtime + dTRealtime });
+	m_lDdToDraw.push_back({ DDK_Sphere, MatScale(sRadius * g_vecOne) * MatTranslate(pos + dPos), rgba, g_game.m_systRealtime + dTRealtime });
 }
 
 void SGame::SetEdits(EDITS edits)

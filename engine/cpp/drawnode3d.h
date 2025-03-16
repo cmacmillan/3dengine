@@ -2,14 +2,16 @@
 
 #include "object.h"
 #include "node3d.h"
+#include "color.h"
 
 struct SDrawNodeRenderConstants
 {
-	void FillOut(Mat matObjectToWorld, Mat matWorldToClip);
+	void FillOut(Mat matObjectToWorld, Mat matWorldToClip, SRgba rgba = SRgba(1.0f, 1.0f, 1.0f, 1.0f));
 
-	Mat m_matMVP;
-	Mat m_matObjectToWorld;
-	Mat m_matObjectToWorldInverseTranspose;
+	Mat		m_matMVP;
+	Mat		m_matObjectToWorld;
+	Mat		m_matObjectToWorldInverseTranspose;
+	SRgba	m_rgba;
 };
 
 struct SDrawNode3D : SNode3D // drawnode3D

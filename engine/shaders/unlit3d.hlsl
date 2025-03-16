@@ -14,6 +14,7 @@ cbuffer constants : register(b0)
     float4x4 matMVP;
     float4x4 matObjectToWorld;
     float4x4 matObjecToWorldInverseTranspose;
+    float4 rgba;
 };
 
 cbuffer globals : register(b1)

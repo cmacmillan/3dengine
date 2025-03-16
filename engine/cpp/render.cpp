@@ -4,7 +4,7 @@
 #include "texture.h"
 #include "sun.h"
 
-void Draw3DSingle(const SMaterial * pMaterial, const SMesh3D * pMesh, Mat matModel, Mat matWorldToClip)
+void Draw3DSingle(const SMaterial * pMaterial, const SMesh3D * pMesh, Mat matModel, Mat matWorldToClip, SRgba rgba)
 {
 	ID3D11DeviceContext1 * pD3ddevicecontext = g_game.m_pD3ddevicecontext;
 	const SShader * pShader = pMaterial->m_hShader.PT();
@@ -35,7 +35,7 @@ void Draw3DSingle(const SMaterial * pMaterial, const SMesh3D * pMesh, Mat matMod
 	pD3ddevicecontext->Map(g_game.m_cbufferDrawnode3D, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
 	SDrawNodeRenderConstants * pDrawnode3Drc = (SDrawNodeRenderConstants *) (mappedSubresource.pData);
 
-	pDrawnode3Drc->FillOut(matModel, matWorldToClip);
+	pDrawnode3Drc->FillOut(matModel, matWorldToClip, rgba);
 
 	pD3ddevicecontext->Unmap(g_game.m_cbufferDrawnode3D, 0);
 
