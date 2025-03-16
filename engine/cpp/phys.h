@@ -13,7 +13,7 @@ struct SPhysCube : SNode3D // physcube
 	void Update() override;
 
 	Vector m_vecNonuniformScale;	// The non-uniform scale component which is allowed to live at the bottom of the hierarchy
-	float m_gUniformScale;			// The scale we'd need to incorporate if we wanted to actually get world-space distance
+	float m_gUniformScale;			// The uniform scale which is a part of matPhys
 	Mat m_matPhys;					// Excludes any non-uniform scale at the bottom of the hierarchy
 	Mat m_matPhysInverse;			//  ...
 };
@@ -41,3 +41,5 @@ struct SDynSphere : SNode3D // dynsphere
 	Point m_posPrev;
 	float m_dTPrev;
 };
+
+void TestGjk(); 

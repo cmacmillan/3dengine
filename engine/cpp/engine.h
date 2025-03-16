@@ -96,7 +96,9 @@ enum EDITS
 enum DDK
 {
 	DDK_Sphere = 0,
-	DDK_Cube = 1
+	DDK_Cube = 1,
+	DDK_ArrowBody = 2,
+	DDK_ArrowHead = 3,
 };
 
 struct SDebugDraw
@@ -117,9 +119,11 @@ struct SGame // game
 	float2 VecCursor();
 	float2 VecWinTopLeft();
 	bool FRaycastCursor(Point * pPosResult);
-	void PrintConsole(const std::string & str, float dTRealtime = 0.0);
-	void DebugDrawSphere(Point posSphere, float sRadius = 1.0f, float dTRealtime = 0.0);
-	void DebugDrawCube(const Mat & mat, float dTRealtime = 0.0);
+	void PrintConsole(const std::string & str, float dTRealtime = 0.0f);
+	void DebugDrawSphere(Point posSphere, float sRadius = 1.0f, float dTRealtime = 0.0f);
+	void DebugDrawCube(const Mat & mat, float dTRealtime = 0.0f);
+	void DebugDrawArrow(Point pos, Vector dPos, float sRadius = 0.1f, float dTRealtime = 0.0f);
+	void DebugDrawArrow(Point pos0, Point pos1, float sRadius = 0.1f, float dTRealtime = 0.0f);
 	void EnsureMeshIn3dCbuffer(
 			SMesh3D * pMesh, 
 			int * piBIndex, 
@@ -168,8 +172,13 @@ struct SGame // game
 
 	Point m_posRaycastDbg = Point(0.0f, 0.0f, 0.0f);
 	Vector m_normalRaycastDbg = Vector(1.0f, 0.0f, 0.0f);
+
+	// BB remember we have to manually include debug draw meshes in the vertex/index buffers
+
 	SMesh3DHandle m_hMeshSphere = -1;
 	SMesh3DHandle m_hMeshCube = -1;
+	SMesh3DHandle m_hMeshArrowBody = -1;
+	SMesh3DHandle m_hMeshArrowHead = -1;
 
 	// TODO should just have a map of each typek to an array of instantiated objects of that type (would need to include derived classes too)
 

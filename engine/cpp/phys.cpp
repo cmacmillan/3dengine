@@ -46,6 +46,10 @@ void SPhysCube::UpdateSelfAndChildTransformCache()
 	}
 
 	m_matPhysInverse = MatInverse(m_matPhys);
+
+	ASSERT(FIsNear(SLength(m_matPhys.VecX()), m_gUniformScale));
+	ASSERT(FIsNear(SLength(m_matPhys.VecY()), m_gUniformScale));
+	ASSERT(FIsNear(SLength(m_matPhys.VecZ()), m_gUniformScale));
 }
 
 void SPhysCube::Update()
@@ -270,3 +274,113 @@ void SDynSphere::Update()
 
 	SetPosWorld(posNew);
 }
+
+
+
+
+
+
+/////////////////////////////
+
+
+
+// GJK
+
+// The general idea here is we can use the gjk algorithm to sweep paths, and binary search for a time of intersection
+// This doesn't account for rotation of the objects over this timestep
+// The time of intersection will be considered to have happened when within some epsilon of the surface, 
+// perhaps actually when within some epsilon +/- some smaller epsilon, since we don't likely want
+// points that are right at the surface for numerical stability reasons
+// e.g. we'll accept a distance which is .01-.02 away from the surface
+// not right at the surface since the normal delta will be unnormalizable junk
+// So we're gonna want a sweep path function, which perhaps can take in a const reference context struct containing the relevant things
+// Only one moving object for now A. We minkowski sum it with a line segment L, and subtract other object B The two shapes intersect if (A+L)-B = 0
+// If I know rough distance, I can potentially move in a raymarch-y way
+// We need furthest along in some direction vector
+// support = max point in a given direction
+// support(a) - support(b) gives us a point in the 3d minkoski space, kinda weird since we're subtracting points, but it's a difference vector
+// casey's condition is "go as far as possible in the given direction"
+// These other folks use once the
+
+#if 1
+void DoStuff()
+{
+#if 0
+	Vector normalSupport = g_vecXAxis;
+
+	SDynSphere * pDynsphere;
+	SPhysCube * pPhyscube;
+	Vector dPosSweep;
+
+	SFixArray<Point, 4> aryPos;
+
+	// BB using local cube scale
+	// BB using local sphere x scale
+
+	aryPos.Append(PosSupportSweptSphere(pDynsphere->PosWorld(), pDynsphere->VecScaleLocal().X(), dPosSweep, normalSupport) - PosSupportBox(pPhyscube->PosWorld(), pPhyscube->VecScaleLocal(), -normalSupport));
+
+	normalSupport = -Vector(aryPos[0]);
+
+	float sMin = FLT_MAX;
+#endif
+}
+
+Point PosSupportSweptSphere(Point posSphere, float sRadius, Vector dPosSweep, Vector normalSupport)
+{
+	float gDot = GDot(normalSupport, dPosSweep);
+	Point posTest = (gDot > 0.0f) ? posSphere + dPosSweep : posSphere;
+	return posTest + sRadius * normalSupport;
+}
+
+Point PosSupportBox(const Mat & matPhys, Vector vecNonuniformScale,  Vector normalSupport)
+{
+	// BB constructing vectors here
+
+	// NOTE that the length of these vectors is whatever the uniform scale is
+
+	Vector vecX = matPhys.m_aVec[0];
+	Vector vecY = matPhys.m_aVec[1];
+	Vector vecZ = matPhys.m_aVec[2];
+
+	float gDotX = GDot(vecX, normalSupport);
+	float gDotY = GDot(vecY, normalSupport);
+	float gDotZ = GDot(vecZ, normalSupport);
+
+	// Assuming box ranges from -1 to 1
+
+	Point pos = matPhys.m_aVec[3];
+	pos += (gDotX > 0.0f) ? vecX * vecNonuniformScale.X() : -vecX * vecNonuniformScale.X();
+	pos += (gDotY > 0.0f) ? vecY * vecNonuniformScale.Y() : -vecY * vecNonuniformScale.Y();
+	pos += (gDotZ > 0.0f) ? vecZ * vecNonuniformScale.Z() : -vecZ * vecNonuniformScale.Z();
+
+	return pos;
+}
+
+void TestGjk()
+{
+	TWEAKABLE int s_iPhyscubeTest = 0;
+	TWEAKABLE int s_iDynsphereTest = 0;
+	auto & aryPhyscube = g_objman.m_mpTypekAryPObj[TYPEK_PhysCube];
+	auto & aryDynsphere = g_objman.m_mpTypekAryPObj[TYPEK_DynSphere];
+	SDynSphere * pDynsphere = (SDynSphere *) aryDynsphere[s_iDynsphereTest];
+	SPhysCube * pPhyscube = (SPhysCube *)aryPhyscube[s_iPhyscubeTest];
+	g_game.DebugDrawCube(pPhyscube->MatObjectToWorld());
+	g_game.DebugDrawSphere(pDynsphere->PosWorld(), pDynsphere->VecScaleLocal().X());
+
+	TWEAKABLE Vector s_vecSupport = g_vecXAxis;
+	Vector normalSupport = VecNormalize(s_vecSupport);
+
+	g_game.DebugDrawArrow(pPhyscube->PosWorld(), normalSupport*4.0f);
+	g_game.DebugDrawSphere(PosSupportBox(pPhyscube->m_matPhys, pPhyscube->m_vecNonuniformScale, normalSupport));
+	DoNothing();
+}
+#endif
+
+
+
+
+
+
+
+
+

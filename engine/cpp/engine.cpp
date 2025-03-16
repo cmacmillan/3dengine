@@ -614,6 +614,8 @@ void SGame::Init(HINSTANCE hInstance)
 
 	m_hMeshSphere = PMeshLoadSingle("models/sphere.gltf")->HMesh();
 	m_hMeshCube = PMeshLoadSingle("models/cube.gltf")->HMesh();
+	m_hMeshArrowBody = PMeshLoadSingle("models/arrowbody.gltf")->HMesh();
+	m_hMeshArrowHead = PMeshLoadSingle("models/arrowhead.gltf")->HMesh();
 
 	SpawnScene("models/fakelevel.gltf");
 
@@ -798,8 +800,10 @@ void SGame::MainLoop()
 
 		////////// GAMEPLAY CODE (JANK)
 	
-		g_game.m_hCamera3DShadow->SetPosWorld(m_hSun->PosWorld());
-		g_game.m_hCamera3DShadow->SetQuatWorld(QuatLookAt(-m_hSun->VecZWorld(),m_hSun->VecYWorld()));
+		TestGjk();
+
+		m_hCamera3DShadow->SetPosWorld(m_hSun->PosWorld());
+		m_hCamera3DShadow->SetQuatWorld(QuatLookAt(-m_hSun->VecZWorld(),m_hSun->VecYWorld()));
 
 		m_hPlaneTest2->SetQuatLocal(QuatAxisAngle(g_vecYAxis, m_dT * 10.0f) * m_hPlaneTest2->QuatLocal());
 	
@@ -967,11 +971,19 @@ void SGame::MainLoop()
 			pMesh->m_iVertdata = -1;
 		}
 
+		// BB this is terrible
+
 		m_hMeshSphere->m_iIndexdata = -1;
 		m_hMeshSphere->m_iVertdata = -1;
 
 		m_hMeshCube->m_iIndexdata = -1;
 		m_hMeshCube->m_iVertdata = -1;
+
+		m_hMeshArrowBody->m_iIndexdata = -1;
+		m_hMeshArrowBody->m_iVertdata = -1;
+
+		m_hMeshArrowHead->m_iIndexdata = -1;
+		m_hMeshArrowHead->m_iVertdata = -1;
 
 		for (SUiNode * pUinode : arypUinodeToRender)
 		{
@@ -1001,10 +1013,12 @@ void SGame::MainLoop()
 			EnsureMeshIn3dCbuffer(pMesh, &iBIndex, &iBVert3D, &mappedSubresourceVerts3D, &mappedSubresourceIndex);
 		}
 
-		// Ensures sphere mesh for debug drawing
+		// Ensures meshes for debug drawing
 
 		EnsureMeshIn3dCbuffer(m_hMeshSphere.PT(), &iBIndex, &iBVert3D, &mappedSubresourceVerts3D, &mappedSubresourceIndex);
 		EnsureMeshIn3dCbuffer(m_hMeshCube.PT(), &iBIndex, &iBVert3D, &mappedSubresourceVerts3D, &mappedSubresourceIndex);
+		EnsureMeshIn3dCbuffer(m_hMeshArrowBody.PT(), &iBIndex, &iBVert3D, &mappedSubresourceVerts3D, &mappedSubresourceIndex);
+		EnsureMeshIn3dCbuffer(m_hMeshArrowHead.PT(), &iBIndex, &iBVert3D, &mappedSubresourceVerts3D, &mappedSubresourceIndex);
 
 		for (SUiNode * pUinode : arypUinodeToRender)
 		{
@@ -1146,6 +1160,8 @@ void SGame::MainLoop()
 				SMaterial * pMaterialWireframe = m_hMaterialWireframe.PT();
 				SMesh3D * pMeshSphere = m_hMeshSphere.PT();
 				SMesh3D * pMeshCube = m_hMeshCube.PT();
+				SMesh3D * pMeshArrowBody = m_hMeshArrowBody.PT();
+				SMesh3D * pMeshArrowHead = m_hMeshArrowHead.PT();
 				for (const SDebugDraw & dd : m_lDdToDraw)
 				{
 					switch (dd.m_ddk)
@@ -1156,6 +1172,14 @@ void SGame::MainLoop()
 
 					case DDK_Sphere:
 						Draw3DSingle(pMaterialWireframe, pMeshSphere, dd.m_mat, matWorldToClip);
+						break;
+
+					case DDK_ArrowBody:
+						Draw3DSingle(pMaterialWireframe, pMeshArrowBody, dd.m_mat, matWorldToClip);
+						break;
+
+					case DDK_ArrowHead:
+						Draw3DSingle(pMaterialWireframe, pMeshArrowHead, dd.m_mat, matWorldToClip);
 						break;
 					}
 				}
@@ -1242,6 +1266,35 @@ void SGame::DebugDrawCube(const Mat & mat, float dTRealtime)
 	// NOTE cube model is -1 to 1
 
 	m_lDdToDraw.push_back({ DDK_Cube, mat, g_game.m_systRealtime + dTRealtime });
+}
+
+
+void SGame::DebugDrawArrow(Point pos0, Point pos1, float sRadius, float dTRealtime)
+{
+	DebugDrawArrow(pos0, pos1 - pos0, sRadius, dTRealtime);
+}
+
+void SGame::DebugDrawArrow(Point pos, Vector dPos, float sRadius, float dTRealtime)
+{
+	// Arrow head and body are 0 to 1 in z, and -1 to 1 in x and  y
+
+	float sdPos = SLength(dPos);
+	Vector normal = dPos / sdPos;
+
+	TWEAKABLE float s_gScaleHead = 6.0f;
+
+	float sHead = sRadius * s_gScaleHead;
+	float zScaleBody = sdPos - sHead;
+
+	Mat matLocalToWorld = MatRotate(QuatFromTo(g_vecZAxis, normal)) * MatTranslate(pos);
+
+	Mat matBody = MatScale(Vector(sRadius, sRadius, zScaleBody)) * matLocalToWorld;
+	Mat matHead = MatScale(Vector(sHead, sHead, sHead)) * MatTranslate(Vector(0.0f, 0.0f, zScaleBody)) * matLocalToWorld;
+
+	m_lDdToDraw.push_back({ DDK_ArrowBody, matBody, g_game.m_systRealtime + dTRealtime });
+	m_lDdToDraw.push_back({ DDK_ArrowHead, matHead, g_game.m_systRealtime + dTRealtime });
+
+	m_lDdToDraw.push_back({ DDK_Sphere, MatScale(sRadius * g_vecOne) * MatTranslate(pos + dPos), g_game.m_systRealtime + dTRealtime });
 }
 
 void SGame::SetEdits(EDITS edits)
