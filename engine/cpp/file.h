@@ -13,6 +13,7 @@ struct SFile
 
 	FILETIME FiletimeLastWrite();
 
+	std::string m_strPath = {};
 	unsigned char * m_pB = nullptr;
 	size_t m_cBytesFile = -1;
 	HANDLE m_hFile = INVALID_HANDLE_VALUE;

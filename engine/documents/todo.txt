@@ -33,3 +33,5 @@ _ - Support pausing without crashing
 _ - Add a "reload the scene" 'r' button
 _ - figure out what's up with stair collision
 _ - Fixed update. Get things like phys and character movement (but not camera movement) running in a fixed update function
+_ - Put common shader structs into a header
+_ - Text wrapping (nice when trying to show long shader errors)

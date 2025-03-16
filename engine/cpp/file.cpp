@@ -60,8 +60,11 @@ bool SFile::FTryRead(const char * pChzPath)
 	if (m_hFile == INVALID_HANDLE_VALUE)
 	{
 		std::string str = StrGetLastError();
+		m_strPath = "";
 		return false;
 	}
+
+	m_strPath = pChzPath;
 
 	m_cBytesFile = GetFileSize(m_hFile, nullptr);
 	m_pB = new unsigned char[m_cBytesFile];

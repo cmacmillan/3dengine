@@ -715,10 +715,19 @@ bool SShader::FTryLoadFromFile(SFile * pFile, SShaderData * pData, std::string *
 	// Create Vertex Shader
 	ID3DBlob * vsBlob = nullptr;
 	{
-		// BB Omitting 3rd argument to D3DCompile will prevent shader #includes from working
-
 		ID3DBlob * shaderCompileErrorsBlob;
-		HRESULT hResultCompileVs = D3DCompile(pFile->m_pB, pFile->m_cBytesFile, nullptr, nullptr, nullptr, "vs_main", "vs_5_0", 0, 0, &vsBlob, &shaderCompileErrorsBlob);
+		HRESULT hResultCompileVs = D3DCompile(
+										pFile->m_pB, 
+										pFile->m_cBytesFile, 
+										pFile->m_strPath.c_str(),
+										nullptr, 
+										D3D_COMPILE_STANDARD_FILE_INCLUDE, 
+										"vs_main", 
+										"vs_5_0", 
+										0, 
+										0, 
+										&vsBlob, 
+										&shaderCompileErrorsBlob);
 		if (FAILED(hResultCompileVs))
 		{
 			if (shaderCompileErrorsBlob)
@@ -731,12 +740,22 @@ bool SShader::FTryLoadFromFile(SFile * pFile, SShaderData * pData, std::string *
 	}
 
 	// Create Pixel Shader
-	// BB Omitting 3rd argument to D3DCompile will prevent shader #includes from working
 
 	ID3DBlob * psBlob;
 	{
 		ID3DBlob * shaderCompileErrorsBlob;
-		HRESULT hResultCompilePs = D3DCompile(pFile->m_pB, pFile->m_cBytesFile, nullptr, nullptr, nullptr, "ps_main", "ps_5_0", 0, 0, &psBlob, &shaderCompileErrorsBlob);
+		HRESULT hResultCompilePs = D3DCompile(
+											pFile->m_pB, 
+											pFile->m_cBytesFile, 
+											pFile->m_strPath.c_str(),
+											nullptr, 
+											D3D_COMPILE_STANDARD_FILE_INCLUDE, 
+											"ps_main", 
+											"ps_5_0", 
+											0, 
+											0, 
+											&psBlob, 
+											&shaderCompileErrorsBlob);
 		if (FAILED(hResultCompilePs))
 		{
 			if (shaderCompileErrorsBlob)

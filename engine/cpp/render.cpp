@@ -21,7 +21,7 @@ void Draw3DSingle(const SMaterial * pMaterial, const SMesh3D * pMesh, Mat matMod
 	pD3ddevicecontext->VSSetShader(pShader->m_data.m_pD3dvertexshader, nullptr, 0);
 	pD3ddevicecontext->PSSetShader(pShader->m_data.m_pD3dfragshader, nullptr, 0);
 
-	ID3D11Buffer * aD3dbuffer[] = { g_game.m_cbufferDrawnode3D, g_game.m_cbufferGlobals };
+	ID3D11Buffer * aD3dbuffer[] = { g_game.m_cbufferGlobals, g_game.m_cbufferDrawnode3D};
 	pD3ddevicecontext->VSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
 	pD3ddevicecontext->PSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
 

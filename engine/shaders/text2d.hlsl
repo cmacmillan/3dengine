@@ -13,27 +13,13 @@
 // DepthFunc: Always
 // END_INFO
 
-cbuffer constants : register(b0)
+#include "globals.hlsl"
+
+cbuffer constants : register(b1)
 {
     float2 posObject;
     float2 vecScaleObject;
     float4 uniformColor;
-};
-
-cbuffer globals : register(b1)
-{
-    float time;
-    float deltaTime;
-    float2 vecWinSize;
-    float4x4 matCameraToWorld;
-    float4x4 matWorldToCamera;
-	float4x4 matClipToWorld;
-    float4x4 matWorldToClip;
-    float4x4 matWorldToShadowClip;
-	float4	normalSunDir;
-	float	xClipNear;
-	float	xClipFar;
-	float2	vecPadding;
 };
 
 struct VS_INPUT

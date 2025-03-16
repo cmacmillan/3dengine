@@ -1127,7 +1127,7 @@ void SGame::MainLoop()
 					m_pD3ddevicecontext->VSSetShader(shader.m_data.m_pD3dvertexshader, nullptr, 0);
 					m_pD3ddevicecontext->PSSetShader(shader.m_data.m_pD3dfragshader, nullptr, 0);
 
-					ID3D11Buffer * aD3dbuffer[] = { m_cbufferDrawnode3D, m_cbufferGlobals };
+					ID3D11Buffer * aD3dbuffer[] = { m_cbufferGlobals, m_cbufferDrawnode3D };
 					m_pD3ddevicecontext->VSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
 					m_pD3ddevicecontext->PSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
 
@@ -1217,7 +1217,7 @@ void SGame::MainLoop()
 						m_pD3ddevicecontext->OMSetDepthStencilState(shader.m_data.m_pD3ddepthstencilstate, 0);
 
 						m_pD3ddevicecontext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-						ID3D11Buffer * aD3dbuffer[] = { m_cbufferUiNode, m_cbufferGlobals };
+						ID3D11Buffer * aD3dbuffer[] = { m_cbufferGlobals, m_cbufferUiNode };
 						m_pD3ddevicecontext->VSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
 						m_pD3ddevicecontext->PSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
 
