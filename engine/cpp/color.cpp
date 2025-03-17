@@ -17,6 +17,6 @@ SRgba g_rgbaRed = SRgba(1.0f, 0.0f, 0.0f, 1.0f);
 SRgba g_rgbaGreen = SRgba(0.0f, 1.0f, 0.0f, 1.0f);
 SRgba g_rgbaBlue = SRgba(0.0f, 0.0f, 1.0f, 1.0f);
 SRgba g_rgbaYellow = SRgba(1.0f, 1.0f, 0.0f, 1.0f);
-SRgba g_rgbaPink = SRgba(1.0f, 1.0f, 0.0f, 1.0f);
+SRgba g_rgbaPink = SRgba(1.0f, 0.0f, 1.0f, 1.0f);
 SRgba g_rgbaCyan = SRgba(0.0f, 1.0f, 1.0f, 1.0f);
 SRgba g_rgbaOrange = SRgba(1.0f, 0.5f, 0.0f, 1.0f);

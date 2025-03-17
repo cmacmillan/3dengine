@@ -419,7 +419,7 @@ void SetSimplexLineSegment(Point pos0, Point pos1, Vector * pNormalSupport, SFix
 	*pNormalSupport = VecNormalizeSafe(VecProjectOnTangent(-pos0, VecNormalizeSafe(pos1 - pos0)));
 }
 
-bool FSimplex2(Vector * pNormalSupport, SFixArray<Point, 4> * paryPosMink)
+bool FSimplex(Vector * pNormalSupport, SFixArray<Point, 4> * paryPosMink)
 {
 	switch (paryPosMink->m_c)
 	{
@@ -624,267 +624,12 @@ bool FSimplex2(Vector * pNormalSupport, SFixArray<Point, 4> * paryPosMink)
 	return false;
 }
 
-bool FSimplex(Vector * pNormalSupport, SFixArray<Point, 4> * paryPosMink)
-{
-	// BB this is very janky and should be rewritten
-
-	switch (paryPosMink->m_c)
-	{
-	case 2:
-		{
-			// I think we don't need to test the quadrant from pos0 in the direction of pos0-pos1
-
-			Point pos0 = paryPosMink->m_a[0];
-			Point pos1 = paryPosMink->m_a[1];
-
-			Vector dPos = pos1 - pos0;
-			Point posOriginRelToPos1 = -pos1;
-
-			ASSERT(GDot(-pos0, dPos) > 0.0f);
-
-			float gDot = GDot(posOriginRelToPos1, dPos);
-			if (gDot > 0.0f)
-			{
-				paryPosMink->Empty();
-				paryPosMink->Append(pos1);
-				*pNormalSupport = VecNormalizeElse(posOriginRelToPos1, g_vecXAxis);
-			}
-			else
-			{
-				*pNormalSupport = VecNormalizeElse(VecProjectOnTangent(posOriginRelToPos1, VecNormalizeElse(dPos, g_vecXAxis)), g_vecXAxis);
-			}
-			return false;
-		}
-		break;
-
-	case 3:
-		{
-			// Directions it can't be, pos0 in the direction of pos0-pos1,
-			// or the pos0 pos1 edge
-
-			Point pos0 = paryPosMink->m_a[0];
-			Point pos1 = paryPosMink->m_a[1];
-			Point pos2 = paryPosMink->m_a[2];
-
-			Vector normalTriangle = VecNormalizeElse(VecCross(pos1 - pos0, pos2 - pos0), g_vecXAxis);
-			Vector vecE = VecCross(normalTriangle, pos2 - pos1);
-			Vector vecF = VecCross(normalTriangle, pos2 - pos0);
-
-			// Ensure E and F point outward
-
-			if (GDot(vecE, pos0 - pos2) > 0.0f)
-			{
-				vecE = -vecE;
-			}
-
-			if (GDot(vecF, pos1 - pos0) > 0.0f)
-			{
-				vecF = -vecF;
-			}
-
-			float gDotA = GDot(-pos1, pos1 - pos0);
-			float gDotB = GDot(-pos1, pos1 - pos2);
-			float gDotC = GDot(-pos2, pos2 - pos1);
-			float gDotD = GDot(-pos2, pos2 - pos0);
-			float gDotE = GDot(-pos2, vecE);
-			float gDotF = GDot(-pos2, vecF);
-			float gDotG = GDot(-pos0, pos0 - pos2);
-			bool fPositiveA = gDotA > 0.0f;
-			bool fPositiveB = gDotB > 0.0f;
-			bool fPositiveC = gDotC > 0.0f;
-			bool fPositiveD = gDotD > 0.0f;
-			bool fPositiveE = gDotE > 0.0f;
-			bool fPositiveF = gDotF > 0.0f;
-			bool fPositiveG = gDotG > 0.0f;
-			if (!fPositiveE && !fPositiveF)
-			{
-				// inside triangle
-				float gDotTri = GDot(-pos0, normalTriangle);
-				if (gDotTri > 0.0f)
-				{
-					// Along triangle normal
-
-					*pNormalSupport = normalTriangle;
-				}
-				else
-				{
-					// Against triangle normal
-
-					*pNormalSupport = -normalTriangle;
-				}
-			}
-			else
-			{
-				if (fPositiveA && fPositiveB)
-				{
-					// Closest to pos1
-
-					paryPosMink->Empty();
-					paryPosMink->Append(pos1);
-					*pNormalSupport = VecNormalizeElse(-pos1, g_vecXAxis);
-				}
-				else if (fPositiveC && fPositiveD)
-				{
-					// Closest to pos2
-
-					paryPosMink->Empty();
-					paryPosMink->Append(pos2);
-					*pNormalSupport = VecNormalizeElse(-pos2, g_vecXAxis);
-				}
-				else if (!fPositiveB && !fPositiveC)
-				{
-					// Closest to E edge
-
-					paryPosMink->Empty();
-					paryPosMink->Append(pos1);
-					paryPosMink->Append(pos2);
-					*pNormalSupport = VecNormalizeElse(VecProjectOnTangent(-pos1, VecNormalizeElse(vecE, g_vecXAxis)), g_vecXAxis);
-				}
-				else if (!fPositiveD && !fPositiveG)
-				{
-					// Closest to F edge
-
-					paryPosMink->Empty();
-					paryPosMink->Append(pos0);
-					paryPosMink->Append(pos2);
-					*pNormalSupport = VecNormalizeElse(VecProjectOnTangent(-pos2, VecNormalizeElse(vecF, g_vecXAxis)), g_vecXAxis);
-				}
-				else
-				{
-					ASSERT(false);
-				}
-			}
-			return false;
-		}
-		break;
-
-	case 4:
-		{
-#if 0
-			Point pos0 = paryPosMink->m_a[0];
-			Point pos1 = paryPosMink->m_a[1];
-			Point pos2 = paryPosMink->m_a[2];
-			Point pos3 = paryPosMink->m_a[3];
-
-			// All normals point out
-
-			Vector normalTriangle013 = VecNormalizeElse(VecCross(pos1 - pos0, pos3 - pos0), g_vecXAxis);
-			Vector normalTriangle123 = VecNormalizeElse(VecCross(pos2 - pos1, pos3 - pos1), g_vecXAxis);
-			Vector normalTriangle023 = VecNormalizeElse(VecCross(pos2 - pos0, pos3 - pos0), g_vecXAxis);
-
-			// Ensure triangle normals point out
-
-			if (GDot(normalTriangle013, pos2 - pos0) > 0.0f)
-			{
-				normalTriangle013 = -normalTriangle013;
-			}
-
-			if (GDot(normalTriangle123, pos0 - pos1) > 0.0f)
-			{
-				normalTriangle123 = -normalTriangle123;
-			}
-
-			if (GDot(normalTriangle023, pos1 - pos0) > 0.0f)
-			{
-				normalTriangle023 = -normalTriangle023;
-			}
-
-			float gDot013 = GDot(-pos0, normalTriangle013);
-			float gDot123 = GDot(-pos1, normalTriangle123);
-			float gDot023 = GDot(-pos0, normalTriangle023);
-
-			if (gDot013 < 0.0f && gDot123 < 0.0f && gDot023 < 0.0f)
-			{
-				// Inside tetrahedron
-				return true;
-			}
-			else
-			{
-				// No need to test 012, since we know the origin is greater than it
-
-				// 6 edge normals
-
-				// Test each corner
-
-				// BB doing unneeded tests here
-
-				float gDotA = GDot(-pos0, pos0 - pos1);
-				float gDotB = GDot(-pos0, pos0 - pos2);
-				float gDotC = GDot(-pos0, pos0 - pos3);
-				bool fPositiveA = gDotA > 0.0f;
-				bool fPositiveB = gDotB > 0.0f;
-				bool fPositiveC = gDotC > 0.0f;
-
-				float gDotD = GDot(-pos1, pos1 - pos0);
-				float gDotE = GDot(-pos1, pos1 - pos2);
-				float gDotF = GDot(-pos1, pos1 - pos3);
-				bool fPositiveD = gDotD > 0.0f;
-				bool fPositiveE = gDotE > 0.0f;
-				bool fPositiveF = gDotF > 0.0f;
-
-				float gDotG = GDot(-pos2, pos2 - pos0);
-				float gDotH = GDot(-pos2, pos2 - pos1);
-				float gDotI = GDot(-pos2, pos2 - pos3);
-				bool fPositiveG = gDotG > 0.0f;
-				bool fPositiveH = gDotH > 0.0f;
-				bool fPositiveI = gDotI > 0.0f;
-
-				float gDotJ = GDot(-pos3, pos3 - pos0);
-				float gDotK = GDot(-pos3, pos3 - pos1);
-				float gDotL = GDot(-pos3, pos3 - pos2);
-				bool fPositiveJ = gDotJ > 0.0f;
-				bool fPositiveK = gDotK > 0.0f;
-				bool fPositiveL = gDotL > 0.0f;
-
-
-				if (fPositiveA && fPositiveB && fPositiveC)
-				{
-					// near pos 0
-				}
-				else if (fPositiveD && fPositiveE && fPositiveF)
-				{
-					// near pos 1
-				}
-				else if (fPositiveG && fPositiveH && fPositiveI)
-				{
-					// near pos 2
-				}
-				else if (fPositiveJ && fPositiveK && fPositiveL)
-				{
-					// near pos 3
-				}
-				/*
-				if (gDot013 > 0.0f)
-				{
-					
-				}
-				else if ()
-				{
-
-				}
-				else
-				{
-					ASSERT(false);
-				}
-				*/
-			}
-#endif
-		}
-		break;
-
-	default:
-		ASSERT(false);
-		return false;
-	}
-	return true;
-}
-
 void TestGjk(const Mat & matCubePhys, Vector vecNonuniformScale, Point posSphere, float sRadiusSphere)
 {
 	TWEAKABLE Vector s_dPosSweep = Vector(5.0f, 5.0f, 5.0f);
 	TWEAKABLE Point s_posMinkowskiOrigin = Point(5.0f, 0.0f, 3.0f);
 
-	static float s_rSweep = 1.0f;
+	static float s_rSweep = 1.0f;//0.116382115f;//1.0f;
 	if (g_game.m_mpVkFDown[VK_E])
 	{
 		s_rSweep += g_game.m_dT * .3f;
@@ -934,8 +679,22 @@ void TestGjk(const Mat & matCubePhys, Vector vecNonuniformScale, Point posSphere
 		}
 	}
 
+#if 0
+	Point posError0 = Point(3.58191061f, -1.41808939f, 3.58191061f);
+	Point posError1 = Point(-4.68092823f, -1.73041868f, -3.68092823);
+	Point posError2 = Point(2.69584918f, -0.439552546f, -2.58979702);
+	Point posError3 = Point(-3.61351681, -0.454196692, 3.76279497);
+	Vector vecError = Vector(0.113938533, 0.978536904, -0.171707720);
+	g_game.DebugDrawSphere(s_posMinkowskiOrigin + posError0, .4f,0.0f, g_rgbaPink);
+	g_game.DebugDrawSphere(s_posMinkowskiOrigin + posError1, .4f,0.0f, g_rgbaPink);
+	g_game.DebugDrawSphere(s_posMinkowskiOrigin + posError2, .4f);
+	g_game.DebugDrawSphere(s_posMinkowskiOrigin + posError3, .4f);
+	g_game.DebugDrawArrow(Point(Vector(s_posMinkowskiOrigin + posError0 + s_posMinkowskiOrigin + posError1) / 2.0f), vecError * 4.0f);
+#endif
+
 	//// Actual algo
 
+#if 1
 	{
 		Vector normalSupport = g_vecXAxis;
 
@@ -964,7 +723,8 @@ void TestGjk(const Mat & matCubePhys, Vector vecNonuniformScale, Point posSphere
 		while (!fHit)
 		{
 			Point posMinkNew = PosMinkSweptSphereBox(posSphere, sRadiusSphere, dPosSweep, matCubePhys, vecNonuniformScale, normalSupport);
-			if (GDot(posMinkNew, normalSupport) < 0.0f)
+			float gDotProgress = GDot(posMinkNew, normalSupport);
+			if (gDotProgress < 0.0f)
 				break;
 
 			aryPosMink.Append(posMinkNew);
@@ -982,7 +742,7 @@ void TestGjk(const Mat & matCubePhys, Vector vecNonuniformScale, Point posSphere
 				}
 			}
 			
-			if (FSimplex2(&normalSupport, &aryPosMink))
+			if (FSimplex(&normalSupport, &aryPosMink))
 			{
 				fHit = true;
 			}
@@ -1002,6 +762,7 @@ void TestGjk(const Mat & matCubePhys, Vector vecNonuniformScale, Point posSphere
 			}
 		}
 	}
+#endif
 }
 
 void TestGjk()
