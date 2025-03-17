@@ -232,6 +232,7 @@ float4 VecRotate(const float4 & vec, const Quat & quat);
 Vector VecRotate(const Vector & vec, const Quat & quat);
 Point PosRotate(const Point & pos, const Quat & quat);
 Vector VecNormalize(const Vector & vec);
+Vector VecNormalizeSafe(const Vector & vec);
 Vector VecNormalizeElse(const Vector & vec, const Vector & vecElse);
 
 Vector VecProjectOnNormal(const Vector & vec, const Vector & normal);

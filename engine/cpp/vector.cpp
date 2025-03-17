@@ -493,6 +493,11 @@ Vector VecReflect(const Vector & vecToReflect, const Vector & normal)
 	return (vecToReflect - vecAlign) - vecAlign;
 }
 
+Vector VecNormalizeSafe(const Vector & vec)
+{
+	return VecNormalizeElse(vec, g_vecXAxis);
+}
+
 Vector VecNormalizeElse(const Vector & vec, const Vector & vecElse)
 {
 	if (FIsNear(vec, g_vecZero))

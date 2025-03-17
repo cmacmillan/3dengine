@@ -339,6 +339,291 @@ Point PosMinkSweptSphereBox(Point posSphere, float sRadius, Vector dPosSweep, co
 	return PosSupportSweptSphere(posSphere, sRadius, dPosSweep, normalSupport) - PosSupportBox(matPhys, vecNonuniformScale, -normalSupport);
 }
 
+bool FHandleTriangle(Point pos0, Point pos1, Point pos2, Vector * pNormalOutward, Vector * pNormalSupport, SFixArray<Point, 4> * paryPosMink)
+{
+	// Handle optional "outward" vector used in tetrahedron case
+
+	if (pNormalOutward && GDot(*pNormalOutward, -pos0) < 0.0f)
+		return false;
+
+	Vector normalTriangle = VecCross(pos1-pos0, pos2-pos0);
+	Vector normal01 = VecCross(normalTriangle, pos1-pos0);
+	Vector normal12 = VecCross(normalTriangle, pos2-pos1);
+	Vector normal02 = VecCross(normalTriangle, pos2 - pos0);
+
+	// Flip normals to ensure they point outward
+
+	if (GDot(normal01, pos2 - pos0) > 0.0f)
+	{
+		normal01 = -normal01;
+	}
+
+	if (GDot(normal12, pos0 - pos1) > 0.0f)
+	{
+		normal12 = -normal12;
+	}
+
+	if (GDot(normal02, pos1 - pos0) > 0.0f)
+	{
+		normal02 = -normal02;
+	}
+
+	bool fInTri =	GDot(normal01, -pos0) < 0.0f &&
+					GDot(normal12, -pos1) < 0.0f &&
+					GDot(normal02, -pos0) < 0.0f;
+	if (fInTri)
+	{
+		*pNormalSupport = VecNormalizeElse(VecProjectOnNormal(-pos0, normalTriangle), g_vecXAxis);
+		paryPosMink->Empty();
+		paryPosMink->Append(pos0);
+		paryPosMink->Append(pos1);
+		paryPosMink->Append(pos2);
+	}
+
+	return fInTri;
+}
+
+int IOriginInLineSegment(Point pos0, Point pos1)
+{
+	float gDot0 = GDot(-pos0, pos0 - pos1);
+	float gDot1 = GDot(-pos0, pos0 - pos1);
+	if (gDot0 < 0.0f && gDot1 < 0.0f)
+	{
+		// In segment
+		return -1;
+	}
+	else if (gDot0 >= 0.0f)
+	{
+		// Point 0
+		return 0;
+	}
+	else
+	{
+		// Point 1
+		return 1;
+	}
+}
+
+void SetSimplexPoint(Point pos, Vector * pNormalSupport, SFixArray<Point, 4> * paryPosMink)
+{
+	paryPosMink->Empty();
+	paryPosMink->Append(pos);
+	*pNormalSupport = VecNormalizeSafe(-pos);
+}
+
+void SetSimplexLineSegment(Point pos0, Point pos1, Vector * pNormalSupport, SFixArray<Point, 4> * paryPosMink)
+{
+	paryPosMink->Empty();
+	paryPosMink->Append(pos0);
+	paryPosMink->Append(pos1);
+	*pNormalSupport = VecNormalizeSafe(VecProjectOnTangent(-pos0, VecNormalizeSafe(pos1 - pos0)));
+}
+
+bool FSimplex2(Vector * pNormalSupport, SFixArray<Point, 4> * paryPosMink)
+{
+	switch (paryPosMink->m_c)
+	{
+	case 2:
+		{
+			Point pos0 = (*paryPosMink)[0];
+			Point pos1 = (*paryPosMink)[1];
+			switch (IOriginInLineSegment(pos0, pos1))
+			{
+				case -1:
+					SetSimplexLineSegment(pos0, pos1, pNormalSupport, paryPosMink);
+					break;
+
+				case 0:
+					SetSimplexPoint(pos0, pNormalSupport, paryPosMink);
+					break;
+
+				case 1:
+					SetSimplexPoint(pos1, pNormalSupport, paryPosMink);
+					break;
+
+				default:
+					ASSERT(false);
+					break;
+			}
+			return false;
+		}
+		break;
+	case 3:
+		{
+			Point pos0 = (*paryPosMink)[0];
+			Point pos1 = (*paryPosMink)[1];
+			Point pos2 = (*paryPosMink)[2];
+			if (FHandleTriangle(pos0, pos1, pos2, nullptr, pNormalSupport, paryPosMink))
+				return false;
+
+			int iOrigin01 = IOriginInLineSegment(pos0, pos1);
+			if (iOrigin01 == -1)
+			{
+				SetSimplexLineSegment(pos0, pos1, pNormalSupport, paryPosMink);
+				return false;
+			}
+
+			int iOrigin12 = IOriginInLineSegment(pos1, pos2);
+			if (iOrigin12 == -1)
+			{
+				SetSimplexLineSegment(pos1, pos2, pNormalSupport, paryPosMink);
+				return false;
+			}
+			
+			int iOrigin02 = IOriginInLineSegment(pos0, pos2);
+			if (iOrigin02 == -1)
+			{
+				SetSimplexLineSegment(pos0, pos2, pNormalSupport, paryPosMink);
+				return false;
+			}
+
+			if (iOrigin01 == 0 && iOrigin02 == 0)
+			{
+				SetSimplexPoint(pos0, pNormalSupport, paryPosMink);
+				return false;
+			}
+
+			if (iOrigin01 == 1 && iOrigin12 == 0)
+			{
+				SetSimplexPoint(pos1, pNormalSupport, paryPosMink);
+				return false;
+			}
+
+			SetSimplexPoint(pos2, pNormalSupport, paryPosMink);
+			ASSERT(iOrigin02 == 1 && iOrigin12 == 1);
+			return false;
+		}
+		break;
+	case 4:
+		{
+			Point pos0 = (*paryPosMink)[0];
+			Point pos1 = (*paryPosMink)[1];
+			Point pos2 = (*paryPosMink)[2];
+			Point pos3 = (*paryPosMink)[3];
+
+			Vector normal012 = VecCross(pos1 - pos0, pos2 - pos0);
+			Vector normal123 = VecCross(pos2 - pos1, pos3 - pos1);
+			Vector normal013 = VecCross(pos3 - pos0, pos1 - pos0);
+			Vector normal023 = VecCross(pos2 - pos0, pos3 - pos0);
+
+			// Flip normals to ensure they point outward
+
+			if (GDot(normal012, pos3 - pos0) > 0.0f)
+			{
+				normal012 = -normal012;
+			}
+
+			if (GDot(normal123, pos0 - pos1) > 0.0f)
+			{
+				normal123 = -normal123;
+			}
+
+			if (GDot(normal013, pos2 - pos0) > 0.0f)
+			{
+				normal013 = -normal013;
+			}
+
+			if (GDot(normal023, pos1 - pos0) > 0.0f)
+			{
+				normal023 = -normal023;
+			}
+
+			if (GDot(normal012, -pos0) < 0.0f &&
+				GDot(normal123, -pos1) < 0.0f &&
+				GDot(normal013, -pos0) < 0.0f &&
+				GDot(normal023, -pos0) < 0.0f)
+			{
+				// Inside tetrahedron
+
+				return true;
+			}
+
+			if (FHandleTriangle(pos0, pos1, pos2, &normal012, pNormalSupport, paryPosMink))
+				return false;
+
+			if (FHandleTriangle(pos0, pos1, pos3, &normal013, pNormalSupport, paryPosMink))
+				return false;
+
+			if (FHandleTriangle(pos1, pos2, pos3, &normal123, pNormalSupport, paryPosMink))
+				return false;
+
+			if (FHandleTriangle(pos0, pos2, pos3, &normal023, pNormalSupport, paryPosMink))
+				return false;
+
+			int iOrigin01 = IOriginInLineSegment(pos0, pos1);
+			if (iOrigin01 == -1)
+			{
+				SetSimplexLineSegment(pos0, pos1, pNormalSupport, paryPosMink);
+				return false;
+			}
+
+			int iOrigin12 = IOriginInLineSegment(pos1, pos2);
+			if (iOrigin12 == -1)
+			{
+				SetSimplexLineSegment(pos1, pos2, pNormalSupport, paryPosMink);
+				return false;
+			}
+			
+			int iOrigin02 = IOriginInLineSegment(pos0, pos2);
+			if (iOrigin02 == -1)
+			{
+				SetSimplexLineSegment(pos0, pos2, pNormalSupport, paryPosMink);
+				return false;
+			}
+
+			int iOrigin03 = IOriginInLineSegment(pos0, pos3);
+			if (iOrigin03 == -1)
+			{
+				SetSimplexLineSegment(pos0, pos3, pNormalSupport, paryPosMink);
+				return false;
+			}
+
+			int iOrigin13 = IOriginInLineSegment(pos1, pos3);
+			if (iOrigin13 == -1)
+			{
+				SetSimplexLineSegment(pos1, pos3, pNormalSupport, paryPosMink);
+				return false;
+			}
+			
+			int iOrigin23 = IOriginInLineSegment(pos2, pos3);
+			if (iOrigin23 == -1)
+			{
+				SetSimplexLineSegment(pos2, pos3, pNormalSupport, paryPosMink);
+				return false;
+			}
+
+			if (iOrigin01 == 0 && iOrigin02 == 0 && iOrigin03 == 0)
+			{
+				SetSimplexPoint(pos0, pNormalSupport, paryPosMink);
+				return false;
+			}
+
+			if (iOrigin01 == 1 && iOrigin12 == 0 && iOrigin13 == 0)
+			{
+				SetSimplexPoint(pos1, pNormalSupport, paryPosMink);
+				return false;
+			}
+
+			if (iOrigin02 == 1 && iOrigin12 == 1 && iOrigin23 == 0)
+			{
+				SetSimplexPoint(pos2, pNormalSupport, paryPosMink);
+				return false;
+			}
+
+			ASSERT(iOrigin03 == 1 && iOrigin13 == 1 && iOrigin23 == 1);
+			SetSimplexPoint(pos3, pNormalSupport, paryPosMink);
+			return false;
+
+		}
+		break;
+
+	default:
+		ASSERT(false);
+		return false;
+	}
+	return false;
+}
+
 bool FSimplex(Vector * pNormalSupport, SFixArray<Point, 4> * paryPosMink)
 {
 	// BB this is very janky and should be rewritten
@@ -404,14 +689,14 @@ bool FSimplex(Vector * pNormalSupport, SFixArray<Point, 4> * paryPosMink)
 			float gDotE = GDot(-pos2, vecE);
 			float gDotF = GDot(-pos2, vecF);
 			float gDotG = GDot(-pos0, pos0 - pos2);
-			bool fGreaterThanA = gDotA > 0.0f;
-			bool fGreaterThanB = gDotB > 0.0f;
-			bool fGreaterThanC = gDotC > 0.0f;
-			bool fGreaterThanD = gDotD > 0.0f;
-			bool fGreaterThanE = gDotE > 0.0f;
-			bool fGreaterThanF = gDotF > 0.0f;
-			bool fGreaterThanG = gDotG > 0.0f;
-			if (!fGreaterThanE && !fGreaterThanF)
+			bool fPositiveA = gDotA > 0.0f;
+			bool fPositiveB = gDotB > 0.0f;
+			bool fPositiveC = gDotC > 0.0f;
+			bool fPositiveD = gDotD > 0.0f;
+			bool fPositiveE = gDotE > 0.0f;
+			bool fPositiveF = gDotF > 0.0f;
+			bool fPositiveG = gDotG > 0.0f;
+			if (!fPositiveE && !fPositiveF)
 			{
 				// inside triangle
 				float gDotTri = GDot(-pos0, normalTriangle);
@@ -430,7 +715,7 @@ bool FSimplex(Vector * pNormalSupport, SFixArray<Point, 4> * paryPosMink)
 			}
 			else
 			{
-				if (fGreaterThanA && fGreaterThanB)
+				if (fPositiveA && fPositiveB)
 				{
 					// Closest to pos1
 
@@ -438,7 +723,7 @@ bool FSimplex(Vector * pNormalSupport, SFixArray<Point, 4> * paryPosMink)
 					paryPosMink->Append(pos1);
 					*pNormalSupport = VecNormalizeElse(-pos1, g_vecXAxis);
 				}
-				else if (fGreaterThanC && fGreaterThanD)
+				else if (fPositiveC && fPositiveD)
 				{
 					// Closest to pos2
 
@@ -446,7 +731,7 @@ bool FSimplex(Vector * pNormalSupport, SFixArray<Point, 4> * paryPosMink)
 					paryPosMink->Append(pos2);
 					*pNormalSupport = VecNormalizeElse(-pos2, g_vecXAxis);
 				}
-				else if (!fGreaterThanB && !fGreaterThanC)
+				else if (!fPositiveB && !fPositiveC)
 				{
 					// Closest to E edge
 
@@ -455,7 +740,7 @@ bool FSimplex(Vector * pNormalSupport, SFixArray<Point, 4> * paryPosMink)
 					paryPosMink->Append(pos2);
 					*pNormalSupport = VecNormalizeElse(VecProjectOnTangent(-pos1, VecNormalizeElse(vecE, g_vecXAxis)), g_vecXAxis);
 				}
-				else if (!fGreaterThanD && !fGreaterThanG)
+				else if (!fPositiveD && !fPositiveG)
 				{
 					// Closest to F edge
 
@@ -475,14 +760,13 @@ bool FSimplex(Vector * pNormalSupport, SFixArray<Point, 4> * paryPosMink)
 
 	case 4:
 		{
+#if 0
 			Point pos0 = paryPosMink->m_a[0];
 			Point pos1 = paryPosMink->m_a[1];
 			Point pos2 = paryPosMink->m_a[2];
 			Point pos3 = paryPosMink->m_a[3];
 
 			// All normals point out
-
-			// No need to test 012, since we know the origin is greater than it
 
 			Vector normalTriangle013 = VecNormalizeElse(VecCross(pos1 - pos0, pos3 - pos0), g_vecXAxis);
 			Vector normalTriangle123 = VecNormalizeElse(VecCross(pos2 - pos1, pos3 - pos1), g_vecXAxis);
@@ -516,7 +800,75 @@ bool FSimplex(Vector * pNormalSupport, SFixArray<Point, 4> * paryPosMink)
 			}
 			else
 			{
+				// No need to test 012, since we know the origin is greater than it
+
+				// 6 edge normals
+
+				// Test each corner
+
+				// BB doing unneeded tests here
+
+				float gDotA = GDot(-pos0, pos0 - pos1);
+				float gDotB = GDot(-pos0, pos0 - pos2);
+				float gDotC = GDot(-pos0, pos0 - pos3);
+				bool fPositiveA = gDotA > 0.0f;
+				bool fPositiveB = gDotB > 0.0f;
+				bool fPositiveC = gDotC > 0.0f;
+
+				float gDotD = GDot(-pos1, pos1 - pos0);
+				float gDotE = GDot(-pos1, pos1 - pos2);
+				float gDotF = GDot(-pos1, pos1 - pos3);
+				bool fPositiveD = gDotD > 0.0f;
+				bool fPositiveE = gDotE > 0.0f;
+				bool fPositiveF = gDotF > 0.0f;
+
+				float gDotG = GDot(-pos2, pos2 - pos0);
+				float gDotH = GDot(-pos2, pos2 - pos1);
+				float gDotI = GDot(-pos2, pos2 - pos3);
+				bool fPositiveG = gDotG > 0.0f;
+				bool fPositiveH = gDotH > 0.0f;
+				bool fPositiveI = gDotI > 0.0f;
+
+				float gDotJ = GDot(-pos3, pos3 - pos0);
+				float gDotK = GDot(-pos3, pos3 - pos1);
+				float gDotL = GDot(-pos3, pos3 - pos2);
+				bool fPositiveJ = gDotJ > 0.0f;
+				bool fPositiveK = gDotK > 0.0f;
+				bool fPositiveL = gDotL > 0.0f;
+
+
+				if (fPositiveA && fPositiveB && fPositiveC)
+				{
+					// near pos 0
+				}
+				else if (fPositiveD && fPositiveE && fPositiveF)
+				{
+					// near pos 1
+				}
+				else if (fPositiveG && fPositiveH && fPositiveI)
+				{
+					// near pos 2
+				}
+				else if (fPositiveJ && fPositiveK && fPositiveL)
+				{
+					// near pos 3
+				}
+				/*
+				if (gDot013 > 0.0f)
+				{
+					
+				}
+				else if ()
+				{
+
+				}
+				else
+				{
+					ASSERT(false);
+				}
+				*/
 			}
+#endif
 		}
 		break;
 
@@ -630,7 +982,7 @@ void TestGjk(const Mat & matCubePhys, Vector vecNonuniformScale, Point posSphere
 				}
 			}
 			
-			if (FSimplex(&normalSupport, &aryPosMink))
+			if (FSimplex2(&normalSupport, &aryPosMink))
 			{
 				fHit = true;
 			}
