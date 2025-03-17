@@ -1296,8 +1296,6 @@ void SGame::DebugDrawArrow(Point pos, Vector dPos, float sRadius, float dTRealti
 
 	m_lDdToDraw.push_back({ DDK_ArrowBody, matBody, rgba, g_game.m_systRealtime + dTRealtime });
 	m_lDdToDraw.push_back({ DDK_ArrowHead, matHead, rgba, g_game.m_systRealtime + dTRealtime });
-
-	m_lDdToDraw.push_back({ DDK_Sphere, MatScale(sRadius * g_vecOne) * MatTranslate(pos + dPos), rgba, g_game.m_systRealtime + dTRealtime });
 }
 
 void SGame::SetEdits(EDITS edits)

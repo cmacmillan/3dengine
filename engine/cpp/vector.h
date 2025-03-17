@@ -119,6 +119,7 @@ struct Point
 	bool	FIsZero();
 	Point	operator+(const Vector & vec) const;
 	Point	operator-(const Vector & vec) const;
+	Point	operator-() const;
 	Vector	operator-(const Point & pos) const;
 	Point &	operator+=(const Vector & vec);
 	Point &	operator-=(const Vector & vec);

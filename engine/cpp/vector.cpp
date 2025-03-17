@@ -361,6 +361,11 @@ Point Point::operator-(const Vector & vec) const
 	return m_vec - vec.m_vec;
 }
 
+Point Point::operator-() const
+{
+	return Point(float4(-m_vec.m_x, -m_vec.m_y, -m_vec.m_z, 1.0f));
+}
+
 Vector Point::operator-(const Point & pos) const
 {
 	return m_vec - pos.m_vec;

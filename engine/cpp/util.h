@@ -141,11 +141,15 @@ void Swap(T & t1, T & t2)
 	t2 = tTemp;
 }
 
+// BB not calling destructors when stuff gets removed
+
 template<typename T, size_t C>
 struct SFixArray
 {
 	void Append(const T & t);
 	void Remove(int i);
+	void RemoveLast();
+	void Empty();
 	void RemoveSwap(int i);
 	int CCapacity()
 		{ return C; }
@@ -173,6 +177,19 @@ void SFixArray<T, C>::Remove(int i)
 		m_a[iShift] = m_a[iShift + 1];
 	}
 	m_c--;
+}
+
+template<typename T, size_t C>
+inline void SFixArray<T, C>::RemoveLast()
+{
+	ASSERT(m_c > 0);
+	m_c--;
+}
+
+template<typename T, size_t C>
+inline void SFixArray<T, C>::Empty()
+{
+	m_c = 0;
 }
 
 template<typename T, size_t C>

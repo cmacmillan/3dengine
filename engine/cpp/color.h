@@ -23,5 +23,6 @@ extern SRgba g_rgbaGreen;
 extern SRgba g_rgbaYellow;
 extern SRgba g_rgbaPink;
 extern SRgba g_rgbaCyan;
+extern SRgba g_rgbaOrange;
 
 void AuditRgba();
