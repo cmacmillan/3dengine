@@ -644,6 +644,11 @@ int SortUinodeRenderOrder(const void * pVa, const void * pVb)
 		return 1;
 }
 
+bool FCompareDebugDraw(const SDebugDraw & dd0, const SDebugDraw & dd1)
+{
+	return dd0.m_gSort > dd1.m_gSort;
+}
+
 void SGame::EnsureMeshIn3dCbuffer(SMesh3D * pMesh, int * piBIndex, int * piBVert3D, D3D11_MAPPED_SUBRESOURCE * pMappedsubresVerts3D, D3D11_MAPPED_SUBRESOURCE * pMappedsubresIndex)
 {
 	if (pMesh->m_iVertdata != -1)
@@ -1165,6 +1170,15 @@ void SGame::MainLoop()
 				SMesh3D * pMeshCube = m_hMeshCube.PT();
 				SMesh3D * pMeshArrowBody = m_hMeshArrowBody.PT();
 				SMesh3D * pMeshArrowHead = m_hMeshArrowHead.PT();
+
+				Mat matWorldToCamera = pCamera3D->MatObjectToWorld().MatInverse();
+				for (SDebugDraw & dd : m_lDdToDraw)
+				{
+					dd.m_gSort = (dd.m_mat.m_aVec[3] * matWorldToCamera).m_x;
+				}
+
+				m_lDdToDraw.sort(FCompareDebugDraw);
+
 				for (const SDebugDraw & dd : m_lDdToDraw)
 				{
 					switch (dd.m_ddk)

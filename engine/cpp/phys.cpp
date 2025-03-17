@@ -624,11 +624,69 @@ bool FSimplex(Vector * pNormalSupport, SFixArray<Point, 4> * paryPosMink)
 	return false;
 }
 
+TWEAKABLE Point s_posMinkowskiOriginDebugDraw = Point(5.0f, 0.0f, 3.0f);
+static int s_iDrawGjkDebug = 0;
+
+void DoGjk(const Mat & matCubePhys, Vector vecNonuniformScale, Point posSphere, float sRadiusSphere, Vector dPosSweep, Vector normalSupport)
+{
+	SFixArray<Point, 4> aryPosMink;
+
+	aryPosMink.Append(PosMinkSweptSphereBox(posSphere, sRadiusSphere, dPosSweep, matCubePhys, vecNonuniformScale, normalSupport));
+
+	normalSupport = VecNormalizeSafe(-Vector(aryPosMink[0]));
+	float sMin = FLT_MAX;
+
+	SRgba aRgba[] = { g_rgbaRed, g_rgbaOrange, g_rgbaYellow, g_rgbaPink };
+	float aRadius[] = { .5f, .4f,.3f, .2f };
+	int iRgba = 0;
+	int iDraw = 0;
+
+	bool fHit = false;
+	while (!fHit)
+	{
+		Point posMinkNew = PosMinkSweptSphereBox(posSphere, sRadiusSphere, dPosSweep, matCubePhys, vecNonuniformScale, normalSupport);
+		float gDotProgress = GDot(posMinkNew, normalSupport);
+		if (gDotProgress < 0.0f)
+			break;
+
+		aryPosMink.Append(posMinkNew);
+
+		Vector vecPosArrow = g_vecZero;
+		{
+			if (iDraw == s_iDrawGjkDebug)
+			{
+				for (int i = 0; i < aryPosMink.m_c; i++)
+				{
+					vecPosArrow += aryPosMink[i] + s_posMinkowskiOriginDebugDraw;
+					g_game.DebugDrawSphere(aryPosMink[i] + s_posMinkowskiOriginDebugDraw, aRadius[iRgba], 0.0f, aRgba[iRgba]);
+				}
+				vecPosArrow = vecPosArrow / aryPosMink.m_c;
+			}
+		}
+
+		if (FSimplex(&normalSupport, &aryPosMink))
+		{
+			fHit = true;
+		}
+
+		{
+			if (iDraw == s_iDrawGjkDebug)
+			{
+				ASSERT(FIsNear(1.0f, SLength(normalSupport)));
+				g_game.DebugDrawArrow(Point(vecPosArrow), normalSupport * 3.0f, .1f, 0.0f, aRgba[iRgba]);
+			}
+			iRgba++;
+			if (iRgba >= DIM(aRgba))
+			{
+				iRgba = 0;
+			}
+			iDraw++;
+		}
+	}
+}
+
 void TestGjk(const Mat & matCubePhys, Vector vecNonuniformScale, Point posSphere, float sRadiusSphere)
 {
-	TWEAKABLE Vector s_dPosSweep = Vector(5.0f, 5.0f, 5.0f);
-	TWEAKABLE Point s_posMinkowskiOrigin = Point(5.0f, 0.0f, 3.0f);
-
 	static float s_rSweep = 1.0f;//0.116382115f;//1.0f;
 	if (g_game.m_mpVkFDown[VK_E])
 	{
@@ -639,25 +697,23 @@ void TestGjk(const Mat & matCubePhys, Vector vecNonuniformScale, Point posSphere
 		s_rSweep -= g_game.m_dT * .3f;
 	}
 
+	if (g_game.m_mpVkFJustPressed[VK_UP])
+	{
+		s_iDrawGjkDebug++;
+	}
+	else if (g_game.m_mpVkFJustPressed[VK_DOWN])
+	{
+		s_iDrawGjkDebug--;
+	}
+
+	TWEAKABLE Vector s_dPosSweep = Vector(5.0f, 5.0f, 5.0f);
+
 	Vector dPosSweep = s_dPosSweep * s_rSweep;
 
 	{
 		g_game.DebugDrawCube(MatScale(vecNonuniformScale) * matCubePhys);
 		g_game.DebugDrawSphere(posSphere, sRadiusSphere);
 		g_game.DebugDrawSphere(posSphere + dPosSweep, sRadiusSphere);
-
-#if 0
-		{
-			Vector normalSupport;
-			{
-				TWEAKABLE Vector s_vecSupport = Vector(.3f, -.2f, .1f);
-				normalSupport = VecNormalize(s_vecSupport);
-			}
-			g_game.DebugDrawArrow(matCubePhys.m_aVec[3], normalSupport * 4.0f, 0.1f, 0.0f, g_rgbaRed);
-			g_game.DebugDrawSphere(PosSupportBox(matCubePhys, vecNonuniformScale, normalSupport), 0.25f, 0.0f, g_rgbaRed);
-			g_game.DebugDrawSphere(PosSupportSweptSphere(posSphere, sRadiusSphere, dPosSweep, normalSupport), 0.25f, 0.0f, g_rgbaRed);
-		}
-#endif
 
 		TWEAKABLE int s_cGhostSphere = 10;
 		for (int i = 0; i < s_cGhostSphere; i++)
@@ -667,102 +723,20 @@ void TestGjk(const Mat & matCubePhys, Vector vecNonuniformScale, Point posSphere
 
 		TWEAKABLE int s_cI = 10;
 		TWEAKABLE int s_cJ = 10;
-		g_game.DebugDrawSphere(s_posMinkowskiOrigin, 0.5f, 0.0f, g_rgbaCyan);
+		g_game.DebugDrawSphere(s_posMinkowskiOriginDebugDraw, 0.5f, 0.0f, g_rgbaCyan);
 		for (int i = 0; i < s_cI; i++)
 		{
 			for (int j = 0; j < s_cJ; j++)
 			{
 				float radJ = PI * j / float(s_cJ - 1.0f) - PI / 2.0f;
 				Vector normal = VecCylind(TAU * i / float(s_cI), GCos(radJ), GSin(radJ));
-				g_game.DebugDrawSphere(s_posMinkowskiOrigin + PosMinkSweptSphereBox(posSphere, sRadiusSphere, dPosSweep, matCubePhys, vecNonuniformScale, normal), 0.5f, 0.0f, SRgba(0.0f, 0.0f, 1.0f, 0.3f));
+				g_game.DebugDrawSphere(s_posMinkowskiOriginDebugDraw + PosMinkSweptSphereBox(posSphere, sRadiusSphere, dPosSweep, matCubePhys, vecNonuniformScale, normal), 0.5f, 0.0f, SRgba(0.0f, 0.0f, 1.0f, 0.3f));
+				//DoGjk(matCubePhys, vecNonuniformScale, posSphere, sRadiusSphere, dPosSweep, normal); // TODO soak test
 			}
 		}
 	}
-
-#if 0
-	Point posError0 = Point(3.58191061f, -1.41808939f, 3.58191061f);
-	Point posError1 = Point(-4.68092823f, -1.73041868f, -3.68092823);
-	Point posError2 = Point(2.69584918f, -0.439552546f, -2.58979702);
-	Point posError3 = Point(-3.61351681, -0.454196692, 3.76279497);
-	Vector vecError = Vector(0.113938533, 0.978536904, -0.171707720);
-	g_game.DebugDrawSphere(s_posMinkowskiOrigin + posError0, .4f,0.0f, g_rgbaPink);
-	g_game.DebugDrawSphere(s_posMinkowskiOrigin + posError1, .4f,0.0f, g_rgbaPink);
-	g_game.DebugDrawSphere(s_posMinkowskiOrigin + posError2, .4f);
-	g_game.DebugDrawSphere(s_posMinkowskiOrigin + posError3, .4f);
-	g_game.DebugDrawArrow(Point(Vector(s_posMinkowskiOrigin + posError0 + s_posMinkowskiOrigin + posError1) / 2.0f), vecError * 4.0f);
-#endif
-
-	//// Actual algo
-
-#if 1
-	{
-		Vector normalSupport = g_vecXAxis;
-
-		SFixArray<Point, 4> aryPosMink;
-
-		aryPosMink.Append(PosMinkSweptSphereBox(posSphere, sRadiusSphere, dPosSweep, matCubePhys, vecNonuniformScale, normalSupport));
-
-		normalSupport = VecNormalizeElse(-Vector(aryPosMink[0]), g_vecXAxis);
-		float sMin = FLT_MAX;
-
-		SRgba aRgba[] = { g_rgbaRed, g_rgbaOrange, g_rgbaYellow, g_rgbaPink };
-		float aRadius[] = { .5f, .4f,.3f, .2f };
-		int iRgba = 0;
-		static int s_iDraw = 0;
-		int iDraw = 0;
-		if (g_game.m_mpVkFJustPressed[VK_UP])
-		{
-			s_iDraw++;
-		}
-		else if (g_game.m_mpVkFJustPressed[VK_DOWN])
-		{
-			s_iDraw--;
-		}
-
-		bool fHit = false;
-		while (!fHit)
-		{
-			Point posMinkNew = PosMinkSweptSphereBox(posSphere, sRadiusSphere, dPosSweep, matCubePhys, vecNonuniformScale, normalSupport);
-			float gDotProgress = GDot(posMinkNew, normalSupport);
-			if (gDotProgress < 0.0f)
-				break;
-
-			aryPosMink.Append(posMinkNew);
-
-			Vector vecPosArrow = g_vecZero;
-			{
-				if (iDraw == s_iDraw)
-				{
-					for (int i = 0; i < aryPosMink.m_c; i++)
-					{
-						vecPosArrow += aryPosMink[i] + s_posMinkowskiOrigin;
-						g_game.DebugDrawSphere(aryPosMink[i] + s_posMinkowskiOrigin, aRadius[iRgba], 0.0f, aRgba[iRgba]);
-					}
-					vecPosArrow = vecPosArrow / aryPosMink.m_c;
-				}
-			}
-			
-			if (FSimplex(&normalSupport, &aryPosMink))
-			{
-				fHit = true;
-			}
-
-			{
-				if (iDraw == s_iDraw)
-				{
-					ASSERT(FIsNear(1.0f, SLength(normalSupport)));
-					g_game.DebugDrawArrow(Point(vecPosArrow), normalSupport * 3.0f, .1f, 0.0f, aRgba[iRgba]);
-				}
-				iRgba++;
-				if (iRgba >= DIM(aRgba))
-				{
-					iRgba = 0;
-				}
-				iDraw++;
-			}
-		}
-	}
-#endif
+	
+	DoGjk(matCubePhys, vecNonuniformScale, posSphere, sRadiusSphere, dPosSweep, g_vecXAxis);
 }
 
 void TestGjk()

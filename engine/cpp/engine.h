@@ -110,6 +110,7 @@ struct SDebugDraw
 	Mat		m_mat;
 	SRgba	m_rgba;
 	double	m_systRealtimeExpire;
+	float	m_gSort; // Don't use externally
 };
 
 struct SGame // game 
