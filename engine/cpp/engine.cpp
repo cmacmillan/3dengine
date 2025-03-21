@@ -1171,12 +1171,10 @@ void SGame::MainLoop()
 				SMesh3D * pMeshArrowBody = m_hMeshArrowBody.PT();
 				SMesh3D * pMeshArrowHead = m_hMeshArrowHead.PT();
 
-				Mat matWorldToCamera = pCamera3D->MatObjectToWorld().MatInverse();
 				for (SDebugDraw & dd : m_lDdToDraw)
 				{
-					dd.m_gSort = (dd.m_mat.m_aVec[3] * matWorldToCamera).m_x;
+					dd.m_gSort = SLength(Point(dd.m_mat.m_aVec[3]) - pCamera3D->PosWorld());
 				}
-
 				m_lDdToDraw.sort(FCompareDebugDraw);
 
 				for (const SDebugDraw & dd : m_lDdToDraw)
@@ -1285,6 +1283,25 @@ void SGame::DebugDrawCube(const Mat & mat, float dTRealtime, SRgba rgba)
 	m_lDdToDraw.push_back({ DDK_Cube, mat, rgba, g_game.m_systRealtime + dTRealtime });
 }
 
+void SGame::DebugDrawLine(Point pos0, Point pos1, float dTRealtime, SRgba rgba)
+{
+	DebugDrawLine(pos0, pos1 - pos0, dTRealtime, rgba);
+}
+
+void SGame::DebugDrawLine(Point pos, Vector dPos, float dTRealtime, SRgba rgba)
+{
+	TWEAKABLE float s_sRadiusLine = .01f;
+	float sdPos = SLength(dPos);
+	Vector normal = dPos / sdPos;
+
+	Mat matLocalToWorld = MatRotate(QuatFromTo(g_vecZAxis, normal)) * MatTranslate(pos);
+
+	Mat matBody = MatScale(Vector(s_sRadiusLine, s_sRadiusLine, sdPos)) * matLocalToWorld;
+
+	// BB Jankily reusing arrow body for line drawing
+
+	m_lDdToDraw.push_back({ DDK_ArrowBody, matBody, rgba, g_game.m_systRealtime + dTRealtime });
+}
 
 void SGame::DebugDrawArrow(Point pos0, Point pos1, float sRadius, float dTRealtime, SRgba rgba)
 {

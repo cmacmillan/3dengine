@@ -303,6 +303,46 @@ void SDynSphere::Update()
 
 // Eventually we're gonna compute a time of impact for each box, any times of impact that are within some epsilon should be considered to have happened at the same time
 
+Point PosSupportSweptIcosphere(Point posSphere, float sRadius, Vector dPosSweep, Vector normalSupport)
+{
+	Point aPosIcosphere[12] = { 
+		Point(0, 0, 1), 
+		Point(-0.7236f,-0.52572f,0.447215f),
+		Point(0.276385,-0.85064,0.447215),
+		Point(0.894425,0,0.447215),
+		Point(0.276385,0.85064,0.447215),
+		Point(-0.7236,0.52572,0.447215),
+		Point(0.7236,0.52572,-0.447215),
+		Point(0.7236,-0.52572,-0.447215),
+		Point(-0.276385,-0.85064,-0.447215),
+		Point(-0.894425,0,-0.447215),
+		Point(-0.276385,0.85064,-0.447215),
+		Point(0,0,-1)
+	};
+
+	float gDotBest = -FLT_MAX;
+	Point posBest = g_posZero;
+	for (int i = 0; i < 2; i++)
+	{
+		for (int iPos = 0; iPos < DIM(aPosIcosphere); iPos++)
+		{
+			Point pos = Vector(aPosIcosphere[iPos]) * sRadius + posSphere;
+			if (i == 1)
+			{
+				pos += dPosSweep;
+			}
+			float gDot = GDot(pos, normalSupport);
+			if (gDot > gDotBest)
+			{
+				gDotBest = gDot;
+				posBest = pos;
+			}
+		}
+	}
+
+	return posBest;
+}
+
 Point PosSupportSweptSphere(Point posSphere, float sRadius, Vector dPosSweep, Vector normalSupport)
 {
 	float gDot = GDot(normalSupport, dPosSweep);
@@ -336,7 +376,13 @@ Point PosSupportBox(const Mat & matPhys, Vector vecNonuniformScale, Vector norma
 
 Point PosMinkSweptSphereBox(Point posSphere, float sRadius, Vector dPosSweep, const Mat & matPhys, Vector vecNonuniformScale, Vector normalSupport)
 {
+#if 1
+	// Implicit
 	return PosSupportSweptSphere(posSphere, sRadius, dPosSweep, normalSupport) - PosSupportBox(matPhys, vecNonuniformScale, -normalSupport);
+#else
+	// Discrete
+	return PosSupportSweptIcosphere(posSphere, sRadius, dPosSweep, normalSupport) - PosSupportBox(matPhys, vecNonuniformScale, -normalSupport);
+#endif
 }
 
 bool FHandleTriangle(Point pos0, Point pos1, Point pos2, Vector * pNormalOutward, Vector * pNormalSupport, SFixArray<Point, 4> * paryPosMink)
@@ -636,14 +682,19 @@ void DoGjk(const Mat & matCubePhys, Vector vecNonuniformScale, Point posSphere, 
 	normalSupport = VecNormalizeSafe(-Vector(aryPosMink[0]));
 	float sMin = FLT_MAX;
 
-	SRgba aRgba[] = { g_rgbaRed, g_rgbaOrange, g_rgbaYellow, g_rgbaPink };
-	float aRadius[] = { .5f, .4f,.3f, .2f };
-	int iRgba = 0;
+	SRgba aRgba[] = { g_rgbaRed, g_rgbaRed, g_rgbaOrange, g_rgbaYellow, g_rgbaPink };
 	int iDraw = 0;
 
+	int cIter = 0;
+
 	bool fHit = false;
-	while (!fHit)
+	TWEAKABLE int s_cIterMax = 30;
+
+	g_game.PrintConsole(StrPrintf("iDraw:%i\n", s_iDrawGjkDebug));
+
+	while (!fHit && cIter < s_cIterMax)
 	{
+		cIter++;
 		Point posMinkNew = PosMinkSweptSphereBox(posSphere, sRadiusSphere, dPosSweep, matCubePhys, vecNonuniformScale, normalSupport);
 		float gDotProgress = GDot(posMinkNew, normalSupport);
 		if (gDotProgress < 0.0f)
@@ -652,14 +703,23 @@ void DoGjk(const Mat & matCubePhys, Vector vecNonuniformScale, Point posSphere, 
 		aryPosMink.Append(posMinkNew);
 
 		Vector vecPosArrow = g_vecZero;
+		SRgba rgba = SRgba(0,0,0,0);
 		{
 			if (iDraw == s_iDrawGjkDebug)
 			{
+				rgba = aRgba[aryPosMink.m_c];
 				for (int i = 0; i < aryPosMink.m_c; i++)
 				{
 					vecPosArrow += aryPosMink[i] + s_posMinkowskiOriginDebugDraw;
-					g_game.DebugDrawSphere(aryPosMink[i] + s_posMinkowskiOriginDebugDraw, aRadius[iRgba], 0.0f, aRgba[iRgba]);
+					g_game.DebugDrawSphere(aryPosMink[i] + s_posMinkowskiOriginDebugDraw, .5f, 0.0f, rgba);
+					for (int j = 0; j < aryPosMink.m_c; j++)
+					{
+						if (i == j)
+							continue;
+						g_game.DebugDrawLine(aryPosMink[i] + s_posMinkowskiOriginDebugDraw, aryPosMink[j] + s_posMinkowskiOriginDebugDraw, 0.0f, rgba);
+					}
 				}
+				g_game.PrintConsole(StrPrintf("PointCount:%i\n", aryPosMink.m_c));
 				vecPosArrow = vecPosArrow / aryPosMink.m_c;
 			}
 		}
@@ -673,15 +733,23 @@ void DoGjk(const Mat & matCubePhys, Vector vecNonuniformScale, Point posSphere, 
 			if (iDraw == s_iDrawGjkDebug)
 			{
 				ASSERT(FIsNear(1.0f, SLength(normalSupport)));
-				g_game.DebugDrawArrow(Point(vecPosArrow), normalSupport * 3.0f, .1f, 0.0f, aRgba[iRgba]);
-			}
-			iRgba++;
-			if (iRgba >= DIM(aRgba))
-			{
-				iRgba = 0;
+				g_game.DebugDrawArrow(Point(vecPosArrow), normalSupport * 3.0f, .1f, 0.0f, rgba);
 			}
 			iDraw++;
 		}
+	}
+
+	if (fHit)
+	{
+		g_game.PrintConsole("HIT!\n");
+	}
+	else if (cIter == s_cIterMax)
+	{
+		g_game.PrintConsole("ITER OUT!\n");
+	}
+	else
+	{
+		g_game.PrintConsole("MISS!\n");
 	}
 }
 

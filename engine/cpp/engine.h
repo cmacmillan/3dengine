@@ -129,6 +129,8 @@ struct SGame // game
 	void DebugDrawCube(const Mat & mat, float dTRealtime = 0.0f, SRgba rgba = SRgba(0.0f, 1.0f, 0.0f, 1.0f));
 	void DebugDrawArrow(Point pos, Vector dPos, float sRadius = 0.1f, float dTRealtime = 0.0f, SRgba rgba = SRgba(0.0f, 1.0f, 0.0f, 1.0f));
 	void DebugDrawArrow(Point pos0, Point pos1, float sRadius = 0.1f, float dTRealtime = 0.0f, SRgba rgba = SRgba(0.0f, 1.0f, 0.0f, 1.0f));
+	void DebugDrawLine(Point pos0, Point pos1, float dTRealtime = 0.0f, SRgba rgba = SRgba(0.0f, 1.0f, 0.0f, 1.0f));
+	void DebugDrawLine(Point pos, Vector dPos, float dTRealtime = 0.0f, SRgba rgba = SRgba(0.0f, 1.0f, 0.0f, 1.0f));
 	void EnsureMeshIn3dCbuffer(
 			SMesh3D * pMesh, 
 			int * piBIndex, 

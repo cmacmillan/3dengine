@@ -21,7 +21,7 @@ _ - phys acceleration bvh (probably don't use an octree since we allow overlappi
 X - sphere physics
 _ - gpu particles (should support shader hotloading)
 X - click on phys to center flycam
-_ - Debug draw line
+X - Debug draw line
 _ - Load all the meshes in the buffer one time, rather than creating a unique mesh per drawnode
 _ - normal mapping
 _ - Figure out how we're gonna deal with the fact that linked blender prefabs will require re-exporting all levels when one of the prefabs changes. (maybe some sort of "linked prefab markup", so it's a normal linked prefab in the blender scene, but we dump with info about where the prefab really came from)
@@ -35,4 +35,4 @@ _ - figure out what's up with stair collision
 _ - Fixed update. Get things like phys and character movement (but not camera movement) running in a fixed update function
 _ - Put common shader structs into a header
 _ - Text wrapping (nice when trying to show long shader errors)
-_ - fix lock that occurs when retracting or extending. Maybe for different reasons. I think the extending issue might be colinearity related potentially, retraction is casey's termination condition seemingly not working
+_ - fix lock that occurs when retracting or extending. Maybe for different reasons. I think the extending issue might be colinearity related potentially, retraction is casey's termination condition seemingly not working. Maybe a bug in my code?
