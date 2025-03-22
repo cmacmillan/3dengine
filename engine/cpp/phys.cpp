@@ -429,16 +429,22 @@ bool FHandleTriangle(Point pos0, Point pos1, Point pos2, Vector * pNormalOutward
 	return fInTri;
 }
 
-int IOriginInLineSegment(Point pos0, Point pos1)
+int IOriginInLineSegment(Point pos0, Point pos1, float * pS = nullptr)
 {
-	float gDot0 = GDot(-pos0, pos0 - pos1);
-	float gDot1 = GDot(-pos0, pos0 - pos1);
-	if (gDot0 < 0.0f && gDot1 < 0.0f)
+	Vector dPos = pos1 - pos0;
+	float s = SLength(dPos);
+	Vector normal = dPos / s;
+	float gDot = GDot(-Vector(pos0)/s, normal);
+	if (gDot > 0.0f && gDot < 1.0f)
 	{
 		// In segment
+		if (pS)
+		{
+			*pS = SLength(pos0 + gDot * dPos);
+		}
 		return -1;
 	}
-	else if (gDot0 >= 0.0f)
+	else if (gDot >= 0.0f)
 	{
 		// Point 0
 		return 0;
@@ -502,41 +508,41 @@ bool FSimplex(Vector * pNormalSupport, SFixArray<Point, 4> * paryPosMink)
 			if (FHandleTriangle(pos0, pos1, pos2, nullptr, pNormalSupport, paryPosMink))
 				return false;
 
-			int iOrigin01 = IOriginInLineSegment(pos0, pos1);
-			if (iOrigin01 == -1)
+			// BB a bit gross
+
+			const int c = 3;
+			Point aPos0[c] = { pos0, pos1, pos0 };
+			Point aPos1[c] = { pos1, pos2, pos2 };
+			int aiOrigin[c];
+
+			float sBest = FLT_MAX;
+			int iBest = -1;
+			int iPoint = -1;
+			for (int i = 0; i < c; i++)
 			{
-				SetSimplexLineSegment(pos0, pos1, pNormalSupport, paryPosMink);
+				float sCur;
+				aiOrigin[i] = IOriginInLineSegment(aPos0[i], aPos1[i], &sCur);
+				if (aiOrigin[i] == -1)
+				{
+					if (sCur < sBest)
+					{
+						sBest = sCur;
+						iBest = i;
+					}
+				}
+				else
+				{
+					iPoint = i;
+				}
+			}
+
+			if (iBest != -1)
+			{
+				SetSimplexLineSegment(aPos0[iBest], aPos1[iBest], pNormalSupport, paryPosMink);
 				return false;
 			}
 
-			int iOrigin12 = IOriginInLineSegment(pos1, pos2);
-			if (iOrigin12 == -1)
-			{
-				SetSimplexLineSegment(pos1, pos2, pNormalSupport, paryPosMink);
-				return false;
-			}
-			
-			int iOrigin02 = IOriginInLineSegment(pos0, pos2);
-			if (iOrigin02 == -1)
-			{
-				SetSimplexLineSegment(pos0, pos2, pNormalSupport, paryPosMink);
-				return false;
-			}
-
-			if (iOrigin01 == 0 && iOrigin02 == 0)
-			{
-				SetSimplexPoint(pos0, pNormalSupport, paryPosMink);
-				return false;
-			}
-
-			if (iOrigin01 == 1 && iOrigin12 == 0)
-			{
-				SetSimplexPoint(pos1, pNormalSupport, paryPosMink);
-				return false;
-			}
-
-			SetSimplexPoint(pos2, pNormalSupport, paryPosMink);
-			ASSERT(iOrigin02 == 1 && iOrigin12 == 1);
+			SetSimplexPoint((aiOrigin[iPoint] == 0)? aPos0[iPoint] : aPos1[iPoint], pNormalSupport, paryPosMink);
 			return false;
 		}
 		break;
@@ -596,70 +602,42 @@ bool FSimplex(Vector * pNormalSupport, SFixArray<Point, 4> * paryPosMink)
 			if (FHandleTriangle(pos0, pos2, pos3, &normal023, pNormalSupport, paryPosMink))
 				return false;
 
-			int iOrigin01 = IOriginInLineSegment(pos0, pos1);
-			if (iOrigin01 == -1)
+			// BB a bit gross
+
+			const int c = 6;
+			Point aPos0[c] = { pos0, pos1, pos0, pos0, pos1, pos2 };
+			Point aPos1[c] = { pos1, pos2, pos2, pos3, pos3, pos3};
+			int aiOrigin[c];
+
+			float sBest = FLT_MAX;
+			int iBest = -1;
+			int iPoint = -1;
+			for (int i = 0; i < c; i++)
 			{
-				SetSimplexLineSegment(pos0, pos1, pNormalSupport, paryPosMink);
+				float sCur;
+				aiOrigin[i] = IOriginInLineSegment(aPos0[i], aPos1[i], &sCur);
+				if (aiOrigin[i] == -1)
+				{
+					if (sCur < sBest)
+					{
+						sBest = sCur;
+						iBest = i;
+					}
+				}
+				else
+				{
+					iPoint = i;
+				}
+			}
+
+			if (iBest != -1)
+			{
+				SetSimplexLineSegment(aPos0[iBest], aPos1[iBest], pNormalSupport, paryPosMink);
 				return false;
 			}
 
-			int iOrigin12 = IOriginInLineSegment(pos1, pos2);
-			if (iOrigin12 == -1)
-			{
-				SetSimplexLineSegment(pos1, pos2, pNormalSupport, paryPosMink);
-				return false;
-			}
-			
-			int iOrigin02 = IOriginInLineSegment(pos0, pos2);
-			if (iOrigin02 == -1)
-			{
-				SetSimplexLineSegment(pos0, pos2, pNormalSupport, paryPosMink);
-				return false;
-			}
-
-			int iOrigin03 = IOriginInLineSegment(pos0, pos3);
-			if (iOrigin03 == -1)
-			{
-				SetSimplexLineSegment(pos0, pos3, pNormalSupport, paryPosMink);
-				return false;
-			}
-
-			int iOrigin13 = IOriginInLineSegment(pos1, pos3);
-			if (iOrigin13 == -1)
-			{
-				SetSimplexLineSegment(pos1, pos3, pNormalSupport, paryPosMink);
-				return false;
-			}
-			
-			int iOrigin23 = IOriginInLineSegment(pos2, pos3);
-			if (iOrigin23 == -1)
-			{
-				SetSimplexLineSegment(pos2, pos3, pNormalSupport, paryPosMink);
-				return false;
-			}
-
-			if (iOrigin01 == 0 && iOrigin02 == 0 && iOrigin03 == 0)
-			{
-				SetSimplexPoint(pos0, pNormalSupport, paryPosMink);
-				return false;
-			}
-
-			if (iOrigin01 == 1 && iOrigin12 == 0 && iOrigin13 == 0)
-			{
-				SetSimplexPoint(pos1, pNormalSupport, paryPosMink);
-				return false;
-			}
-
-			if (iOrigin02 == 1 && iOrigin12 == 1 && iOrigin23 == 0)
-			{
-				SetSimplexPoint(pos2, pNormalSupport, paryPosMink);
-				return false;
-			}
-
-			ASSERT(iOrigin03 == 1 && iOrigin13 == 1 && iOrigin23 == 1);
-			SetSimplexPoint(pos3, pNormalSupport, paryPosMink);
+			SetSimplexPoint((aiOrigin[iPoint] == 0)? aPos0[iPoint] : aPos1[iPoint], pNormalSupport, paryPosMink);
 			return false;
-
 		}
 		break;
 
