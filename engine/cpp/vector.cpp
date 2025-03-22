@@ -508,6 +508,122 @@ Vector VecNormalizeElse(const Vector & vec, const Vector & vecElse)
 	return VecNormalize(vec);
 }
 
+void ClosestPointsOnTwoLines(Point pos0, Vector normal0, Point pos1, Vector normal1, Point * pPos0, Point * pPos1)
+{
+	float gDot = GDot(normal0, normal1);
+	if (FIsNear(1.0f, gDot) || FIsNear(-1.0f, gDot))
+	{
+		// Parallel, so all points are equally close, choose two close points arbitrarily
+
+		Vector vecProj = VecProjectOnNormal(pos0 - pos1, normal1);
+		*pPos0 = pos0;
+		*pPos1 = vecProj + pos1;
+	}
+	else
+	{
+		Vector normalCross = VecNormalize(VecCross(normal0, normal1));
+
+		// P0(t) = pos0 + normal0*t
+		// P1(u) = pos1 + normal1*u
+		// P0(t) + normalCross*v = P1(u)
+		// pos0 + normal0*t + normalCross*v = pos1 + normal1*u
+		// pos0.x + normal0.x*t + normalCross.x*v = pos1.x + normal1.x*u
+		// pos0.y + normal0.y*t + normalCross.y*v = pos1.y + normal1.y*u
+		// pos0.z + normal0.z*t + normalCross.z*v = pos1.z + normal1.z*u
+
+		// Took above, and derived the following with mathematica
+			
+		float gDenom = 
+			+ normal0.Z() * normal1.Y() * normalCross.X() 
+			- normal0.Y() * normal1.Z() * normalCross.X() 
+			- normal0.Z() * normal1.X() * normalCross.Y() 
+			+ normal0.X() * normal1.Z() * normalCross.Y() 
+			+ normal0.Y() * normal1.X() * normalCross.Z() 
+			- normal0.X() * normal1.Y() * normalCross.Z();
+
+		float gTNum = 
+			+ normal1.Z() * normalCross.Y() * pos0.X() 
+			- normal1.Y() * normalCross.Z() * pos0.X() 
+			- normal1.Z() * normalCross.X() * pos0.Y() 
+			+ normal1.X() * normalCross.Z() * pos0.Y() 
+			+ normal1.Y() * normalCross.X() * pos0.Z() 
+			- normal1.X() * normalCross.Y() * pos0.Z() 
+			- normal1.Z() * normalCross.Y() * pos1.X() 
+			+ normal1.Y() * normalCross.Z() * pos1.X() 
+			+ normal1.Z() * normalCross.X() * pos1.Y() 
+			- normal1.X() * normalCross.Z() * pos1.Y() 
+			- normal1.Y() * normalCross.X() * pos1.Z() 
+			+ normal1.X() * normalCross.Y() * pos1.Z();
+
+		float gUNum =
+			+ normal0.Z() * normalCross.Y() * pos0.X()
+			- normal0.Y() * normalCross.Z() * pos0.X()
+			- normal0.Z() * normalCross.X() * pos0.Y()
+			+ normal0.X() * normalCross.Z() * pos0.Y()
+			+ normal0.Y() * normalCross.X() * pos0.Z()
+			- normal0.X() * normalCross.Y() * pos0.Z()
+			- normal0.Z() * normalCross.Y() * pos1.X()
+			+ normal0.Y() * normalCross.Z() * pos1.X()
+			+ normal0.Z() * normalCross.X() * pos1.Y()
+			- normal0.X() * normalCross.Z() * pos1.Y()
+			- normal0.Y() * normalCross.X() * pos1.Z()
+			+ normal0.X() * normalCross.Y() * pos1.Z();
+
+		float gVNum =
+			+ normal0.Z() * normal1.Y() * pos0.X()
+			- normal0.Y() * normal1.Z() * pos0.X()
+			- normal0.Z() * normal1.X() * pos0.Y()
+			+ normal0.X() * normal1.Z() * pos0.Y()
+			+ normal0.Y() * normal1.X() * pos0.Z()
+			- normal0.X() * normal1.Y() * pos0.Z()
+			- normal0.Z() * normal1.Y() * pos1.X()
+			+ normal0.Y() * normal1.Z() * pos1.X()
+			+ normal0.Z() * normal1.X() * pos1.Y()
+			- normal0.X() * normal1.Z() * pos1.Y()
+			- normal0.Y() * normal1.X() * pos1.Z()
+			+ normal0.X() * normal1.Y() * pos1.Z();
+
+		float gT = -gTNum / gDenom;
+		float gU = -gUNum / gDenom;
+		float gV = -gVNum / gDenom;
+
+		ASSERT(!isnan(gT) && !isnan(gU) && !isnan(gV));
+		*pPos0 = pos0 + normal0 * gT;
+		*pPos1 = pos1 + normal1 * gU;
+	}
+}
+
+void ClosestPointsOnLineAndLineSegment(Point pos, Vector normal, Point posSegment0, Point posSegment1, Point * pPosLine, Point * pPosSegment)
+{
+	Vector dPosSegment = posSegment1 - posSegment0;
+	float sSegment = SLength(dPosSegment);
+	if (FIsNear(0.0f, sSegment))
+	{
+		*pPosSegment = posSegment0;
+		*pPosLine = PosClosestOnLineToPoint(posSegment0, pos, normal);
+		return;
+	}
+
+	Vector normalSegment = dPosSegment / sSegment;
+
+	Point posLine0;
+	Point posLine1;
+	ClosestPointsOnTwoLines(pos, normal, posSegment0, normalSegment, &posLine0, &posLine1);
+
+	// Clamp to segment
+
+	float sAlongSegment = GDot(normalSegment, posLine1 - posSegment0);
+	sAlongSegment = GClamp(sAlongSegment, 0.0f, sSegment);
+
+	*pPosSegment = posSegment0 + sAlongSegment * normalSegment;
+	*pPosLine = PosClosestOnLineToPoint(*pPosSegment, pos, normal);
+}
+
+Point PosClosestOnLineToPoint(Point pos, Point posLine, Vector normalLine)
+{
+	return VecProjectOnNormal(pos - posLine, normalLine) + posLine;
+}
+
 float Vector::SLength() const
 {
 	return ::SLength(*this);

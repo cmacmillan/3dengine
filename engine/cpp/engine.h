@@ -110,7 +110,28 @@ struct SDebugDraw
 	Mat		m_mat;
 	SRgba	m_rgba;
 	double	m_systRealtimeExpire;
-	float	m_gSort; // Don't use externally
+	float	m_gSort;	// Lower = draw first
+	float	m_gSorted;	// Don't use externally
+};
+
+// immediate mode gui id
+
+#define IMGUI() (void*)__FUNCTION__
+struct SUiid // uiid
+{
+	bool operator==(const SUiid & uiidOther) const;
+
+	void *	m_pVFunction;
+	int		m_id;
+	int		m_index;
+};
+
+extern SUiid g_uiidNil;
+
+struct SUiidOverlap
+{
+	SUiid m_uiid;
+	float m_s;	// distance along the cursor ray. (-1 for 2d ui)
 };
 
 struct SGame // game 
@@ -120,17 +141,27 @@ struct SGame // game
 	void Init(HINSTANCE hInstance);
 	void MainLoop();
 	LRESULT LresultWindowProcedure(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
+
 	float2 VecWinSize();
 	float2 VecCursor();
 	float2 VecWinTopLeft();
+
+	Point PosCursorRay(Vector * pNormalResult);
+
 	bool FRaycastCursor(Point * pPosResult);
+
 	void PrintConsole(const std::string & str, float dTRealtime = 0.0f);
-	void DebugDrawSphere(Point posSphere, float sRadius = 1.0f, float dTRealtime = 0.0f, SRgba rgba = SRgba(0.0f, 1.0f, 0.0f, 1.0f));
-	void DebugDrawCube(const Mat & mat, float dTRealtime = 0.0f, SRgba rgba = SRgba(0.0f, 1.0f, 0.0f, 1.0f));
-	void DebugDrawArrow(Point pos, Vector dPos, float sRadius = 0.1f, float dTRealtime = 0.0f, SRgba rgba = SRgba(0.0f, 1.0f, 0.0f, 1.0f));
-	void DebugDrawArrow(Point pos0, Point pos1, float sRadius = 0.1f, float dTRealtime = 0.0f, SRgba rgba = SRgba(0.0f, 1.0f, 0.0f, 1.0f));
-	void DebugDrawLine(Point pos0, Point pos1, float dTRealtime = 0.0f, SRgba rgba = SRgba(0.0f, 1.0f, 0.0f, 1.0f));
-	void DebugDrawLine(Point pos, Vector dPos, float dTRealtime = 0.0f, SRgba rgba = SRgba(0.0f, 1.0f, 0.0f, 1.0f));
+
+	void DebugDrawSphere(Point posSphere, float sRadius = 1.0f, float dTRealtime = 0.0f, SRgba rgba = SRgba(0.0f, 1.0f, 0.0f, 1.0f), float gSort = 0.0f);
+	void DebugDrawCube(const Mat & mat, float dTRealtime = 0.0f, SRgba rgba = SRgba(0.0f, 1.0f, 0.0f, 1.0f), float gSort = 0.0f);
+	void DebugDrawArrow(Point pos, Vector dPos, float sRadius = 0.1f, float dTRealtime = 0.0f, SRgba rgba = SRgba(0.0f, 1.0f, 0.0f, 1.0f), float gSort = 0.0f);
+	void DebugDrawArrow(Point pos0, Point pos1, float sRadius = 0.1f, float dTRealtime = 0.0f, SRgba rgba = SRgba(0.0f, 1.0f, 0.0f, 1.0f), float gSort = 0.0f);
+	void DebugDrawLine(Point pos0, Point pos1, float dTRealtime = 0.0f, SRgba rgba = SRgba(0.0f, 1.0f, 0.0f, 1.0f), float gSort = 0.0f);
+	void DebugDrawLine(Point pos, Vector dPos, float dTRealtime = 0.0f, SRgba rgba = SRgba(0.0f, 1.0f, 0.0f, 1.0f), float gSort = 0.0f);
+
+	Point PosImgui(Point posCur, const SUiid & uiid);
+	Point PosSingleArrowImgui(Point posCur, const SUiid & uiid, SRgba rgba, Vector normal);
+
 	void EnsureMeshIn3dCbuffer(
 			SMesh3D * pMesh, 
 			int * piBIndex, 
@@ -146,6 +177,10 @@ struct SGame // game
 	// TODO add QueuePrintConsole for debugging rendering stuff
 
 	// Misc
+
+	SUiid m_uiidHot = g_uiidNil;
+	SUiid m_uiidActive = g_uiidNil;
+	std::vector<SUiidOverlap> m_aryUiidOverlap = {};
 
 	SNodeHandle	m_hNodeRoot = -1;
 

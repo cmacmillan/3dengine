@@ -147,16 +147,22 @@ float2 SGame::VecCursor()
 	return float2(m_xCursor, m_yCursor);
 }
 
-bool SGame::FRaycastCursor(Point * pPosResult)
+Point SGame::PosCursorRay(Vector * pNormalResult)
 {
 	SCamera3D * pCamera = g_game.m_hCamera3DMain.PT();
 
 	Point posNdc = pCamera->PosNdcFromPosWindow(g_game.VecCursor(), Lerp(pCamera->m_xNearClip, pCamera->m_xFarClip, 0.5f));
 	Point posWorld = pCamera->PosWorldFromPosNdc(posNdc);
 
-	Vector normalRay = VecNormalizeElse(posWorld - pCamera->PosWorld(), g_vecXAxis);
-	
-	return FRaycast(pCamera->PosWorld(), normalRay, pPosResult);
+	*pNormalResult = VecNormalizeElse(posWorld - pCamera->PosWorld(), g_vecXAxis);
+	return pCamera->PosWorld();
+}
+
+bool SGame::FRaycastCursor(Point * pPosResult)
+{
+	Vector normalRay;
+	Point posRay = PosCursorRay(&normalRay);
+	return FRaycast(posRay, normalRay, pPosResult);
 }
 
 float2 SGame::VecWinTopLeft()
@@ -646,7 +652,9 @@ int SortUinodeRenderOrder(const void * pVa, const void * pVb)
 
 bool FCompareDebugDraw(const SDebugDraw & dd0, const SDebugDraw & dd1)
 {
-	return dd0.m_gSort > dd1.m_gSort;
+	if (dd0.m_gSort == dd1.m_gSort)
+		return dd0.m_gSorted > dd1.m_gSorted;
+	return dd0.m_gSort < dd1.m_gSort;
 }
 
 void SGame::EnsureMeshIn3dCbuffer(SMesh3D * pMesh, int * piBIndex, int * piBVert3D, D3D11_MAPPED_SUBRESOURCE * pMappedsubresVerts3D, D3D11_MAPPED_SUBRESOURCE * pMappedsubresIndex)
@@ -806,6 +814,35 @@ void SGame::MainLoop()
 
 		////////// GAMEPLAY CODE (JANK)
 	
+
+		{
+			/*
+			TWEAKABLE Point s_posLine0Test = Point(30.0f, 4.0f, -3.0f);
+			TWEAKABLE Point s_posLine1Test = Point(28.0f, 0.0f, 0.0f);
+			TWEAKABLE Vector s_vecLine0Test = Point(-2.0f, 1.0f, 5.0f);
+			TWEAKABLE Vector s_vecLine1Test = Point(0.5f, -3.0f, 1.0f);
+			Vector normalLine0 = VecNormalizeSafe(s_vecLine0Test);
+			Vector normalLine1 = VecNormalizeSafe(s_vecLine1Test);
+			DebugDrawLine(s_posLine0Test - normalLine0 * 15, normalLine0 * 30);
+			DebugDrawLine(s_posLine1Test - normalLine1 * 15, normalLine1 * 30);
+			Point posResult0;
+			Point posResult1;
+			ClosestPointsOnTwoLines(s_posLine0Test, normalLine0, s_posLine1Test, normalLine1, &posResult0, &posResult1);
+			DebugDrawSphere(posResult0);
+			DebugDrawSphere(posResult1);
+			*/
+			TWEAKABLE Point s_posLine0Test = Point(30.0f, 4.0f, -3.0f);
+			TWEAKABLE Point s_posLine1Test = Point(28.0f, 0.0f, 0.0f);
+			DebugDrawLine(s_posLine0Test, s_posLine1Test);
+			Vector normalRay;
+			Point posRay = PosCursorRay(&normalRay);
+			Point posLine;
+			Point posSeg;
+			ClosestPointsOnLineAndLineSegment(posRay, normalRay, s_posLine0Test, s_posLine1Test, &posLine, &posSeg);
+			DebugDrawSphere(posSeg);
+			DebugDrawSphere(posLine);
+		}
+
 		TestGjk();
 
 		m_hCamera3DShadow->SetPosWorld(m_hSun->PosWorld());
@@ -937,6 +974,38 @@ void SGame::MainLoop()
 
 		SConsole * pConsole = m_hConsole.PT();
 		pConsole->m_hTextConsole->SetText(pConsole->StrPrint());
+
+		// Update IMGUI
+
+		{
+			if (m_uiidActive == g_uiidNil)
+			{
+				// If we don't have an active element, update our hot element
+
+				float sBest = FLT_MAX;
+				int iUiidoverlapBest = -1;
+				for (int iUiidoverlap = 0; iUiidoverlap < m_aryUiidOverlap.size(); iUiidoverlap++)
+				{
+					const SUiidOverlap & uiidoverlap = m_aryUiidOverlap[iUiidoverlap];
+					if (uiidoverlap.m_s < sBest)
+					{
+						sBest = uiidoverlap.m_s;
+						iUiidoverlapBest = iUiidoverlap;
+					}
+				}
+
+				if (iUiidoverlapBest != -1)
+				{
+					m_uiidHot = m_aryUiidOverlap[iUiidoverlapBest].m_uiid;
+				}
+				else
+				{
+					m_uiidHot = g_uiidNil;
+				}
+			}
+
+			m_aryUiidOverlap.clear();
+		}
 
 		// Clear expired debug draws
 
@@ -1173,7 +1242,7 @@ void SGame::MainLoop()
 
 				for (SDebugDraw & dd : m_lDdToDraw)
 				{
-					dd.m_gSort = SLength(Point(dd.m_mat.m_aVec[3]) - pCamera3D->PosWorld());
+					dd.m_gSorted = SLength(Point(dd.m_mat.m_aVec[3]) - pCamera3D->PosWorld());
 				}
 				m_lDdToDraw.sort(FCompareDebugDraw);
 
@@ -1269,26 +1338,26 @@ void SGame::PrintConsole(const std::string & str, float dTRealtime)
 	m_hConsole->Print(str, g_game.m_systRealtime + dTRealtime);
 }
 
-void SGame::DebugDrawSphere(Point posSphere, float sRadius, float dTRealtime, SRgba rgba)
+void SGame::DebugDrawSphere(Point posSphere, float sRadius, float dTRealtime, SRgba rgba, float gSort)
 {
 	// NOTE sphere model is radius 1
 
-	m_lDdToDraw.push_back({ DDK_Sphere, MatScale(sRadius * g_vecOne) * MatTranslate(posSphere), rgba, g_game.m_systRealtime + dTRealtime });
+	m_lDdToDraw.push_back({ DDK_Sphere, MatScale(sRadius * g_vecOne) * MatTranslate(posSphere), rgba, g_game.m_systRealtime + dTRealtime, gSort });
 }
 
-void SGame::DebugDrawCube(const Mat & mat, float dTRealtime, SRgba rgba)
+void SGame::DebugDrawCube(const Mat & mat, float dTRealtime, SRgba rgba, float gSort)
 {
 	// NOTE cube model is -1 to 1
 
-	m_lDdToDraw.push_back({ DDK_Cube, mat, rgba, g_game.m_systRealtime + dTRealtime });
+	m_lDdToDraw.push_back({ DDK_Cube, mat, rgba, g_game.m_systRealtime + dTRealtime, gSort });
 }
 
-void SGame::DebugDrawLine(Point pos0, Point pos1, float dTRealtime, SRgba rgba)
+void SGame::DebugDrawLine(Point pos0, Point pos1, float dTRealtime, SRgba rgba, float gSort)
 {
-	DebugDrawLine(pos0, pos1 - pos0, dTRealtime, rgba);
+	DebugDrawLine(pos0, pos1 - pos0, dTRealtime, rgba, gSort);
 }
 
-void SGame::DebugDrawLine(Point pos, Vector dPos, float dTRealtime, SRgba rgba)
+void SGame::DebugDrawLine(Point pos, Vector dPos, float dTRealtime, SRgba rgba, float gSort)
 {
 	TWEAKABLE float s_sRadiusLine = .01f;
 	float sdPos = SLength(dPos);
@@ -1300,15 +1369,15 @@ void SGame::DebugDrawLine(Point pos, Vector dPos, float dTRealtime, SRgba rgba)
 
 	// BB Jankily reusing arrow body for line drawing
 
-	m_lDdToDraw.push_back({ DDK_ArrowBody, matBody, rgba, g_game.m_systRealtime + dTRealtime });
+	m_lDdToDraw.push_back({ DDK_ArrowBody, matBody, rgba, g_game.m_systRealtime + dTRealtime, gSort });
 }
 
-void SGame::DebugDrawArrow(Point pos0, Point pos1, float sRadius, float dTRealtime, SRgba rgba)
+void SGame::DebugDrawArrow(Point pos0, Point pos1, float sRadius, float dTRealtime, SRgba rgba, float gSort)
 {
-	DebugDrawArrow(pos0, pos1 - pos0, sRadius, dTRealtime, rgba);
+	DebugDrawArrow(pos0, pos1 - pos0, sRadius, dTRealtime, rgba, gSort);
 }
 
-void SGame::DebugDrawArrow(Point pos, Vector dPos, float sRadius, float dTRealtime, SRgba rgba)
+void SGame::DebugDrawArrow(Point pos, Vector dPos, float sRadius, float dTRealtime, SRgba rgba, float gSort)
 {
 	// Arrow head and body are 0 to 1 in z, and -1 to 1 in x and  y
 
@@ -1325,8 +1394,69 @@ void SGame::DebugDrawArrow(Point pos, Vector dPos, float sRadius, float dTRealti
 	Mat matBody = MatScale(Vector(sRadius, sRadius, zScaleBody)) * matLocalToWorld;
 	Mat matHead = MatScale(Vector(sHead, sHead, sHead)) * MatTranslate(Vector(0.0f, 0.0f, zScaleBody)) * matLocalToWorld;
 
-	m_lDdToDraw.push_back({ DDK_ArrowBody, matBody, rgba, g_game.m_systRealtime + dTRealtime });
-	m_lDdToDraw.push_back({ DDK_ArrowHead, matHead, rgba, g_game.m_systRealtime + dTRealtime });
+	m_lDdToDraw.push_back({ DDK_ArrowBody, matBody, rgba, g_game.m_systRealtime + dTRealtime, gSort });
+	m_lDdToDraw.push_back({ DDK_ArrowHead, matHead, rgba, g_game.m_systRealtime + dTRealtime, gSort });
+}
+
+SUiid g_uiidNil = { nullptr, -1, -1 };
+
+bool SUiid::operator==(const SUiid & uiidOther) const
+{
+	return m_pVFunction == uiidOther.m_pVFunction && m_id == uiidOther.m_id && m_index == uiidOther.m_index;
+}
+
+Point SGame::PosSingleArrowImgui(Point posCur, const SUiid & uiid, SRgba rgba, Vector normal)
+{
+	TWEAKABLE float s_sLengthArrow = 2.0f;
+	TWEAKABLE float s_gSortIdle = 0.0f;
+
+	bool fHot = m_uiidHot == uiid;
+
+	if (fHot && m_mpVkFJustPressed[VK_LEFT])
+	{
+		m_uiidActive = uiid;
+	}
+
+	bool fActive = uiid == m_uiidActive;
+
+	if (m_uiidActive == g_uiidNil) // if nobody is active
+	{
+		// Potentially add self to overlap list
+
+		// find closest point between two lines
+		// clamp that point to be on the line segment
+		float s;
+	}
+
+	DebugDrawArrow(posCur, normal * s_sLengthArrow, .05, 0.0f, (fActive) ? g_rgbaPink : ((fHot) ? g_rgbaCyan : rgba), s_gSortIdle);
+
+	return posCur;
+}
+
+Point SGame::PosImgui(Point posCur, const SUiid & uiid)
+{
+	SUiid uiidX = uiid;
+	uiidX.m_index = 0;
+	Point posX = PosSingleArrowImgui(posCur, uiidX, g_rgbaRed, g_vecXAxis);
+
+	SUiid uiidY = uiid;
+	uiidY.m_index = 1;
+	Point posY = PosSingleArrowImgui(posCur, uiidY, g_rgbaGreen, g_vecYAxis);
+
+	SUiid uiidZ = uiid;
+	uiidZ.m_index = 2;
+	Point posZ = PosSingleArrowImgui(posCur, uiidZ, g_rgbaBlue, g_vecZAxis);
+
+	if (m_uiidActive == uiidX)
+		return posX;
+
+	if (m_uiidActive == uiidY)
+		return posY;
+
+	if (m_uiidActive == uiidZ)
+		return posZ;
+
+	return posCur;
 }
 
 void SGame::SetEdits(EDITS edits)

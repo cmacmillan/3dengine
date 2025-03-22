@@ -756,6 +756,8 @@ void TestGjk(const Mat & matCubePhys, Vector vecNonuniformScale, Point posSphere
 
 	Vector dPosSweep = s_dPosSweep * s_rSweep;
 
+	g_game.PosImgui(posSphere, { IMGUI(), 0});
+
 	{
 		g_game.DebugDrawCube(MatScale(vecNonuniformScale) * matCubePhys);
 		g_game.DebugDrawSphere(posSphere, sRadiusSphere);

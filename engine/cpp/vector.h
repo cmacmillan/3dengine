@@ -151,6 +151,10 @@ float SLength(const Vector & vec);
 float SLengthSqr(const Vector & vec);
 Vector VecNormalize(const Vector & vec);
 
+void ClosestPointsOnTwoLines(Point pos0, Vector normal0, Point pos1, Vector normal1, Point * pPos0, Point * pPos1);
+void ClosestPointsOnLineAndLineSegment(Point pos, Vector normal, Point posSegment0, Point posSegment1, Point * pPosLine, Point * pPosSegment);
+Point PosClosestOnLineToPoint(Point pos, Point posLine, Vector normalLine);
+
 // Row major, so vectors are horizontal
 //  so multiplication goes left to right, like at work
 
