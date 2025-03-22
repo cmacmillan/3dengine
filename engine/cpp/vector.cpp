@@ -45,6 +45,11 @@ float2 operator/(float g, const float2 & vec)
 	return float2(g / vec.m_x,  g / vec.m_y);
 }
 
+float SLength(float2 vec)
+{
+	return GSqrt(vec.m_x * vec.m_x + vec.m_y * vec.m_y);
+}
+
 // float4
 
 bool float4::FHasNans()

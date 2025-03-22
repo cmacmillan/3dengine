@@ -18,6 +18,8 @@ struct float2
 float2 operator*(float g, const float2 & vec);
 float2 operator/(float g, const float2 & vec);
 
+float SLength(float2 vec);
+
 struct float4
 {
 				float4() : 

@@ -8,5 +8,5 @@ void SUiNode::GetRenderConstants(SUiNodeRenderConstants * pUinoderc)
 {
 	pUinoderc->m_posCenter = m_pos;
 	pUinoderc->m_vecScale = m_vecScale;
-	pUinoderc->m_color = m_color;
+	pUinoderc->m_color = RgbaSrgbFromLinear(m_color);
 }

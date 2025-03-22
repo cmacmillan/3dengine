@@ -12,5 +12,8 @@ void SDrawNodeRenderConstants::FillOut(Mat matObjectToWorld, Mat matWorldToClip,
 	Mat matObjectToWorldNoTranslate = matObjectToWorld;
 	matObjectToWorldNoTranslate.m_aVec[3] = float4(0.0f, 0.0f, 0.0f, 1.0f);
 	m_matObjectToWorldInverseTranspose = matObjectToWorldNoTranslate.MatInverse().MatTranspose();
-	m_rgba = rgba;
+
+	// NOTE we don't have to do this with textures because they were written out in srgb
+
+	m_rgba = RgbaSrgbFromLinear(rgba); 
 }

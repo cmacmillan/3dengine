@@ -111,6 +111,8 @@ struct SDebugDraw
 	SRgba	m_rgba;
 	double	m_systRealtimeExpire;
 	float	m_gSort;	// Lower = draw first
+	bool	m_fWireframe;
+
 	float	m_gSorted;	// Don't use externally
 };
 
@@ -152,12 +154,12 @@ struct SGame // game
 
 	void PrintConsole(const std::string & str, float dTRealtime = 0.0f);
 
-	void DebugDrawSphere(Point posSphere, float sRadius = 1.0f, float dTRealtime = 0.0f, SRgba rgba = SRgba(0.0f, 1.0f, 0.0f, 1.0f), float gSort = 0.0f);
-	void DebugDrawCube(const Mat & mat, float dTRealtime = 0.0f, SRgba rgba = SRgba(0.0f, 1.0f, 0.0f, 1.0f), float gSort = 0.0f);
-	void DebugDrawArrow(Point pos, Vector dPos, float sRadius = 0.1f, float dTRealtime = 0.0f, SRgba rgba = SRgba(0.0f, 1.0f, 0.0f, 1.0f), float gSort = 0.0f);
-	void DebugDrawArrow(Point pos0, Point pos1, float sRadius = 0.1f, float dTRealtime = 0.0f, SRgba rgba = SRgba(0.0f, 1.0f, 0.0f, 1.0f), float gSort = 0.0f);
-	void DebugDrawLine(Point pos0, Point pos1, float dTRealtime = 0.0f, SRgba rgba = SRgba(0.0f, 1.0f, 0.0f, 1.0f), float gSort = 0.0f);
-	void DebugDrawLine(Point pos, Vector dPos, float dTRealtime = 0.0f, SRgba rgba = SRgba(0.0f, 1.0f, 0.0f, 1.0f), float gSort = 0.0f);
+	void DebugDrawSphere(Point posSphere, float sRadius = 1.0f, float dTRealtime = 0.0f, SRgba rgba = SRgba(0.0f, 1.0f, 0.0f, 1.0f), float gSort = 0.0f, bool fWireframe = true);
+	void DebugDrawCube(const Mat & mat, float dTRealtime = 0.0f, SRgba rgba = SRgba(0.0f, 1.0f, 0.0f, 1.0f), float gSort = 0.0f, bool fWireframe = true);
+	void DebugDrawArrow(Point pos, Vector dPos, float sRadius = 0.1f, float dTRealtime = 0.0f, SRgba rgba = SRgba(0.0f, 1.0f, 0.0f, 1.0f), float gSort = 0.0f, bool fWireframe = true);
+	void DebugDrawArrow(Point pos0, Point pos1, float sRadius = 0.1f, float dTRealtime = 0.0f, SRgba rgba = SRgba(0.0f, 1.0f, 0.0f, 1.0f), float gSort = 0.0f, bool fWireframe = true);
+	void DebugDrawLine(Point pos0, Point pos1, float dTRealtime = 0.0f, SRgba rgba = SRgba(0.0f, 1.0f, 0.0f, 1.0f), float gSort = 0.0f, bool fWireframe = true);
+	void DebugDrawLine(Point pos, Vector dPos, float dTRealtime = 0.0f, SRgba rgba = SRgba(0.0f, 1.0f, 0.0f, 1.0f), float gSort = 0.0f, bool fWireframe = true);
 
 	Point PosImgui(Point posCur, const SUiid & uiid);
 	Point PosSingleArrowImgui(Point posCur, const SUiid & uiid, SRgba rgba, Vector normal);
@@ -199,9 +201,6 @@ struct SGame // game
 	SCamera3DHandle m_hCamera3DMain = -1;
 	SCamera3DHandle m_hCamera3DShadow = -1;
 
-	SDrawNode3DHandle m_hPlaneTest = -1;
-	SDrawNode3DHandle m_hPlaneTest2 = -1;
-
 	SMaterialHandle m_hMaterialDefault3d = -1;
 
 	SSunHandle m_hSun = -1;
@@ -212,6 +211,7 @@ struct SGame // game
 	EDITS m_edits = EDITS_Nil;
 
 	SMaterialHandle m_hMaterialWireframe = -1;
+	SMaterialHandle m_hMaterialSolid = -1;
 
 	std::list<SDebugDraw> m_lDdToDraw = {};
 
@@ -252,7 +252,14 @@ struct SGame // game
 	bool m_mpVkFJustPressed[0xFF];
 	bool m_mpVkFJustReleased[0xFF];
 	float m_sScroll = 0.0f;
-	SFixArray<double, 8> m_arySystRealtimeHistoryLeftClick = {};
+
+	struct SClickHistory // clickhist
+	{
+		double m_systRealtime;
+		float2 m_posCursor;
+	};
+
+	SFixArray<SClickHistory, 8> m_aryClickhist = {};
 
 	// D3D
 

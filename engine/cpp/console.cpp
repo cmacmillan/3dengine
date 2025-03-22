@@ -9,7 +9,7 @@ SConsole::SConsole(SNode * pNodeParent, const std::string & strName, TYPEK typek
 	m_hTextConsole->m_vecScale = float2(0.2f, 0.2f);
 	m_hTextConsole->m_gSort = 10.0f;
 	m_hTextConsole->m_pos = float2(20.0f, 500.0f);
-	m_hTextConsole->m_color = { 0.0f, 0.0f, 0.0f, 1.0f };
+	m_hTextConsole->m_color = g_rgbaBlack;
 }
 
 std::string SConsole::StrPrint()

@@ -19,15 +19,18 @@ void SFlyCam::Update()
 	{
 		TWEAKABLE float s_dTDoubleClick = 0.5f;
 
+		TWEAKABLE float s_sCursor = 10.0f;
+
+		float2 vecCursor = g_game.VecCursor();
 		int cSystDoubleClick = 0;
-		for (int i = 0; i < g_game.m_arySystRealtimeHistoryLeftClick.CCapacity(); i++)
+		for (int i = 0; i < g_game.m_aryClickhist.CCapacity(); i++)
 		{
-			double systRealtime = g_game.m_arySystRealtimeHistoryLeftClick[i];
+			double systRealtime = g_game.m_aryClickhist[i].m_systRealtime;
 
 			if (systRealtime == SYST_INVALID)
 				continue;
 
-			if (systRealtime > m_systRealtimeLastDoubleClick && systRealtime + s_dTDoubleClick > g_game.m_systRealtime)
+			if (systRealtime > m_systRealtimeLastDoubleClick && systRealtime + s_dTDoubleClick > g_game.m_systRealtime && SLength(vecCursor - g_game.m_aryClickhist[i].m_posCursor) < s_sCursor)
 			{
 				cSystDoubleClick++;
 			}
@@ -56,8 +59,8 @@ void SFlyCam::Update()
 	m_sRadiusCenter = GMax(1.0f, m_sRadiusCenter);
 
 	bool fAltDown = g_game.m_mpVkFDown[VK_MENU];
-	bool fMiddleMouseInteracting = fAltDown && g_game.m_mpVkFDown[VK_MBUTTON];
-	bool fLeftMouseInteracting = fAltDown && g_game.m_mpVkFDown[VK_LBUTTON];
+	bool fMiddleMouseInteracting = fAltDown && g_game.m_mpVkFDown[VK_MBUTTON] && g_game.m_uiidActive == g_uiidNil;
+	bool fLeftMouseInteracting = fAltDown && g_game.m_mpVkFDown[VK_LBUTTON] && g_game.m_uiidActive == g_uiidNil;
 
 	bool fInteracting = fMiddleMouseInteracting || fLeftMouseInteracting;
 	if (fInteracting != m_fInteracting)
