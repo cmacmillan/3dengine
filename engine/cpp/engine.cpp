@@ -984,9 +984,9 @@ void SGame::MainLoop()
 
 				float sBest = FLT_MAX;
 				int iUiidoverlapBest = -1;
-				for (int iUiidoverlap = 0; iUiidoverlap < m_aryUiidOverlap.size(); iUiidoverlap++)
+				for (int iUiidoverlap = 0; iUiidoverlap < m_aryUiidoverlap.size(); iUiidoverlap++)
 				{
-					const SUiidOverlap & uiidoverlap = m_aryUiidOverlap[iUiidoverlap];
+					const SUiidOverlap & uiidoverlap = m_aryUiidoverlap[iUiidoverlap];
 					if (uiidoverlap.m_s < sBest)
 					{
 						sBest = uiidoverlap.m_s;
@@ -996,7 +996,7 @@ void SGame::MainLoop()
 
 				if (iUiidoverlapBest != -1)
 				{
-					m_uiidHot = m_aryUiidOverlap[iUiidoverlapBest].m_uiid;
+					m_uiidHot = m_aryUiidoverlap[iUiidoverlapBest].m_uiid;
 				}
 				else
 				{
@@ -1004,7 +1004,7 @@ void SGame::MainLoop()
 				}
 			}
 
-			m_aryUiidOverlap.clear();
+			m_aryUiidoverlap.clear();
 		}
 
 		// Clear expired debug draws
@@ -1363,9 +1363,9 @@ void SGame::DebugDrawLine(Point pos, Vector dPos, float dTRealtime, SRgba rgba, 
 	float sdPos = SLength(dPos);
 	Vector normal = dPos / sdPos;
 
-	Mat matLocalToWorld = MatRotate(QuatFromTo(g_vecZAxis, normal)) * MatTranslate(pos);
+	Mat matLocalToWorldBody = MatRotate(QuatFromTo(g_vecZAxis, normal)) * MatTranslate(pos + sdPos * .5f * normal);
 
-	Mat matBody = MatScale(Vector(s_sRadiusLine, s_sRadiusLine, sdPos)) * matLocalToWorld;
+	Mat matBody = MatScale(Vector(s_sRadiusLine, s_sRadiusLine, sdPos)) * matLocalToWorldBody;
 
 	// BB Jankily reusing arrow body for line drawing
 
@@ -1389,10 +1389,11 @@ void SGame::DebugDrawArrow(Point pos, Vector dPos, float sRadius, float dTRealti
 	float sHead = sRadius * s_gScaleHead;
 	float zScaleBody = sdPos - sHead;
 
-	Mat matLocalToWorld = MatRotate(QuatFromTo(g_vecZAxis, normal)) * MatTranslate(pos);
+	Mat matLocalToWorldHead = MatRotate(QuatFromTo(g_vecZAxis, normal)) * MatTranslate(pos);
+	Mat matLocalToWorldBody = MatRotate(QuatFromTo(g_vecZAxis, normal)) * MatTranslate(pos + zScaleBody * .5f * normal);
 
-	Mat matBody = MatScale(Vector(sRadius, sRadius, zScaleBody)) * matLocalToWorld;
-	Mat matHead = MatScale(Vector(sHead, sHead, sHead)) * MatTranslate(Vector(0.0f, 0.0f, zScaleBody)) * matLocalToWorld;
+	Mat matBody = MatScale(Vector(sRadius, sRadius, zScaleBody)) * matLocalToWorldBody;
+	Mat matHead = MatScale(Vector(sHead, sHead, sHead)) * MatTranslate(Vector(0.0f, 0.0f, zScaleBody)) * matLocalToWorldHead;
 
 	m_lDdToDraw.push_back({ DDK_ArrowBody, matBody, rgba, g_game.m_systRealtime + dTRealtime, gSort });
 	m_lDdToDraw.push_back({ DDK_ArrowHead, matHead, rgba, g_game.m_systRealtime + dTRealtime, gSort });
@@ -1407,30 +1408,67 @@ bool SUiid::operator==(const SUiid & uiidOther) const
 
 Point SGame::PosSingleArrowImgui(Point posCur, const SUiid & uiid, SRgba rgba, Vector normal)
 {
+	Point posResult = posCur;
+
 	TWEAKABLE float s_sLengthArrow = 2.0f;
 	TWEAKABLE float s_gSortIdle = 0.0f;
 
 	bool fHot = m_uiidHot == uiid;
 
-	if (fHot && m_mpVkFJustPressed[VK_LEFT])
+	if (fHot && m_mpVkFJustPressed[VK_LBUTTON])
 	{
 		m_uiidActive = uiid;
+
+		Vector normalRay;
+		Point posRay = PosCursorRay(&normalRay);
+		Point posLine;
+		Point posSegment;
+		ClosestPointsOnLineAndLineSegment(posRay, normalRay, posCur, posCur + normal * s_sLengthArrow, &posLine, &posSegment);
+
+		m_dPosActiveLineseg = posSegment - posCur;
 	}
 
 	bool fActive = uiid == m_uiidActive;
+	if (fActive)
+	{
+		if (!m_mpVkFDown[VK_LBUTTON])
+		{
+			m_uiidActive = g_uiidNil;
+		}
+		else
+		{
+			Vector normalRay;
+			Point posRay = PosCursorRay(&normalRay);
+			Point posLine0;
+			Point posLine1;
+			ClosestPointsOnTwoLines(posRay, normalRay, posCur, normal, &posLine0, &posLine1);
+
+			posResult = posLine1 - m_dPosActiveLineseg;
+		}
+	}
 
 	if (m_uiidActive == g_uiidNil) // if nobody is active
 	{
-		// Potentially add self to overlap list
+		Vector normalRay;
+		Point posRay = PosCursorRay(&normalRay);
+		Point posLine;
+		Point posSegment;
+		ClosestPointsOnLineAndLineSegment(posRay, normalRay, posCur, posCur + normal * s_sLengthArrow, &posLine, &posSegment);
 
-		// find closest point between two lines
-		// clamp that point to be on the line segment
-		float s;
+		// BB probably better to do this in screen space
+
+		TWEAKABLE float s_sMin = 0.2f;
+
+		if (SLength(posLine - posSegment) < s_sMin)
+		{
+			float sRay = SLength(posLine - posRay);
+			m_aryUiidoverlap.push_back({ uiid, sRay });
+		}
 	}
 
 	DebugDrawArrow(posCur, normal * s_sLengthArrow, .05, 0.0f, (fActive) ? g_rgbaPink : ((fHot) ? g_rgbaCyan : rgba), s_gSortIdle);
 
-	return posCur;
+	return posResult;
 }
 
 Point SGame::PosImgui(Point posCur, const SUiid & uiid)

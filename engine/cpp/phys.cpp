@@ -731,18 +731,8 @@ void DoGjk(const Mat & matCubePhys, Vector vecNonuniformScale, Point posSphere, 
 	}
 }
 
-void TestGjk(const Mat & matCubePhys, Vector vecNonuniformScale, Point posSphere, float sRadiusSphere)
+void TestGjk(const Mat & matCubePhys, Vector vecNonuniformScale, Point posSphere, Point posSphere2, float sRadiusSphere)
 {
-	static float s_rSweep = 1.0f;//0.116382115f;//1.0f;
-	if (g_game.m_mpVkFDown[VK_E])
-	{
-		s_rSweep += g_game.m_dT * .3f;
-	}
-	else if (g_game.m_mpVkFDown[VK_Q])
-	{
-		s_rSweep -= g_game.m_dT * .3f;
-	}
-
 	if (g_game.m_mpVkFJustPressed[VK_UP])
 	{
 		s_iDrawGjkDebug++;
@@ -752,11 +742,7 @@ void TestGjk(const Mat & matCubePhys, Vector vecNonuniformScale, Point posSphere
 		s_iDrawGjkDebug--;
 	}
 
-	TWEAKABLE Vector s_dPosSweep = Vector(5.0f, 5.0f, 5.0f);
-
-	Vector dPosSweep = s_dPosSweep * s_rSweep;
-
-	g_game.PosImgui(posSphere, { IMGUI(), 0});
+	Vector dPosSweep = posSphere2 - posSphere;
 
 	{
 		g_game.DebugDrawCube(MatScale(vecNonuniformScale) * matCubePhys);
@@ -806,12 +792,16 @@ void TestGjk()
 
 	TWEAKABLE float s_sRadius = 1.0f;
 	TWEAKABLE Point s_posSphere = Point(-1.0f, -5.0f, 5.0f);
+	TWEAKABLE Point s_posSphere2 = Point(-1.0f, -5.0f, 5.0f);
 	TWEAKABLE Point s_posBox = Point(0.0f, 0.0f, 5.0f);
 	TWEAKABLE Vector s_vecScaleBox = Point(3.0f, 3.0f, 3.0f);
 	TWEAKABLE float s_radRotatebox = 0.0f;
 	TWEAKABLE Vector s_vecRotateBox = Vector(1.0f, 0.0f, 0.0f);
 
-	TestGjk(MatRotate(QuatAxisAngle(VecNormalize(s_vecRotateBox), s_radRotatebox)) * MatTranslate(s_posBox), s_vecScaleBox, s_posSphere, s_sRadius);
+	s_posSphere = g_game.PosImgui(s_posSphere, { IMGUI(), 0});
+	s_posSphere2 = g_game.PosImgui(s_posSphere2, { IMGUI(), 1});
+
+	TestGjk(MatRotate(QuatAxisAngle(VecNormalize(s_vecRotateBox), s_radRotatebox)) * MatTranslate(s_posBox), s_vecScaleBox, s_posSphere, s_posSphere2, s_sRadius);
 }
 
 

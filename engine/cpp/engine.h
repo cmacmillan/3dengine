@@ -131,7 +131,7 @@ extern SUiid g_uiidNil;
 struct SUiidOverlap
 {
 	SUiid m_uiid;
-	float m_s;	// distance along the cursor ray. (-1 for 2d ui)
+	float m_s;	// Distance along the cursor ray. (-1 for 2d ui)
 };
 
 struct SGame // game 
@@ -176,11 +176,14 @@ struct SGame // game
 
 	// TODO add QueuePrintConsole for debugging rendering stuff
 
-	// Misc
+	// IMGUI
 
 	SUiid m_uiidHot = g_uiidNil;
 	SUiid m_uiidActive = g_uiidNil;
-	std::vector<SUiidOverlap> m_aryUiidOverlap = {};
+	std::vector<SUiidOverlap> m_aryUiidoverlap = {};
+	Vector m_dPosActiveLineseg = g_vecZAxis;
+
+	// Misc
 
 	SNodeHandle	m_hNodeRoot = -1;
 
