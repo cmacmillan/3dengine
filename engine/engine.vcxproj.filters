@@ -232,7 +232,7 @@
     <FxCompile Include="shaders\text2d.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>
-    <FxCompile Include="shaders\unlit3d.hlsl">
+    <FxCompile Include="shaders\debugdrawsolid_nodepthwrite.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>
     <FxCompile Include="shaders\skybox.hlsl">
@@ -244,7 +244,7 @@
     <FxCompile Include="shaders\shadowcaster.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>
-    <FxCompile Include="shaders\3dwireframe.hlsl">
+    <FxCompile Include="shaders\debugdrawwireframe.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>
     <FxCompile Include="shaders\util.hlsl">
@@ -254,6 +254,15 @@
       <Filter>shader headers</Filter>
     </FxCompile>
     <FxCompile Include="shaders\3dcommon.hlsl">
+      <Filter>shader headers</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\debugdrawoutline.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\debugdrawsolid_depthwrite.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\debugdrawsolid.hlsl">
       <Filter>shader headers</Filter>
     </FxCompile>
   </ItemGroup>

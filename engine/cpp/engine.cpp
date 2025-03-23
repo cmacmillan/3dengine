@@ -594,11 +594,17 @@ void SGame::Init(HINSTANCE hInstance)
 	pMaterialGreybox->m_aryNamedtexture.push_back({ (new STexture("textures/offwhite.png", false, true))->HTexture(), "mainTexture" });
 	pMaterialGreybox->m_aryNamedtexture.push_back({ m_hTextureShadow, "sunShadowTexture" });
 
-	SMaterial * pMaterialWireframe = new SMaterial((new SShader("shaders/3dwireframe.hlsl"))->HShader(), "wireframe");
-	m_hMaterialWireframe = pMaterialWireframe->HMaterial();
+	SMaterial * pMaterialDebugDrawWireframe = new SMaterial((new SShader("shaders/debugdrawwireframe.hlsl"))->HShader(), "wireframe");
+	m_hMaterialDebugDrawWireframe = pMaterialDebugDrawWireframe->HMaterial();
 
-	SMaterial * pMaterialSolid = new SMaterial((new SShader("shaders/unlit3d.hlsl"))->HShader(),"solid");
-	m_hMaterialSolid = pMaterialSolid->HMaterial();
+	SMaterial * pMaterialDebugDrawSolidNoDepthWrite = new SMaterial((new SShader("shaders/debugdrawsolid_nodepthwrite.hlsl"))->HShader(),"solid");
+	m_hMaterialDebugDrawSolidNoDepthWrite = pMaterialDebugDrawSolidNoDepthWrite->HMaterial();
+
+	SMaterial * pMaterialDebugDrawSolidDepthWrite = new SMaterial((new SShader("shaders/debugdrawsolid_depthwrite.hlsl"))->HShader(),"solid");
+	m_hMaterialDebugDrawSolidDepthWrite = pMaterialDebugDrawSolidDepthWrite->HMaterial();
+
+	SMaterial * pMaterialDebugDrawOutline = new SMaterial((new SShader("shaders/debugdrawoutline.hlsl"))->HShader(),"solid");
+	m_hMaterialDebugDrawOutline = pMaterialDebugDrawOutline->HMaterial();
 
 	m_hMeshSphere = PMeshLoadSingle("models/sphere.gltf")->HMesh();
 	m_hMeshCube = PMeshLoadSingle("models/cube.gltf")->HMesh();
@@ -1169,7 +1175,7 @@ void SGame::MainLoop()
 					D3D11_MAPPED_SUBRESOURCE mappedSubresource;
 					m_pD3ddevicecontext->Map(m_cbufferDrawnode3D, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
 					SDrawNodeRenderConstants * pDrawnode3Drc = (SDrawNodeRenderConstants *) (mappedSubresource.pData);
-					pDrawnode3Drc->FillOut(matModelSkybox, pCamera3D->MatWorldToClip());
+					pDrawnode3Drc->FillOut(matModelSkybox, pCamera3D->MatWorldToClip(), pCamera3D->MatObjectToWorld().MatInverse());
 
 					m_pD3ddevicecontext->Unmap(m_cbufferDrawnode3D, 0);
 
@@ -1183,15 +1189,18 @@ void SGame::MainLoop()
 			// Draw 3d nodes
 
 			Mat matWorldToClip = pCamera3D->MatWorldToClip();
+			Mat matWorldToCamera = pCamera3D->MatObjectToWorld().MatInverse();
 
-			Draw3D(&arypDrawnode3DToRender, matWorldToClip, i == 0);
+			Draw3D(&arypDrawnode3DToRender, matWorldToClip, matWorldToCamera, i == 0);
 
 			// Draw debug draw stuff
 
 			if (i == 1)
 			{
-				SMaterial * pMaterialWireframe = m_hMaterialWireframe.PT();
-				SMaterial * pMaterialSolid = m_hMaterialSolid.PT();
+				SMaterial * pMaterialWireframe = m_hMaterialDebugDrawWireframe.PT();
+				SMaterial * pMaterialSolidNoDepthWrite = m_hMaterialDebugDrawSolidNoDepthWrite.PT();
+				SMaterial * pMaterialSolidDepthWrite = m_hMaterialDebugDrawSolidNoDepthWrite.PT();
+				SMaterial * pMaterialOutline = m_hMaterialDebugDrawOutline.PT();
 				SMesh3D * pMeshSphere = m_hMeshSphere.PT();
 				SMesh3D * pMeshCube = m_hMeshCube.PT();
 				SMesh3D * pMeshArrowBody = m_hMeshArrowBody.PT();
@@ -1205,23 +1214,67 @@ void SGame::MainLoop()
 
 				for (const SDebugDraw & dd : m_lDdToDraw)
 				{
-					SMaterial * pMaterial = (dd.m_fWireframe) ? pMaterialWireframe : pMaterialSolid;
+					SFixArray<SMesh3D *, 2> apMesh;
+					SFixArray<const Mat *, 2> apMat;
 					switch (dd.m_ddk)
 					{
 					case DDK_Cube:
-						Draw3DSingle(pMaterial, pMeshCube, dd.m_mat, matWorldToClip, dd.m_rgba);
+						apMesh.Append(pMeshCube);
+						apMat.Append(&dd.m_mat);
 						break;
 
 					case DDK_Sphere:
-						Draw3DSingle(pMaterial, pMeshSphere, dd.m_mat, matWorldToClip, dd.m_rgba);
+						apMesh.Append(pMeshSphere);
+						apMat.Append(&dd.m_mat);
 						break;
 
-					case DDK_ArrowBody:
-						Draw3DSingle(pMaterial, pMeshArrowBody, dd.m_mat, matWorldToClip, dd.m_rgba);
+					case DDK_Arrow:
+						apMesh.Append(pMeshArrowHead);
+						apMesh.Append(pMeshArrowBody);
+						apMat.Append(&dd.m_mat);
+						apMat.Append(&dd.m_mat2);
 						break;
 
-					case DDK_ArrowHead:
-						Draw3DSingle(pMaterial, pMeshArrowHead, dd.m_mat, matWorldToClip, dd.m_rgba);
+					case DDK_Line:
+						apMesh.Append(pMeshArrowBody);
+						apMat.Append(&dd.m_mat);
+						break;
+
+					default:
+						ASSERT(false);
+						break;
+					}
+
+					// TODO could draw all opaque stuff first
+					bool fOpaque = dd.m_rgba.m_a == 1.0f;
+
+					switch (dd.m_ddstyle)
+					{
+					case DDSTYLE_Wireframe:
+						// TODO handle fOpaque properly
+						for (int ipMesh = 0; ipMesh < apMesh.m_c; ipMesh++)
+						{
+							Draw3DSingle(pMaterialWireframe, apMesh[ipMesh], *apMat[ipMesh], matWorldToClip, matWorldToCamera, dd.m_rgba);
+						}
+						break;
+					case DDSTYLE_Solid:
+						for (int ipMesh = 0; ipMesh < apMesh.m_c; ipMesh++)
+						{
+							Draw3DSingle((fOpaque) ? pMaterialSolidDepthWrite : pMaterialSolidNoDepthWrite, apMesh[ipMesh], * apMat[ipMesh], matWorldToClip, matWorldToCamera, dd.m_rgba);
+						}
+						break;
+
+					case DDSTYLE_Outline:
+						ASSERT(fOpaque);
+						for (int ipMesh = 0; ipMesh < apMesh.m_c; ipMesh++)
+						{
+							Draw3DSingle(pMaterialOutline, apMesh[ipMesh], *apMat[ipMesh], matWorldToClip, matWorldToCamera, g_rgbaBlack);
+						}
+
+						for (int ipMesh = 0; ipMesh < apMesh.m_c; ipMesh++)
+						{
+							Draw3DSingle(pMaterialSolidDepthWrite, apMesh[ipMesh], *apMat[ipMesh], matWorldToClip, matWorldToCamera, dd.m_rgba);
+						}
 						break;
 					}
 				}
@@ -1296,26 +1349,26 @@ void SGame::PrintConsole(const std::string & str, float dTRealtime)
 	m_hConsole->Print(str, g_game.m_systRealtime + dTRealtime);
 }
 
-void SGame::DebugDrawSphere(Point posSphere, float sRadius, float dTRealtime, SRgba rgba, float gSort, bool fWireframe)
+void SGame::DebugDrawSphere(Point posSphere, float sRadius, float dTRealtime, SRgba rgba, float gSort, DDSTYLE ddstyle)
 {
 	// NOTE sphere model is radius 1
 
-	m_lDdToDraw.push_back({ DDK_Sphere, MatScale(sRadius * g_vecOne) * MatTranslate(posSphere), rgba, g_game.m_systRealtime + dTRealtime, gSort, fWireframe });
+	m_lDdToDraw.push_back({ DDK_Sphere, MatScale(sRadius * g_vecOne) * MatTranslate(posSphere), g_matIdentity, rgba, g_game.m_systRealtime + dTRealtime, gSort, ddstyle });
 }
 
-void SGame::DebugDrawCube(const Mat & mat, float dTRealtime, SRgba rgba, float gSort, bool fWireframe)
+void SGame::DebugDrawCube(const Mat & mat, float dTRealtime, SRgba rgba, float gSort, DDSTYLE ddstyle)
 {
 	// NOTE cube model is -1 to 1
 
-	m_lDdToDraw.push_back({ DDK_Cube, mat, rgba, g_game.m_systRealtime + dTRealtime, gSort, fWireframe});
+	m_lDdToDraw.push_back({ DDK_Cube, mat, g_matIdentity, rgba, g_game.m_systRealtime + dTRealtime, gSort, ddstyle});
 }
 
-void SGame::DebugDrawLine(Point pos0, Point pos1, float dTRealtime, SRgba rgba, float gSort, bool fWireframe)
+void SGame::DebugDrawLine(Point pos0, Point pos1, float dTRealtime, SRgba rgba, float gSort, DDSTYLE ddstyle)
 {
-	DebugDrawLine(pos0, pos1 - pos0, dTRealtime, rgba, gSort, fWireframe);
+	DebugDrawLine(pos0, pos1 - pos0, dTRealtime, rgba, gSort, ddstyle);
 }
 
-void SGame::DebugDrawLine(Point pos, Vector dPos, float dTRealtime, SRgba rgba, float gSort, bool fWireframe)
+void SGame::DebugDrawLine(Point pos, Vector dPos, float dTRealtime, SRgba rgba, float gSort, DDSTYLE ddstyle)
 {
 	TWEAKABLE float s_sRadiusLine = .01f;
 	float sdPos = SLength(dPos);
@@ -1327,15 +1380,15 @@ void SGame::DebugDrawLine(Point pos, Vector dPos, float dTRealtime, SRgba rgba, 
 
 	// BB Jankily reusing arrow body for line drawing
 
-	m_lDdToDraw.push_back({ DDK_ArrowBody, matBody, rgba, g_game.m_systRealtime + dTRealtime, gSort, fWireframe });
+	m_lDdToDraw.push_back({ DDK_Line, matBody, g_matIdentity, rgba, g_game.m_systRealtime + dTRealtime, gSort, ddstyle });
 }
 
-void SGame::DebugDrawArrow(Point pos0, Point pos1, float sRadius, float dTRealtime, SRgba rgba, float gSort, bool fWireframe)
+void SGame::DebugDrawArrow(Point pos0, Point pos1, float sRadius, float dTRealtime, SRgba rgba, float gSort, DDSTYLE ddstyle)
 {
-	DebugDrawArrow(pos0, pos1 - pos0, sRadius, dTRealtime, rgba, gSort, fWireframe);
+	DebugDrawArrow(pos0, pos1 - pos0, sRadius, dTRealtime, rgba, gSort, ddstyle);
 }
 
-void SGame::DebugDrawArrow(Point pos, Vector dPos, float sRadius, float dTRealtime, SRgba rgba, float gSort, bool fWireframe)
+void SGame::DebugDrawArrow(Point pos, Vector dPos, float sRadius, float dTRealtime, SRgba rgba, float gSort, DDSTYLE ddstyle)
 {
 	// Arrow head and body are 0 to 1 in z, and -1 to 1 in x and  y
 
@@ -1355,8 +1408,7 @@ void SGame::DebugDrawArrow(Point pos, Vector dPos, float sRadius, float dTRealti
 	Mat matBody = MatScale(Vector(sRadius, sRadius, zScaleBody)) * matLocalToWorldBody;
 	Mat matHead = MatScale(Vector(sHead * s_gXyHeadScalar, sHead * s_gXyHeadScalar, sHead)) * MatTranslate(Vector(0.0f, 0.0f, zScaleBody)) * matLocalToWorldHead;
 
-	m_lDdToDraw.push_back({ DDK_ArrowBody, matBody, rgba, g_game.m_systRealtime + dTRealtime, gSort, fWireframe });
-	m_lDdToDraw.push_back({ DDK_ArrowHead, matHead, rgba, g_game.m_systRealtime + dTRealtime, gSort, fWireframe });
+	m_lDdToDraw.push_back({ DDK_Arrow, matHead, matBody, rgba, g_game.m_systRealtime + dTRealtime, gSort, ddstyle });
 }
 
 SUiid g_uiidNil = { nullptr, -1, -1 };
@@ -1366,11 +1418,10 @@ bool SUiid::operator==(const SUiid & uiidOther) const
 	return m_pVFunction == uiidOther.m_pVFunction && m_id == uiidOther.m_id && m_index == uiidOther.m_index;
 }
 
-Point SGame::PosSingleArrowImgui(Point posCur, const SUiid & uiid, SRgba rgba, Vector normal)
+Point SGame::PosSingleArrowImgui(Point posCur, const SUiid & uiid, SRgba rgba, Vector normal, float sLengthArrow)
 {
 	Point posResult = posCur;
 
-	TWEAKABLE float s_sLengthArrow = 2.0f;
 	TWEAKABLE float s_gSortIdle = 10.0f;
 	TWEAKABLE float s_gSortHot = 50.0f;
 	TWEAKABLE float s_gSortActive = 100.0f;
@@ -1385,7 +1436,7 @@ Point SGame::PosSingleArrowImgui(Point posCur, const SUiid & uiid, SRgba rgba, V
 		Point posRay = PosCursorRay(&normalRay);
 		Point posLine;
 		Point posSegment;
-		ClosestPointsOnLineAndLineSegment(posRay, normalRay, posCur, posCur + normal * s_sLengthArrow, &posLine, &posSegment);
+		ClosestPointsOnLineAndLineSegment(posRay, normalRay, posCur, posCur + normal * sLengthArrow, &posLine, &posSegment);
 
 		m_dPosActiveLineseg = posSegment - posCur;
 	}
@@ -1415,37 +1466,51 @@ Point SGame::PosSingleArrowImgui(Point posCur, const SUiid & uiid, SRgba rgba, V
 		Point posRay = PosCursorRay(&normalRay);
 		Point posLine;
 		Point posSegment;
-		ClosestPointsOnLineAndLineSegment(posRay, normalRay, posCur, posCur + normal * s_sLengthArrow, &posLine, &posSegment);
+		ClosestPointsOnLineAndLineSegment(posRay, normalRay, posCur, posCur + normal * sLengthArrow, &posLine, &posSegment);
 
 		// BB probably better to do this in screen space
 
-		TWEAKABLE float s_sMin = 0.2f;
+		TWEAKABLE float s_sMin = 0.07f;
 
-		if (SLength(posLine - posSegment) < s_sMin)
+		if (SLength(posLine - posSegment) < s_sMin * sLengthArrow)
 		{
 			float sRay = SLength(posLine - posRay);
 			m_aryUiidoverlap.push_back({ uiid, sRay });
 		}
 	}
 
-	DebugDrawArrow(posCur, normal * s_sLengthArrow, .05, 0.0f, (fActive) ? g_rgbaYellow : ((fHot) ? g_rgbaCyan : rgba), (m_uiidActive == uiid) ? s_gSortActive : ((m_uiidHot == uiid) ? s_gSortHot : s_gSortIdle), false);
+	TWEAKABLE float s_gWidthScalar = .025f;
+	DebugDrawArrow(posCur, normal * sLengthArrow, s_gWidthScalar * sLengthArrow, 0.0f, (fActive) ? g_rgbaYellow : ((fHot) ? g_rgbaCyan : rgba), (m_uiidActive == uiid) ? s_gSortActive : ((m_uiidHot == uiid) ? s_gSortHot : s_gSortIdle), DDSTYLE_Outline);
 
 	return posResult;
 }
 
 Point SGame::PosImgui(Point posCur, const SUiid & uiid)
 {
+	// Assume we want constant size wrt our horizontal fov
+	//  At some distance that's some width w
+	//  Our arrow should be length some multiple of w
+
+	SCamera3D * pCamera = g_game.m_hCamera3DMain.PT();
+
+	float posXCam = (posCur * pCamera->MatObjectToWorld().MatInverse()).X();
+	float sWidthAtX = GTan(pCamera->m_radFovHorizontal * 0.5f) * 2.0f * posXCam;
+
+	TWEAKABLE float s_gArrowScalar = 0.1f;
+
+	float sLengthArrow = s_gArrowScalar * sWidthAtX;
+
 	SUiid uiidX = uiid;
 	uiidX.m_index = 0;
-	Point posX = PosSingleArrowImgui(posCur, uiidX, g_rgbaTomato, g_vecXAxis);
+	Point posX = PosSingleArrowImgui(posCur, uiidX, g_rgbaTomato, g_vecXAxis, sLengthArrow);
 
 	SUiid uiidY = uiid;
 	uiidY.m_index = 1;
-	Point posY = PosSingleArrowImgui(posCur, uiidY, g_rgbaChartreuse, g_vecYAxis);
+	Point posY = PosSingleArrowImgui(posCur, uiidY, g_rgbaChartreuse, g_vecYAxis, sLengthArrow);
 
 	SUiid uiidZ = uiid;
 	uiidZ.m_index = 2;
-	Point posZ = PosSingleArrowImgui(posCur, uiidZ, g_rgbaRoyalBlue, g_vecZAxis);
+	Point posZ = PosSingleArrowImgui(posCur, uiidZ, g_rgbaDodgerBlue, g_vecZAxis, sLengthArrow);
 
 	if (m_uiidActive == uiidX)
 		return posX;

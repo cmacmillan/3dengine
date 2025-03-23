@@ -1,7 +1,7 @@
 // ShaderKind:3D
 // DepthEnable: On
 // DepthFunc: Always
-// DepthWrite: Off
+// DepthWrite: Off ; Can't depthwrite because we want to support opacity
 // FillMode: Wireframe
 // CullMode: None 
 // Shadowcast: Off

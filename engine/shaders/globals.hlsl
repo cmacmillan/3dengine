@@ -14,7 +14,8 @@ cbuffer globals : register(b0)
 	float4	normalSunDir;
 	float	xClipNear;
 	float	xClipFar;
-	float2	vecPadding;
+    float   radHFov;
+	float	padding;
 };
 
 #endif // end include guard

@@ -37,4 +37,3 @@ _ - Put common shader structs into a header
 _ - Text wrapping (nice when trying to show long shader errors)
 X - fix lock that occurs when retracting or extending.
 _ - Perform linear -> gamma correction as a post pass (instead of writing things out as linear), convert textures into linear when importing (if they are rgba textures)
-_ - MSAA

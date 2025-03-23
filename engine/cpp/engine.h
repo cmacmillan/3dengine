@@ -85,7 +85,8 @@ struct ShaderGlobals
 
 	float	m_xClipNear;
 	float	m_xClipFar;
-	float2	m_vecPadding;
+	float	m_radHFov;
+	float	m_padding;
 };
 
 enum EDITS
@@ -100,18 +101,26 @@ enum DDK
 {
 	DDK_Sphere = 0,
 	DDK_Cube = 1,
-	DDK_ArrowBody = 2,
-	DDK_ArrowHead = 3,
+	DDK_Arrow = 2,
+	DDK_Line = 3,
+};
+
+enum DDSTYLE
+{
+	DDSTYLE_Wireframe,
+	DDSTYLE_Solid,
+	DDSTYLE_Outline
 };
 
 struct SDebugDraw
 {
 	DDK		m_ddk;
 	Mat		m_mat;
+	Mat		m_mat2;		// Extra mat for arrow
 	SRgba	m_rgba;
 	double	m_systRealtimeExpire;
 	float	m_gSort;	// Lower = draw first
-	bool	m_fWireframe;
+	DDSTYLE m_ddstyle;
 
 	float	m_gSorted;	// Don't use externally
 };
@@ -154,15 +163,15 @@ struct SGame // game
 
 	void PrintConsole(const std::string & str, float dTRealtime = 0.0f);
 
-	void DebugDrawSphere(Point posSphere, float sRadius = 1.0f, float dTRealtime = 0.0f, SRgba rgba = SRgba(0.0f, 1.0f, 0.0f, 1.0f), float gSort = 0.0f, bool fWireframe = true);
-	void DebugDrawCube(const Mat & mat, float dTRealtime = 0.0f, SRgba rgba = SRgba(0.0f, 1.0f, 0.0f, 1.0f), float gSort = 0.0f, bool fWireframe = true);
-	void DebugDrawArrow(Point pos, Vector dPos, float sRadius = 0.1f, float dTRealtime = 0.0f, SRgba rgba = SRgba(0.0f, 1.0f, 0.0f, 1.0f), float gSort = 0.0f, bool fWireframe = true);
-	void DebugDrawArrow(Point pos0, Point pos1, float sRadius = 0.1f, float dTRealtime = 0.0f, SRgba rgba = SRgba(0.0f, 1.0f, 0.0f, 1.0f), float gSort = 0.0f, bool fWireframe = true);
-	void DebugDrawLine(Point pos0, Point pos1, float dTRealtime = 0.0f, SRgba rgba = SRgba(0.0f, 1.0f, 0.0f, 1.0f), float gSort = 0.0f, bool fWireframe = true);
-	void DebugDrawLine(Point pos, Vector dPos, float dTRealtime = 0.0f, SRgba rgba = SRgba(0.0f, 1.0f, 0.0f, 1.0f), float gSort = 0.0f, bool fWireframe = true);
+	void DebugDrawSphere(Point posSphere, float sRadius = 1.0f, float dTRealtime = 0.0f, SRgba rgba = SRgba(0.0f, 1.0f, 0.0f, 1.0f), float gSort = 0.0f, DDSTYLE ddstyle = DDSTYLE_Wireframe);
+	void DebugDrawCube(const Mat & mat, float dTRealtime = 0.0f, SRgba rgba = SRgba(0.0f, 1.0f, 0.0f, 1.0f), float gSort = 0.0f, DDSTYLE ddstyle = DDSTYLE_Wireframe);
+	void DebugDrawArrow(Point pos, Vector dPos, float sRadius = 0.1f, float dTRealtime = 0.0f, SRgba rgba = SRgba(0.0f, 1.0f, 0.0f, 1.0f), float gSort = 0.0f, DDSTYLE ddstyle = DDSTYLE_Wireframe);
+	void DebugDrawArrow(Point pos0, Point pos1, float sRadius = 0.1f, float dTRealtime = 0.0f, SRgba rgba = SRgba(0.0f, 1.0f, 0.0f, 1.0f), float gSort = 0.0f, DDSTYLE ddstyle = DDSTYLE_Wireframe);
+	void DebugDrawLine(Point pos0, Point pos1, float dTRealtime = 0.0f, SRgba rgba = SRgba(0.0f, 1.0f, 0.0f, 1.0f), float gSort = 0.0f, DDSTYLE ddstyle = DDSTYLE_Wireframe);
+	void DebugDrawLine(Point pos, Vector dPos, float dTRealtime = 0.0f, SRgba rgba = SRgba(0.0f, 1.0f, 0.0f, 1.0f), float gSort = 0.0f, DDSTYLE ddstyle = DDSTYLE_Wireframe);
 
 	Point PosImgui(Point posCur, const SUiid & uiid);
-	Point PosSingleArrowImgui(Point posCur, const SUiid & uiid, SRgba rgba, Vector normal);
+	Point PosSingleArrowImgui(Point posCur, const SUiid & uiid, SRgba rgba, Vector normal, float sLengthArrow);
 
 	void EnsureMeshIn3dCbuffer(
 			SMesh3D * pMesh, 
@@ -210,8 +219,10 @@ struct SGame // game
 
 	EDITS m_edits = EDITS_Nil;
 
-	SMaterialHandle m_hMaterialWireframe = -1;
-	SMaterialHandle m_hMaterialSolid = -1;
+	SMaterialHandle m_hMaterialDebugDrawWireframe = -1;
+	SMaterialHandle m_hMaterialDebugDrawSolidNoDepthWrite = -1;
+	SMaterialHandle m_hMaterialDebugDrawSolidDepthWrite = -1;
+	SMaterialHandle m_hMaterialDebugDrawOutline = -1;
 
 	std::list<SDebugDraw> m_lDdToDraw = {};
 

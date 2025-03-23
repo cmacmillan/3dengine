@@ -11,6 +11,8 @@ bool SRgba::operator==(const SRgba & rgbaOther) const
 
 SRgba RgbaSrgbFromLinear(SRgba rgba)
 {
+	// BB this isn't the real way to do this conversion apparently, this is just an approximation
+
 	TWEAKABLE float s_gPowGamma = 2.2f;
 	return SRgba(GPow(rgba.m_r, s_gPowGamma), GPow(rgba.m_g, s_gPowGamma), GPow(rgba.m_b, s_gPowGamma), rgba.m_a);
 }

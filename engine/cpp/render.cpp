@@ -4,7 +4,7 @@
 #include "texture.h"
 #include "sun.h"
 
-void Draw3DSingle(const SMaterial * pMaterial, const SMesh3D * pMesh, Mat matModel, Mat matWorldToClip, SRgba rgba)
+void Draw3DSingle(const SMaterial * pMaterial, const SMesh3D * pMesh, const Mat & matModel, const Mat & matWorldToClip, const Mat & matWorldToCamera, SRgba rgba)
 {
 	ID3D11DeviceContext1 * pD3ddevicecontext = g_game.m_pD3ddevicecontext;
 	const SShader * pShader = pMaterial->m_hShader.PT();
@@ -35,7 +35,7 @@ void Draw3DSingle(const SMaterial * pMaterial, const SMesh3D * pMesh, Mat matMod
 	pD3ddevicecontext->Map(g_game.m_cbufferDrawnode3D, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
 	SDrawNodeRenderConstants * pDrawnode3Drc = (SDrawNodeRenderConstants *) (mappedSubresource.pData);
 
-	pDrawnode3Drc->FillOut(matModel, matWorldToClip, rgba);
+	pDrawnode3Drc->FillOut(matModel, matWorldToClip, matWorldToCamera, rgba);
 
 	pD3ddevicecontext->Unmap(g_game.m_cbufferDrawnode3D, 0);
 
@@ -46,7 +46,7 @@ void Draw3DSingle(const SMaterial * pMaterial, const SMesh3D * pMesh, Mat matMod
 	UnbindTextures(pShader);
 }
 
-void Draw3D(std::vector<SDrawNode3D *> * parypDrawnode3DToRender, Mat matWorldToClip, bool fDrawAsShadowcaster)
+void Draw3D(std::vector<SDrawNode3D *> * parypDrawnode3DToRender, const Mat & matWorldToClip, const Mat & matWorldToCamera, bool fDrawAsShadowcaster)
 {
 	ID3D11DeviceContext1 * pD3ddevicecontext = g_game.m_pD3ddevicecontext;
 	for (SDrawNode3D * pDrawnode3D : *parypDrawnode3DToRender)
@@ -70,7 +70,7 @@ void Draw3D(std::vector<SDrawNode3D *> * parypDrawnode3DToRender, Mat matWorldTo
 
 		ASSERT(pDrawnode3D->FIsDerivedFrom(TYPEK_DrawNode3D));
 
-		Draw3DSingle(pMaterial, pDrawnode3D->m_hMesh.PT(), pDrawnode3D->MatObjectToWorld(), matWorldToClip);
+		Draw3DSingle(pMaterial, pDrawnode3D->m_hMesh.PT(), pDrawnode3D->MatObjectToWorld(), matWorldToClip, matWorldToCamera);
 	}
 }
 
@@ -156,6 +156,7 @@ void BindGlobalsForCamera(SCamera3D * pCamera, SCamera3D * pCameraShadow)
 
 	pShaderglobals->m_xClipNear = pCamera->m_xNearClip;
 	pShaderglobals->m_xClipFar = pCamera->m_xFarClip;
+	pShaderglobals->m_radHFov = pCamera->m_radFovHorizontal; // NOTE will be junk when rendering orthographically
 	pD3ddevicecontext->Unmap(g_game.m_cbufferGlobals, 0);
 }
 
