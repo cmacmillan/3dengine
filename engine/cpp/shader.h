@@ -2,6 +2,7 @@
 
 #include "object.h"
 #include <d3d11_1.h>
+#include "linearmap.h"
 
 struct SFile;
 
@@ -44,17 +45,19 @@ struct SShaderData
 struct SShader : SObject // shader
 {
 	typedef SObject super;
-	SShader(const char * pChzFile, TYPEK typek = TYPEK_Shader);
+	SShader(const char * pChzFile, SKv<std::string, std::string> * aKvReplacement = nullptr, int cKvReplacement = -1, TYPEK typek = TYPEK_Shader);
 	~SShader();
 
-	static bool FTryLoadFromFile(SFile * pFile, SShaderData * pData, std::string * pStrError);
+	static bool FTryLoadFromFile(SFile * pFile, SKv<std::string, std::string> * aKvReplacement, int cKvReplacement, SShaderData * pData, std::string * pStrError);
 	SShaderHandle HShader() { return (SShaderHandle) m_nHandle; }
 	int CNamedslot() const { return m_data.m_mpISlotStrName.size(); }
 	void UpdateHotload();
 	void ReleaseResources();
 
-	std::string						m_strFile;
-	FILETIME						m_filetimeLastEdit = {};
+	std::string							m_strFile;
+	FILETIME							m_filetimeLastEdit = {};
 
-	SShaderData						m_data;
+	SShaderData							m_data;
+	SKv<std::string, std::string> *		m_aKvReplacement = nullptr; // NOTE this should point towards static consts (not something that might go away)
+	int									m_cKvReplacement = -1;
 };

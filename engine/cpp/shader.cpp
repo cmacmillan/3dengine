@@ -3,7 +3,6 @@
 #include "engine.h"
 #include "file.h"
 #include <vector>
-#include "linearmap.h"
 
 #pragma comment(lib, "dxguid.lib") // For shader reflection
 
@@ -294,8 +293,30 @@ void SLineParser::ParseLines(const std::string & str)
 	SetState(PARSE_Nil, str);
 }
 
+// BB $replacement doesn't work with textures
+
+bool FTryPerformReplacement(SKv<std::string, std::string> * aKvReplacement, int cKvReplacement, std::string * pStrReplace, std::string * pStrError)
+{
+	if (!aKvReplacement)
+		return true;
+
+	// BB this replacement using a kv map filled with strings is gross & very bad
+
+	if (pStrReplace->size() == 0)
+		return true;
+
+	if ((*pStrReplace)[0] != '$')
+		return true;
+
+	*pStrReplace = pStrReplace->substr(1); // Remove the '$'
+
+	// If str value starts with dollar sign, perform replacement
+
+	VERIFY(FTryGetValueFromKey(aKvReplacement, cKvReplacement, FMatchCaseInsensitive, *pStrReplace, pStrReplace));
+}
+
 template<typename K, typename V>
-bool FTryParseOneOrZeroParams(const SLineParser & parser, const char * pChzParameterName, SKv<K, V> * aKv, int cKv, V * pValue, std::string * pStrError)
+bool FTryParseOneOrZeroParams(const SLineParser & parser, const char * pChzParameterName, SKv<K, V> * aKv, int cKv, SKv<std::string, std::string> * aKvReplacement, int cKvReplacement, V * pValue, std::string * pStrError)
 {
 	std::vector<const SParsedLine *> arypLine; // TODO turn into stack or frame array
 
@@ -309,9 +330,13 @@ bool FTryParseOneOrZeroParams(const SLineParser & parser, const char * pChzParam
 			return false;
 		}
 
-		if (!FTryGetValueFromKey(aKv, cKv, FMatchCaseInsensitive, arypLine.front()->m_pairMain.m_strValue, pValue))
+		std::string strValue = arypLine.front()->m_pairMain.m_strValue;
+		if (!FTryPerformReplacement(aKvReplacement, cKvReplacement, &strValue, pStrError))
+			return false;
+
+		if (!FTryGetValueFromKey(aKv, cKv, FMatchCaseInsensitive, strValue, pValue))
 		{
-			*pStrError = StrPrintf("Unrecognized '%s' tag '%s'", pChzParameterName, arypLine.front()->m_pairMain.m_strValue.c_str());
+			*pStrError = StrPrintf("Unrecognized '%s' tag '%s'", pChzParameterName, strValue.c_str());
 			return false;
 		}
 	}
@@ -319,7 +344,7 @@ bool FTryParseOneOrZeroParams(const SLineParser & parser, const char * pChzParam
 	return true;
 }
 
-bool SShader::FTryLoadFromFile(SFile * pFile, SShaderData * pData, std::string * pStrError)
+bool SShader::FTryLoadFromFile(SFile * pFile, SKv<std::string, std::string> * aKvReplacement, int cKvReplacement, SShaderData * pData, std::string * pStrError)
 {
 	std::string strFile = pFile->StrGet();
 
@@ -418,6 +443,8 @@ bool SShader::FTryLoadFromFile(SFile * pFile, SShaderData * pData, std::string *
 				pChzShaderKind, 
 				mpStrShaderk, 
 				DIM(mpStrShaderk), 
+				aKvReplacement,
+				cKvReplacement,
 				&pData->m_shaderk, 
 				pStrError))
 			return false;
@@ -431,6 +458,8 @@ bool SShader::FTryLoadFromFile(SFile * pFile, SShaderData * pData, std::string *
 				pChzShadowcast, 
 				mpStrBool, 
 				DIM(mpStrBool), 
+				aKvReplacement,
+				cKvReplacement,
 				(BOOL *)&pData->m_fShadowcast,
 				pStrError))
 			return false;
@@ -444,6 +473,8 @@ bool SShader::FTryLoadFromFile(SFile * pFile, SShaderData * pData, std::string *
 				pChzDepthEnable, 
 				mpStrBool, 
 				DIM(mpStrBool), 
+				aKvReplacement,
+				cKvReplacement,
 				&pData->m_d3ddepthstencildesc.DepthEnable,
 				pStrError))
 			return false;
@@ -460,6 +491,8 @@ bool SShader::FTryLoadFromFile(SFile * pFile, SShaderData * pData, std::string *
 				pChzDepthWrite, 
 				mpStrD3ddepthwritemask, 
 				DIM(mpStrD3ddepthwritemask), 
+				aKvReplacement,
+				cKvReplacement,
 				&pData->m_d3ddepthstencildesc.DepthWriteMask,
 				pStrError))
 			return false;
@@ -484,6 +517,8 @@ bool SShader::FTryLoadFromFile(SFile * pFile, SShaderData * pData, std::string *
 				pChzDepthFunc, 
 				mpStrComparisonfunc, 
 				DIM(mpStrComparisonfunc), 
+				aKvReplacement,
+				cKvReplacement,
 				&pData->m_d3ddepthstencildesc.DepthFunc,
 				pStrError))
 			return false;
@@ -500,6 +535,8 @@ bool SShader::FTryLoadFromFile(SFile * pFile, SShaderData * pData, std::string *
 				pChzFillMode, 
 				mpStrFillmode, 
 				DIM(mpStrFillmode), 
+				aKvReplacement,
+				cKvReplacement,
 				&pData->m_d3drasterizerdesc.FillMode,
 				pStrError))
 			return false;
@@ -516,6 +553,8 @@ bool SShader::FTryLoadFromFile(SFile * pFile, SShaderData * pData, std::string *
 				pChzCullMode, 
 				mpStrCullmode, 
 				DIM(mpStrCullmode), 
+				aKvReplacement,
+				cKvReplacement,
 				&pData->m_d3drasterizerdesc.CullMode,
 				pStrError))
 			return false;
@@ -553,6 +592,8 @@ bool SShader::FTryLoadFromFile(SFile * pFile, SShaderData * pData, std::string *
 				pChzBlendEnable, 
 				mpStrBool, 
 				DIM(mpStrBool), 
+				aKvReplacement,
+				cKvReplacement,
 				&pData->m_d3drtblenddesc.BlendEnable,
 				pStrError))
 			return false;
@@ -566,6 +607,8 @@ bool SShader::FTryLoadFromFile(SFile * pFile, SShaderData * pData, std::string *
 				pChzSrcBlend, 
 				mpStrBlend, 
 				DIM(mpStrBlend), 
+				aKvReplacement,
+				cKvReplacement,
 				&pData->m_d3drtblenddesc.SrcBlend,
 				pStrError))
 			return false;
@@ -579,6 +622,8 @@ bool SShader::FTryLoadFromFile(SFile * pFile, SShaderData * pData, std::string *
 				pChzDestBlend, 
 				mpStrBlend, 
 				DIM(mpStrBlend), 
+				aKvReplacement,
+				cKvReplacement,
 				&pData->m_d3drtblenddesc.DestBlend,
 				pStrError))
 			return false;
@@ -592,6 +637,8 @@ bool SShader::FTryLoadFromFile(SFile * pFile, SShaderData * pData, std::string *
 				pChzBlendOp, 
 				mpStrBlendop, 
 				DIM(mpStrBlendop), 
+				aKvReplacement,
+				cKvReplacement,
 				&pData->m_d3drtblenddesc.BlendOp,
 				pStrError))
 			return false;
@@ -621,6 +668,8 @@ bool SShader::FTryLoadFromFile(SFile * pFile, SShaderData * pData, std::string *
 				pChzRtWriteMask, 
 				mpStrColorwriteenable, 
 				DIM(mpStrColorwriteenable), 
+				aKvReplacement,
+				cKvReplacement,
 				&pData->m_d3drtblenddesc.RenderTargetWriteMask,
 				pStrError))
 			return false;
@@ -634,6 +683,8 @@ bool SShader::FTryLoadFromFile(SFile * pFile, SShaderData * pData, std::string *
 				pChzBlendOpAlpha, 
 				mpStrBlendop, 
 				DIM(mpStrBlendop), 
+				aKvReplacement,
+				cKvReplacement,
 				&pData->m_d3drtblenddesc.BlendOpAlpha,
 				pStrError))
 			return false;
@@ -647,6 +698,8 @@ bool SShader::FTryLoadFromFile(SFile * pFile, SShaderData * pData, std::string *
 				pChzSrcBlendAlpha, 
 				mpStrBlend, 
 				DIM(mpStrBlend), 
+				aKvReplacement,
+				cKvReplacement,
 				&pData->m_d3drtblenddesc.SrcBlendAlpha,
 				pStrError))
 			return false;
@@ -660,6 +713,8 @@ bool SShader::FTryLoadFromFile(SFile * pFile, SShaderData * pData, std::string *
 				pChzDestBlendAlpha, 
 				mpStrBlend, 
 				DIM(mpStrBlend), 
+				aKvReplacement,
+				cKvReplacement,
 				&pData->m_d3drtblenddesc.DestBlendAlpha,
 				pStrError))
 			return false;
@@ -832,7 +887,7 @@ bool SShader::FTryLoadFromFile(SFile * pFile, SShaderData * pData, std::string *
 	return true;
 }
 
-SShader::SShader(const char * pChzFile, TYPEK typek) : super(typek)
+SShader::SShader(const char * pChzFile, SKv<std::string, std::string> * aKvReplacement, int cKvReplacement, TYPEK typek) : super(typek)
 {
 	m_strFile = pChzFile;
 
@@ -843,13 +898,15 @@ SShader::SShader(const char * pChzFile, TYPEK typek) : super(typek)
 
 	SShaderData data;
 	std::string strError;
-	if (!FTryLoadFromFile(&file, &data, &strError))
+	if (!FTryLoadFromFile(&file, aKvReplacement, cKvReplacement, &data, &strError))
 	{
 		m_data.m_shaderk = SHADERK_Error;
 		g_game.PrintConsole(StrPrintf("Shader compile error (%s) :\n%s\n", m_strFile.c_str(), strError.c_str()), 20.0f);
 		return;
 	}
-	
+
+	m_aKvReplacement = aKvReplacement;
+	m_cKvReplacement = cKvReplacement;
 	m_data = data;
 }
 
@@ -878,7 +935,7 @@ void SShader::UpdateHotload()
 
 	SShaderData data;
 	std::string strError;
-	if (!FTryLoadFromFile(&file, &data, &strError))
+	if (!FTryLoadFromFile(&file, m_aKvReplacement, m_cKvReplacement, &data, &strError))
 	{
 		m_data.m_shaderk = SHADERK_Error;
 		g_game.PrintConsole(StrPrintf("Shader compile error (%s) :\n%s\n", m_strFile.c_str(), strError.c_str()), 15.0f);
