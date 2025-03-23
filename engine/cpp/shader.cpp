@@ -293,20 +293,18 @@ void SLineParser::ParseLines(const std::string & str)
 	SetState(PARSE_Nil, str);
 }
 
-// BB $replacement doesn't work with textures
-
-bool FTryPerformReplacement(SKv<std::string, std::string> * aKvReplacement, int cKvReplacement, std::string * pStrReplace, std::string * pStrError)
+void PerformReplacement(SKv<std::string, std::string> * aKvReplacement, int cKvReplacement, std::string * pStrReplace, std::string * pStrError)
 {
 	if (!aKvReplacement)
-		return true;
+		return;
 
 	// BB this replacement using a kv map filled with strings is gross & very bad
 
 	if (pStrReplace->size() == 0)
-		return true;
+		return;
 
 	if ((*pStrReplace)[0] != '$')
-		return true;
+		return;
 
 	*pStrReplace = pStrReplace->substr(1); // Remove the '$'
 
@@ -316,7 +314,7 @@ bool FTryPerformReplacement(SKv<std::string, std::string> * aKvReplacement, int 
 }
 
 template<typename K, typename V>
-bool FTryParseOneOrZeroParams(const SLineParser & parser, const char * pChzParameterName, SKv<K, V> * aKv, int cKv, SKv<std::string, std::string> * aKvReplacement, int cKvReplacement, V * pValue, std::string * pStrError)
+bool FTryParseOneOrZeroParams(const SLineParser & parser, const char * pChzParameterName, SKv<K, V> * aKv, int cKv, V * pValue, std::string * pStrError)
 {
 	std::vector<const SParsedLine *> arypLine; // TODO turn into stack or frame array
 
@@ -330,10 +328,7 @@ bool FTryParseOneOrZeroParams(const SLineParser & parser, const char * pChzParam
 			return false;
 		}
 
-		std::string strValue = arypLine.front()->m_pairMain.m_strValue;
-		if (!FTryPerformReplacement(aKvReplacement, cKvReplacement, &strValue, pStrError))
-			return false;
-
+		std::string strValue = arypLine[0]->m_pairMain.m_strValue;
 		if (!FTryGetValueFromKey(aKv, cKv, FMatchCaseInsensitive, strValue, pValue))
 		{
 			*pStrError = StrPrintf("Unrecognized '%s' tag '%s'", pChzParameterName, strValue.c_str());
@@ -353,6 +348,17 @@ bool SShader::FTryLoadFromFile(SFile * pFile, SKv<std::string, std::string> * aK
 
 	SLineParser parser;
 	parser.ParseLines(strFile);
+
+	// Perform $replacement
+
+	for (SParsedLine & line : parser.m_aryLine)
+	{
+		PerformReplacement(aKvReplacement, cKvReplacement, &line.m_pairMain.m_strValue, pStrError);
+		for (SPair & pair : line.m_aryPair)
+		{
+			PerformReplacement(aKvReplacement, cKvReplacement, &pair.m_strValue, pStrError);
+		}
+	}
 
 	// Set up defaults:
 
@@ -443,8 +449,6 @@ bool SShader::FTryLoadFromFile(SFile * pFile, SKv<std::string, std::string> * aK
 				pChzShaderKind, 
 				mpStrShaderk, 
 				DIM(mpStrShaderk), 
-				aKvReplacement,
-				cKvReplacement,
 				&pData->m_shaderk, 
 				pStrError))
 			return false;
@@ -458,8 +462,6 @@ bool SShader::FTryLoadFromFile(SFile * pFile, SKv<std::string, std::string> * aK
 				pChzShadowcast, 
 				mpStrBool, 
 				DIM(mpStrBool), 
-				aKvReplacement,
-				cKvReplacement,
 				(BOOL *)&pData->m_fShadowcast,
 				pStrError))
 			return false;
@@ -473,8 +475,6 @@ bool SShader::FTryLoadFromFile(SFile * pFile, SKv<std::string, std::string> * aK
 				pChzDepthEnable, 
 				mpStrBool, 
 				DIM(mpStrBool), 
-				aKvReplacement,
-				cKvReplacement,
 				&pData->m_d3ddepthstencildesc.DepthEnable,
 				pStrError))
 			return false;
@@ -491,8 +491,6 @@ bool SShader::FTryLoadFromFile(SFile * pFile, SKv<std::string, std::string> * aK
 				pChzDepthWrite, 
 				mpStrD3ddepthwritemask, 
 				DIM(mpStrD3ddepthwritemask), 
-				aKvReplacement,
-				cKvReplacement,
 				&pData->m_d3ddepthstencildesc.DepthWriteMask,
 				pStrError))
 			return false;
@@ -517,8 +515,6 @@ bool SShader::FTryLoadFromFile(SFile * pFile, SKv<std::string, std::string> * aK
 				pChzDepthFunc, 
 				mpStrComparisonfunc, 
 				DIM(mpStrComparisonfunc), 
-				aKvReplacement,
-				cKvReplacement,
 				&pData->m_d3ddepthstencildesc.DepthFunc,
 				pStrError))
 			return false;
@@ -535,8 +531,6 @@ bool SShader::FTryLoadFromFile(SFile * pFile, SKv<std::string, std::string> * aK
 				pChzFillMode, 
 				mpStrFillmode, 
 				DIM(mpStrFillmode), 
-				aKvReplacement,
-				cKvReplacement,
 				&pData->m_d3drasterizerdesc.FillMode,
 				pStrError))
 			return false;
@@ -553,8 +547,6 @@ bool SShader::FTryLoadFromFile(SFile * pFile, SKv<std::string, std::string> * aK
 				pChzCullMode, 
 				mpStrCullmode, 
 				DIM(mpStrCullmode), 
-				aKvReplacement,
-				cKvReplacement,
 				&pData->m_d3drasterizerdesc.CullMode,
 				pStrError))
 			return false;
@@ -592,8 +584,6 @@ bool SShader::FTryLoadFromFile(SFile * pFile, SKv<std::string, std::string> * aK
 				pChzBlendEnable, 
 				mpStrBool, 
 				DIM(mpStrBool), 
-				aKvReplacement,
-				cKvReplacement,
 				&pData->m_d3drtblenddesc.BlendEnable,
 				pStrError))
 			return false;
@@ -607,8 +597,6 @@ bool SShader::FTryLoadFromFile(SFile * pFile, SKv<std::string, std::string> * aK
 				pChzSrcBlend, 
 				mpStrBlend, 
 				DIM(mpStrBlend), 
-				aKvReplacement,
-				cKvReplacement,
 				&pData->m_d3drtblenddesc.SrcBlend,
 				pStrError))
 			return false;
@@ -622,8 +610,6 @@ bool SShader::FTryLoadFromFile(SFile * pFile, SKv<std::string, std::string> * aK
 				pChzDestBlend, 
 				mpStrBlend, 
 				DIM(mpStrBlend), 
-				aKvReplacement,
-				cKvReplacement,
 				&pData->m_d3drtblenddesc.DestBlend,
 				pStrError))
 			return false;
@@ -637,8 +623,6 @@ bool SShader::FTryLoadFromFile(SFile * pFile, SKv<std::string, std::string> * aK
 				pChzBlendOp, 
 				mpStrBlendop, 
 				DIM(mpStrBlendop), 
-				aKvReplacement,
-				cKvReplacement,
 				&pData->m_d3drtblenddesc.BlendOp,
 				pStrError))
 			return false;
@@ -668,8 +652,6 @@ bool SShader::FTryLoadFromFile(SFile * pFile, SKv<std::string, std::string> * aK
 				pChzRtWriteMask, 
 				mpStrColorwriteenable, 
 				DIM(mpStrColorwriteenable), 
-				aKvReplacement,
-				cKvReplacement,
 				&pData->m_d3drtblenddesc.RenderTargetWriteMask,
 				pStrError))
 			return false;
@@ -683,8 +665,6 @@ bool SShader::FTryLoadFromFile(SFile * pFile, SKv<std::string, std::string> * aK
 				pChzBlendOpAlpha, 
 				mpStrBlendop, 
 				DIM(mpStrBlendop), 
-				aKvReplacement,
-				cKvReplacement,
 				&pData->m_d3drtblenddesc.BlendOpAlpha,
 				pStrError))
 			return false;
@@ -698,8 +678,6 @@ bool SShader::FTryLoadFromFile(SFile * pFile, SKv<std::string, std::string> * aK
 				pChzSrcBlendAlpha, 
 				mpStrBlend, 
 				DIM(mpStrBlend), 
-				aKvReplacement,
-				cKvReplacement,
 				&pData->m_d3drtblenddesc.SrcBlendAlpha,
 				pStrError))
 			return false;
@@ -713,8 +691,6 @@ bool SShader::FTryLoadFromFile(SFile * pFile, SKv<std::string, std::string> * aK
 				pChzDestBlendAlpha, 
 				mpStrBlend, 
 				DIM(mpStrBlend), 
-				aKvReplacement,
-				cKvReplacement,
 				&pData->m_d3drtblenddesc.DestBlendAlpha,
 				pStrError))
 			return false;
@@ -723,6 +699,8 @@ bool SShader::FTryLoadFromFile(SFile * pFile, SKv<std::string, std::string> * aK
 	// Texture
 
 	{
+		// Textures don't support replacement
+
 		std::vector<const SParsedLine *> arypLine; // TODO turn into stack or frame array
 
 		parser.FindLines(pChzTexture, &arypLine);

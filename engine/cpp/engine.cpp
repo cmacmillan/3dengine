@@ -597,11 +597,11 @@ void SGame::Init(HINSTANCE hInstance)
 	SMaterial * pMaterialDebugDrawWireframe = new SMaterial((new SShader("shaders/debugdrawwireframe.hlsl"))->HShader(), "wireframe");
 	m_hMaterialDebugDrawWireframe = pMaterialDebugDrawWireframe->HMaterial();
 
-	static SKv<std::string, std::string> mpStrStrDebugDrawSolidNoDepthWrite[] = { {std::string("DepthWrite"), std::string("Off")} };
+	static SKv<std::string, std::string> mpStrStrDebugDrawSolidNoDepthWrite[] = { {"DepthWrite", "Off"} };
 	SMaterial * pMaterialDebugDrawSolidNoDepthWrite = new SMaterial((new SShader("shaders/debugdrawsolid.hlsl", mpStrStrDebugDrawSolidNoDepthWrite, DIM(mpStrStrDebugDrawSolidNoDepthWrite)))->HShader(), "solid");
 	m_hMaterialDebugDrawSolidNoDepthWrite = pMaterialDebugDrawSolidNoDepthWrite->HMaterial();
 
-	static SKv<std::string, std::string> mpStrStrDebugDrawSolidDepthWrite[] = { {std::string("DepthWrite"), std::string("On")} };
+	static SKv<std::string, std::string> mpStrStrDebugDrawSolidDepthWrite[] = { {"DepthWrite", "On"} };
 	SMaterial * pMaterialDebugDrawSolidDepthWrite = new SMaterial((new SShader("shaders/debugdrawsolid.hlsl", mpStrStrDebugDrawSolidNoDepthWrite, DIM(mpStrStrDebugDrawSolidNoDepthWrite)))->HShader(), "solid");
 	m_hMaterialDebugDrawSolidDepthWrite = pMaterialDebugDrawSolidDepthWrite->HMaterial();
 
