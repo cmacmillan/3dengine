@@ -23,8 +23,9 @@ VS_Output vs_main(VS_Input input)
     VS_Output output;
     float4 posWorld = mul(input.pos, matObjectToWorld);
     float4 posCam = mul(posWorld, matV);
-    float gScalar = tan(radHFov*.5) * posCam.x;
-    output.pos = mul(posWorld + normalize(mul(input.normal, matObjectToWorldInverseTranspose)) * .002 * gScalar, matVP);
+    float gScale = 2.0f;
+    float gScalar = gScale * tan(radHFov * .5) * posCam.x / length(vecWinSize);
+    output.pos = mul(posWorld + normalize(mul(input.normal, matObjectToWorldInverseTranspose))  * gScalar, matVP);
     return output;
 }
 

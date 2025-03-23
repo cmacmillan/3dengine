@@ -28,7 +28,7 @@ _ - Figure out how we're gonna deal with the fact that linked blender prefabs wi
 X - timescaling (pg up/pg down)
 X - implement += -= for points, vectors and vec4s
 _ - fix issue where sphere hitting near the edge of box can get pushed out in the wrong direction (potentially sweep a capsule from the start to the end and find the intersection point that way). Or maybe something where we pick the face that puts us closest to where we came from or something
-_ - Implement continuous sphere collision detection. If a sphere moves more than .25 it's radius kick on the continuous detection
+_ - Implement GJK + sweep
 _ - Support pausing without crashing
 _ - Add a "reload the scene" 'r' button
 _ - figure out what's up with stair collision
@@ -38,3 +38,4 @@ _ - Text wrapping (nice when trying to show long shader errors)
 X - fix lock that occurs when retracting or extending.
 _ - Perform linear -> gamma correction as a post pass (instead of writing things out as linear), convert textures into linear when importing (if they are rgba textures)
 _ - MSAA
+_ - Add shader replacement macro, so you can pass a key-value array when constructing a shader to specify parameters

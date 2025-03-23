@@ -1496,9 +1496,9 @@ Point SGame::PosImgui(Point posCur, const SUiid & uiid)
 	float posXCam = (posCur * pCamera->MatObjectToWorld().MatInverse()).X();
 	float sWidthAtX = GTan(pCamera->m_radFovHorizontal * 0.5f) * 2.0f * posXCam;
 
-	TWEAKABLE float s_gArrowScalar = 0.1f;
+	TWEAKABLE float s_gArrowScalar = 120.0f;
 
-	float sLengthArrow = s_gArrowScalar * sWidthAtX;
+	float sLengthArrow = s_gArrowScalar * sWidthAtX / SLength(VecWinSize());
 
 	SUiid uiidX = uiid;
 	uiidX.m_index = 0;
