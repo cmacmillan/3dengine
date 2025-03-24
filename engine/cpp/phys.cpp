@@ -374,27 +374,41 @@ Point PosSupportBox(const Mat & matPhys, Vector vecNonuniformScale, Vector norma
 	return pos;
 }
 
-Point PosMinkSweptSphereBox(Point posSphere, float sRadius, Vector dPosSweep, const Mat & matPhys, Vector vecNonuniformScale, Vector normalSupport)
+struct SMink
 {
-#if 1
+	Point m_posMink;
+	Point m_posSrcA;
+	Point m_posSrcB;
+};
+
+SMink MinkSweptSphereBox(Point posSphere, float sRadius, Vector dPosSweep, const Mat & matPhys, Vector vecNonuniformScale, Vector normalSupport)
+{
+#if 0
 	// Implicit
 	return PosSupportSweptSphere(posSphere, sRadius, dPosSweep, normalSupport) - PosSupportBox(matPhys, vecNonuniformScale, -normalSupport);
-#else
-	// Discrete
-	return PosSupportSweptIcosphere(posSphere, sRadius, dPosSweep, normalSupport) - PosSupportBox(matPhys, vecNonuniformScale, -normalSupport);
 #endif
+
+	SMink mink; 
+	mink.m_posSrcA = PosSupportSweptIcosphere(posSphere, sRadius, dPosSweep, normalSupport);
+	mink.m_posSrcB = PosSupportBox(matPhys, vecNonuniformScale, -normalSupport);
+	mink.m_posMink = mink.m_posSrcA - mink.m_posSrcB;
+	return mink;
 }
 
-bool FHandleTriangle(Point pos0, Point pos1, Point pos2, Vector * pNormalOutward, Vector * pNormalSupport, SFixArray<Point, 4> * paryPosMink)
+bool FHandleTriangle(SMink mink0, SMink mink1, SMink mink2, Vector * pNormalOutward, Vector * pNormalSupport, SFixArray<SMink, 4> * paryMink, Point * pPos0, Point * pPos1)
 {
+	Point pos0 = mink0.m_posMink;
+	Point pos1 = mink1.m_posMink;
+	Point pos2 = mink2.m_posMink;
+
 	// Handle optional "outward" vector used in tetrahedron case
 
 	if (pNormalOutward && GDot(*pNormalOutward, -pos0) < 0.0f)
 		return false;
 
-	Vector normalTriangle = VecCross(pos1-pos0, pos2-pos0);
-	Vector normal01 = VecCross(normalTriangle, pos1-pos0);
-	Vector normal12 = VecCross(normalTriangle, pos2-pos1);
+	Vector normalTriangle = VecNormalizeSafe(VecCross(pos1 - pos0, pos2 - pos0));
+	Vector normal01 = VecCross(normalTriangle, pos1 - pos0);
+	Vector normal12 = VecCross(normalTriangle, pos2 - pos1);
 	Vector normal02 = VecCross(normalTriangle, pos2 - pos0);
 
 	// Flip normals to ensure they point outward
@@ -420,10 +434,56 @@ bool FHandleTriangle(Point pos0, Point pos1, Point pos2, Vector * pNormalOutward
 	if (fInTri)
 	{
 		*pNormalSupport = VecNormalizeElse(VecProjectOnNormal(-pos0, normalTriangle), g_vecXAxis);
-		paryPosMink->Empty();
-		paryPosMink->Append(pos0);
-		paryPosMink->Append(pos1);
-		paryPosMink->Append(pos2);
+		paryMink->Empty();
+		paryMink->Append(mink0);
+		paryMink->Append(mink1);
+		paryMink->Append(mink2);
+
+		// Barycentric coordinates (derived in mathematica)
+
+		Point posOrigin = VecProjectOnTangent(-pos0,normalTriangle)+pos0;
+
+		float gDenom = 
+			+ pos0.Z() * pos1.Y() * pos2.X()
+			- pos0.Y() * pos1.Z() * pos2.X() 
+			- pos0.Z() * pos1.X() * pos2.Y() 
+			+ pos0.X() * pos1.Z() * pos2.Y() 
+			+ pos0.Y() * pos1.X() * pos2.Z() 
+			- pos0.X() * pos1.Y() * pos2.Z();
+		ASSERT(!isnan(gDenom) && gDenom != 0.0f);
+
+		float gTNum =
+			- pos1.Z() * pos2.Y() * posOrigin.X()
+			+ pos1.Y() * pos2.Z() * posOrigin.X()
+			+ pos1.Z() * pos2.X() * posOrigin.Y()
+			- pos1.X() * pos2.Z() * posOrigin.Y()
+			- pos1.Y() * pos2.X() * posOrigin.Z()
+			+ pos1.X() * pos2.Y() * posOrigin.Z();
+
+		float gUNum =
+			+ pos0.Z() * pos2.Y() * posOrigin.X()
+			- pos0.Y() * pos2.Z() * posOrigin.X()
+			- pos0.Z() * pos2.X() * posOrigin.Y()
+			+ pos0.X() * pos2.Z() * posOrigin.Y()
+			+ pos0.Y() * pos2.X() * posOrigin.Z()
+			- pos0.X() * pos2.Y() * posOrigin.Z();
+
+		float gVNum =
+			- pos0.Z() * pos1.Y() * posOrigin.X()
+			+ pos0.Y() * pos1.Z() * posOrigin.X()
+			+ pos0.Z() * pos1.X() * posOrigin.Y()
+			- pos0.X() * pos1.Z() * posOrigin.Y()
+			- pos0.Y() * pos1.X() * posOrigin.Z()
+			+ pos0.X() * pos1.Y() * posOrigin.Z();
+
+		ASSERT(!isnan(gTNum) && !isnan(gUNum) && !isnan(gVNum));
+
+		float gT = -gTNum/gDenom;
+		float gU = -gUNum/gDenom;
+		float gV = -gVNum/gDenom;
+
+		*pPos0 = Vector(mink0.m_posSrcA) * gT + Vector(mink1.m_posSrcA) * gU + Vector(mink2.m_posSrcA) * gV;
+		*pPos1 = Vector(mink0.m_posSrcB) * gT + Vector(mink1.m_posSrcB) * gU + Vector(mink2.m_posSrcB) * gV;
 	}
 
 	return fInTri;
@@ -456,41 +516,50 @@ int IOriginInLineSegment(Point pos0, Point pos1, float * pS = nullptr)
 	}
 }
 
-void SetSimplexPoint(Point pos, Vector * pNormalSupport, SFixArray<Point, 4> * paryPosMink)
+void SetSimplexPoint(SMink mink, Vector * pNormalSupport, SFixArray<SMink, 4> * paryMink, Point * pPos0, Point * pPos1)
 {
-	paryPosMink->Empty();
-	paryPosMink->Append(pos);
-	*pNormalSupport = VecNormalizeSafe(-pos);
+	paryMink->Empty();
+	paryMink->Append(mink);
+	*pPos0 = mink.m_posSrcA;
+	*pPos1 = mink.m_posSrcB;
+	*pNormalSupport = VecNormalizeSafe(-mink.m_posMink);
 }
 
-void SetSimplexLineSegment(Point pos0, Point pos1, Vector * pNormalSupport, SFixArray<Point, 4> * paryPosMink)
+void SetSimplexLineSegment(SMink mink0, SMink mink1, Vector * pNormalSupport, SFixArray<SMink, 4> * paryMink, Point * pPos0, Point * pPos1)
 {
-	paryPosMink->Empty();
-	paryPosMink->Append(pos0);
-	paryPosMink->Append(pos1);
-	*pNormalSupport = VecNormalizeSafe(VecProjectOnTangent(-pos0, VecNormalizeSafe(pos1 - pos0)));
+	paryMink->Empty();
+	paryMink->Append(mink0);
+	paryMink->Append(mink1);
+	Vector dPos = mink1.m_posMink - mink0.m_posMink;
+	float s = SLength(dPos);
+	Vector normal = dPos / s;
+	float u = GDot(-mink0.m_posMink, normal)/s;
+	ASSERT(u >= 0.0f && u <= 1.0f);
+	*pPos0 = PosLerp(mink0.m_posSrcA, mink1.m_posSrcA, u);
+	*pPos1 = PosLerp(mink0.m_posSrcB, mink1.m_posSrcB, u);
+	*pNormalSupport = VecNormalizeSafe(VecProjectOnTangent(-mink0.m_posMink, normal));
 }
 
-bool FSimplex(Vector * pNormalSupport, SFixArray<Point, 4> * paryPosMink)
+bool FSimplex(Vector * pNormalSupport, SFixArray<SMink, 4> * paryMink, Point * pPos0, Point * pPos1)
 {
-	switch (paryPosMink->m_c)
+	switch (paryMink->m_c)
 	{
 	case 2:
 		{
-			Point pos0 = (*paryPosMink)[0];
-			Point pos1 = (*paryPosMink)[1];
-			switch (IOriginInLineSegment(pos0, pos1))
+			SMink mink0= (*paryMink)[0];
+			SMink mink1 = (*paryMink)[1];
+			switch (IOriginInLineSegment(mink0.m_posMink, mink1.m_posMink))
 			{
 				case -1:
-					SetSimplexLineSegment(pos0, pos1, pNormalSupport, paryPosMink);
+					SetSimplexLineSegment(mink0, mink1, pNormalSupport, paryMink, pPos0, pPos1);
 					break;
 
 				case 0:
-					SetSimplexPoint(pos0, pNormalSupport, paryPosMink);
+					SetSimplexPoint(mink0, pNormalSupport, paryMink, pPos0, pPos1);
 					break;
 
 				case 1:
-					SetSimplexPoint(pos1, pNormalSupport, paryPosMink);
+					SetSimplexPoint(mink1, pNormalSupport, paryMink, pPos0, pPos1);
 					break;
 
 				default:
@@ -502,17 +571,17 @@ bool FSimplex(Vector * pNormalSupport, SFixArray<Point, 4> * paryPosMink)
 		break;
 	case 3:
 		{
-			Point pos0 = (*paryPosMink)[0];
-			Point pos1 = (*paryPosMink)[1];
-			Point pos2 = (*paryPosMink)[2];
-			if (FHandleTriangle(pos0, pos1, pos2, nullptr, pNormalSupport, paryPosMink))
+			SMink mink0 = (*paryMink)[0];
+			SMink mink1 = (*paryMink)[1];
+			SMink mink2 = (*paryMink)[2];
+			if (FHandleTriangle(mink0, mink1, mink2, nullptr, pNormalSupport, paryMink, pPos0, pPos1))
 				return false;
 
 			// BB a bit gross
 
 			const int c = 3;
-			Point aPos0[c] = { pos0, pos1, pos0 };
-			Point aPos1[c] = { pos1, pos2, pos2 };
+			SMink aMink0[c] = { mink0, mink1, mink0 };
+			SMink aMink1[c] = { mink1, mink2, mink2 };
 			int aiOrigin[c];
 
 			float sBest = FLT_MAX;
@@ -521,7 +590,7 @@ bool FSimplex(Vector * pNormalSupport, SFixArray<Point, 4> * paryPosMink)
 			for (int i = 0; i < c; i++)
 			{
 				float sCur;
-				aiOrigin[i] = IOriginInLineSegment(aPos0[i], aPos1[i], &sCur);
+				aiOrigin[i] = IOriginInLineSegment(aMink0[i].m_posMink, aMink1[i].m_posMink, &sCur);
 				if (aiOrigin[i] == -1)
 				{
 					if (sCur < sBest)
@@ -538,20 +607,25 @@ bool FSimplex(Vector * pNormalSupport, SFixArray<Point, 4> * paryPosMink)
 
 			if (iBest != -1)
 			{
-				SetSimplexLineSegment(aPos0[iBest], aPos1[iBest], pNormalSupport, paryPosMink);
+				SetSimplexLineSegment(aMink0[iBest], aMink1[iBest], pNormalSupport, paryMink, pPos0, pPos1);
 				return false;
 			}
 
-			SetSimplexPoint((aiOrigin[iPoint] == 0)? aPos0[iPoint] : aPos1[iPoint], pNormalSupport, paryPosMink);
+			SetSimplexPoint((aiOrigin[iPoint] == 0)? aMink0[iPoint] : aMink1[iPoint], pNormalSupport, paryMink, pPos0, pPos1);
 			return false;
 		}
 		break;
 	case 4:
 		{
-			Point pos0 = (*paryPosMink)[0];
-			Point pos1 = (*paryPosMink)[1];
-			Point pos2 = (*paryPosMink)[2];
-			Point pos3 = (*paryPosMink)[3];
+			SMink mink0 = (*paryMink)[0];
+			SMink mink1 = (*paryMink)[1];
+			SMink mink2 = (*paryMink)[2];
+			SMink mink3 = (*paryMink)[3];
+
+			Point pos0 = mink0.m_posMink;
+			Point pos1 = mink1.m_posMink;
+			Point pos2 = mink2.m_posMink;
+			Point pos3 = mink3.m_posMink;
 
 			Vector normal012 = VecCross(pos1 - pos0, pos2 - pos0);
 			Vector normal123 = VecCross(pos2 - pos1, pos3 - pos1);
@@ -590,23 +664,23 @@ bool FSimplex(Vector * pNormalSupport, SFixArray<Point, 4> * paryPosMink)
 				return true;
 			}
 
-			if (FHandleTriangle(pos0, pos1, pos2, &normal012, pNormalSupport, paryPosMink))
+			if (FHandleTriangle(mink0, mink1, mink2, &normal012, pNormalSupport, paryMink, pPos0, pPos1))
 				return false;
 
-			if (FHandleTriangle(pos0, pos1, pos3, &normal013, pNormalSupport, paryPosMink))
+			if (FHandleTriangle(mink0, mink1, mink3, &normal013, pNormalSupport, paryMink, pPos0, pPos1))
 				return false;
 
-			if (FHandleTriangle(pos1, pos2, pos3, &normal123, pNormalSupport, paryPosMink))
+			if (FHandleTriangle(mink1, mink2, mink3, &normal123, pNormalSupport, paryMink, pPos0, pPos1))
 				return false;
 
-			if (FHandleTriangle(pos0, pos2, pos3, &normal023, pNormalSupport, paryPosMink))
+			if (FHandleTriangle(mink0, mink2, mink3, &normal023, pNormalSupport, paryMink, pPos0, pPos1))
 				return false;
 
 			// BB a bit gross
 
 			const int c = 6;
-			Point aPos0[c] = { pos0, pos1, pos0, pos0, pos1, pos2 };
-			Point aPos1[c] = { pos1, pos2, pos2, pos3, pos3, pos3};
+			SMink aMink0[c] = { mink0, mink1, mink0, mink0, mink1, mink2 };
+			SMink aMink1[c] = { mink1, mink2, mink2, mink3, mink3, mink3};
 			int aiOrigin[c];
 
 			float sBest = FLT_MAX;
@@ -615,7 +689,7 @@ bool FSimplex(Vector * pNormalSupport, SFixArray<Point, 4> * paryPosMink)
 			for (int i = 0; i < c; i++)
 			{
 				float sCur;
-				aiOrigin[i] = IOriginInLineSegment(aPos0[i], aPos1[i], &sCur);
+				aiOrigin[i] = IOriginInLineSegment(aMink0[i].m_posMink, aMink1[i].m_posMink, &sCur);
 				if (aiOrigin[i] == -1)
 				{
 					if (sCur < sBest)
@@ -632,11 +706,11 @@ bool FSimplex(Vector * pNormalSupport, SFixArray<Point, 4> * paryPosMink)
 
 			if (iBest != -1)
 			{
-				SetSimplexLineSegment(aPos0[iBest], aPos1[iBest], pNormalSupport, paryPosMink);
+				SetSimplexLineSegment(aMink0[iBest], aMink1[iBest], pNormalSupport, paryMink, pPos0, pPos1);
 				return false;
 			}
 
-			SetSimplexPoint((aiOrigin[iPoint] == 0)? aPos0[iPoint] : aPos1[iPoint], pNormalSupport, paryPosMink);
+			SetSimplexPoint((aiOrigin[iPoint] == 0)? aMink0[iPoint] : aMink1[iPoint], pNormalSupport, paryMink, pPos0, pPos1);
 			return false;
 		}
 		break;
@@ -645,67 +719,84 @@ bool FSimplex(Vector * pNormalSupport, SFixArray<Point, 4> * paryPosMink)
 		ASSERT(false);
 		return false;
 	}
-	return false;
 }
 
 TWEAKABLE Point s_posMinkowskiOriginDebugDraw = Point(5.0f, 0.0f, 3.0f);
 static int s_iDrawGjkDebug = 0;
 
-void DoGjk(const Mat & matCubePhys, Vector vecNonuniformScale, Point posSphere, float sRadiusSphere, Vector dPosSweep, Vector normalSupport)
+bool FGjk(const Mat & matCubePhys, Vector vecNonuniformScale, Point posSphere, float sRadiusSphere, Vector dPosSweep, Vector normalSupport, float * pS)
 {
-	SFixArray<Point, 4> aryPosMink;
+	SFixArray<SMink, 4> aryMink;
 
-	aryPosMink.Append(PosMinkSweptSphereBox(posSphere, sRadiusSphere, dPosSweep, matCubePhys, vecNonuniformScale, normalSupport));
+	aryMink.Append(MinkSweptSphereBox(posSphere, sRadiusSphere, dPosSweep, matCubePhys, vecNonuniformScale, normalSupport));
 
-	normalSupport = VecNormalizeSafe(-Vector(aryPosMink[0]));
-	float sMin = FLT_MAX;
+	normalSupport = VecNormalizeSafe(-Vector(aryMink[0].m_posMink));
 
 	SRgba aRgba[] = { g_rgbaRed, g_rgbaRed, g_rgbaOrange, g_rgbaYellow, g_rgbaPink };
 	int iDraw = 0;
 
-	int cIter = 0;
-
-	bool fHit = false;
-	TWEAKABLE int s_cIterMax = 30;
-
 	g_game.PrintConsole(StrPrintf("iDraw:%i\n", s_iDrawGjkDebug));
 
-	while (!fHit && cIter < s_cIterMax)
+	TWEAKABLE float s_sHitMin = .001f; // Any closer and we won't be able to produce a good normal, so just pretend this was a collision
+
+	float sMin = FLT_MAX;
+	for (;;)
 	{
-		cIter++;
-		Point posMinkNew = PosMinkSweptSphereBox(posSphere, sRadiusSphere, dPosSweep, matCubePhys, vecNonuniformScale, normalSupport);
-		float gDotProgress = GDot(posMinkNew, normalSupport);
-		if (gDotProgress < 0.0f)
-			break;
-
-		aryPosMink.Append(posMinkNew);
-
 		Vector vecPosArrow = g_vecZero;
 		SRgba rgba = SRgba(0,0,0,0);
 		{
 			if (iDraw == s_iDrawGjkDebug)
 			{
-				rgba = aRgba[aryPosMink.m_c];
-				for (int i = 0; i < aryPosMink.m_c; i++)
+				rgba = aRgba[aryMink.m_c];
+				for (int i = 0; i < aryMink.m_c; i++)
 				{
-					vecPosArrow += aryPosMink[i] + s_posMinkowskiOriginDebugDraw;
-					g_game.DebugDrawSphere(aryPosMink[i] + s_posMinkowskiOriginDebugDraw, .5f, 0.0f, rgba);
-					for (int j = 0; j < aryPosMink.m_c; j++)
+					vecPosArrow += aryMink[i].m_posMink + s_posMinkowskiOriginDebugDraw;
+					g_game.DebugDrawSphere(aryMink[i].m_posMink + s_posMinkowskiOriginDebugDraw, .5f, 0.0f, rgba);
+					for (int j = 0; j < aryMink.m_c; j++)
 					{
 						if (i == j)
 							continue;
-						g_game.DebugDrawLine(aryPosMink[i] + s_posMinkowskiOriginDebugDraw, aryPosMink[j] + s_posMinkowskiOriginDebugDraw, 0.0f, rgba);
+						g_game.DebugDrawLine(aryMink[i].m_posMink + s_posMinkowskiOriginDebugDraw, aryMink[j].m_posMink + s_posMinkowskiOriginDebugDraw, 0.0f, rgba);
 					}
 				}
-				g_game.PrintConsole(StrPrintf("PointCount:%i\n", aryPosMink.m_c));
-				vecPosArrow = vecPosArrow / aryPosMink.m_c;
+				g_game.PrintConsole(StrPrintf("PointCount:%i\n", aryMink.m_c));
+				vecPosArrow = vecPosArrow / aryMink.m_c;
 			}
 		}
 
-		if (FSimplex(&normalSupport, &aryPosMink))
+		aryMink.Append(MinkSweptSphereBox(posSphere, sRadiusSphere, dPosSweep, matCubePhys, vecNonuniformScale, normalSupport));
+
+		float sCur;
+		Point pos0;
+		Point pos1;
+		if (FSimplex(&normalSupport, &aryMink, &pos0, &pos1))
 		{
-			fHit = true;
+			sCur = 0.0f;
 		}
+		else
+		{
+			sCur = SLength(pos1 - pos0);
+		}
+
+		if (sCur <= s_sHitMin)
+		{
+			// Hit!
+
+			*pS = 0.0f;
+			return true;
+		}
+
+		if (sCur >= sMin)
+		{
+			// We've stopped improving, miss!
+
+			g_game.DebugDrawSphere(pos0,.5f);
+			g_game.DebugDrawSphere(pos1,.5f);
+			*pS = sCur;
+			return false;
+		}
+
+		sMin = sCur;
 
 		{
 			if (iDraw == s_iDrawGjkDebug)
@@ -715,19 +806,6 @@ void DoGjk(const Mat & matCubePhys, Vector vecNonuniformScale, Point posSphere, 
 			}
 			iDraw++;
 		}
-	}
-
-	if (fHit)
-	{
-		g_game.PrintConsole("HIT!\n");
-	}
-	else if (cIter == s_cIterMax)
-	{
-		g_game.PrintConsole("ITER OUT!\n");
-	}
-	else
-	{
-		g_game.PrintConsole("MISS!\n");
 	}
 }
 
@@ -764,13 +842,22 @@ void TestGjk(const Mat & matCubePhys, Vector vecNonuniformScale, Point posSphere
 			{
 				float radJ = PI * j / float(s_cJ - 1.0f) - PI / 2.0f;
 				Vector normal = VecCylind(TAU * i / float(s_cI), GCos(radJ), GSin(radJ));
-				g_game.DebugDrawSphere(s_posMinkowskiOriginDebugDraw + PosMinkSweptSphereBox(posSphere, sRadiusSphere, dPosSweep, matCubePhys, vecNonuniformScale, normal), 0.5f, 0.0f, SRgba(0.0f, 0.0f, 1.0f, 0.3f));
+				g_game.DebugDrawSphere(s_posMinkowskiOriginDebugDraw + MinkSweptSphereBox(posSphere, sRadiusSphere, dPosSweep, matCubePhys, vecNonuniformScale, normal).m_posMink, 0.5f, 0.0f, SRgba(0.0f, 0.0f, 1.0f, 0.3f));
 				//DoGjk(matCubePhys, vecNonuniformScale, posSphere, sRadiusSphere, dPosSweep, normal); // TODO soak test
 			}
 		}
 	}
 	
-	DoGjk(matCubePhys, vecNonuniformScale, posSphere, sRadiusSphere, dPosSweep, g_vecXAxis);
+	float s;
+	bool fHit = FGjk(matCubePhys, vecNonuniformScale, posSphere, sRadiusSphere, dPosSweep, g_vecXAxis, &s);
+	if (fHit)
+	{
+		g_game.PrintConsole("Hit!\n");
+	}
+	else
+	{
+		g_game.PrintConsole("Miss!\n");
+	}
 }
 
 void TestGjk()

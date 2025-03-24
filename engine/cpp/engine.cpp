@@ -1367,6 +1367,7 @@ void SGame::DebugDrawCube(const Mat & mat, float dTRealtime, SRgba rgba, float g
 
 void SGame::DebugDrawLine(Point pos0, Point pos1, float dTRealtime, SRgba rgba, float gSort, DDSTYLE ddstyle)
 {
+	ASSERT(!FIsNear(pos0, pos1));
 	DebugDrawLine(pos0, pos1 - pos0, dTRealtime, rgba, gSort, ddstyle);
 }
 

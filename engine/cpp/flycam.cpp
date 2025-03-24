@@ -16,6 +16,7 @@ void SFlyCam::Update()
 
 	// Look for double clicks
 
+	if (g_game.m_uiidActive == g_uiidNil && g_game.m_uiidHot == g_uiidNil)
 	{
 		TWEAKABLE float s_dTDoubleClick = 0.5f;
 
