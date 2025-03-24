@@ -383,13 +383,9 @@ struct SMink
 
 SMink MinkSweptSphereBox(Point posSphere, float sRadius, Vector dPosSweep, const Mat & matPhys, Vector vecNonuniformScale, Vector normalSupport)
 {
-#if 0
-	// Implicit
-	return PosSupportSweptSphere(posSphere, sRadius, dPosSweep, normalSupport) - PosSupportBox(matPhys, vecNonuniformScale, -normalSupport);
-#endif
-
 	SMink mink; 
-	mink.m_posSrcA = PosSupportSweptIcosphere(posSphere, sRadius, dPosSweep, normalSupport);
+	//mink.m_posSrcA = PosSupportSweptIcosphere(posSphere, sRadius, dPosSweep, normalSupport);
+	mink.m_posSrcA = PosSupportSweptSphere(posSphere, sRadius, dPosSweep, normalSupport);
 	mink.m_posSrcB = PosSupportBox(matPhys, vecNonuniformScale, -normalSupport);
 	mink.m_posMink = mink.m_posSrcA - mink.m_posSrcB;
 	return mink;
@@ -504,7 +500,7 @@ int IOriginInLineSegment(Point pos0, Point pos1, float * pS = nullptr)
 		}
 		return -1;
 	}
-	else if (gDot >= 0.0f)
+	else if (gDot < 0.0f)
 	{
 		// Point 0
 		return 0;
@@ -585,6 +581,7 @@ bool FSimplex(Vector * pNormalSupport, SFixArray<SMink, 4> * paryMink, Point * p
 			int aiOrigin[c];
 
 			float sBest = FLT_MAX;
+			float sPoint = FLT_MAX;
 			int iBest = -1;
 			int iPoint = -1;
 			for (int i = 0; i < c; i++)
@@ -601,11 +598,13 @@ bool FSimplex(Vector * pNormalSupport, SFixArray<SMink, 4> * paryMink, Point * p
 				}
 				else
 				{
+					Point pos = (aiOrigin[i] == 0) ? aMink0[i].m_posMink : aMink1[i].m_posMink;
+					sPoint = SLength(pos);
 					iPoint = i;
 				}
 			}
 
-			if (iBest != -1)
+			if (iBest != -1 && sPoint > sBest)
 			{
 				SetSimplexLineSegment(aMink0[iBest], aMink1[iBest], pNormalSupport, paryMink, pPos0, pPos1);
 				return false;
@@ -684,6 +683,7 @@ bool FSimplex(Vector * pNormalSupport, SFixArray<SMink, 4> * paryMink, Point * p
 			int aiOrigin[c];
 
 			float sBest = FLT_MAX;
+			float sPoint = FLT_MAX;
 			int iBest = -1;
 			int iPoint = -1;
 			for (int i = 0; i < c; i++)
@@ -700,11 +700,13 @@ bool FSimplex(Vector * pNormalSupport, SFixArray<SMink, 4> * paryMink, Point * p
 				}
 				else
 				{
+					Point pos = (aiOrigin[i] == 0) ? aMink0[i].m_posMink : aMink1[i].m_posMink;
+					sPoint = SLength(pos);
 					iPoint = i;
 				}
 			}
 
-			if (iBest != -1)
+			if (iBest != -1 && sPoint > sBest)
 			{
 				SetSimplexLineSegment(aMink0[iBest], aMink1[iBest], pNormalSupport, paryMink, pPos0, pPos1);
 				return false;
@@ -740,8 +742,25 @@ bool FGjk(const Mat & matCubePhys, Vector vecNonuniformScale, Point posSphere, f
 	TWEAKABLE float s_sHitMin = .001f; // Any closer and we won't be able to produce a good normal, so just pretend this was a collision
 
 	float sMin = FLT_MAX;
+	Point pos0Best;
+	Point pos1Best;
 	for (;;)
 	{
+		SMink mink = MinkSweptSphereBox(posSphere, sRadiusSphere, dPosSweep, matCubePhys, vecNonuniformScale, normalSupport);
+		for (int i = 0; i < aryMink.m_c; i++)
+		{
+			if (FIsNear(aryMink[i].m_posMink, mink.m_posMink))
+			{
+				g_game.PrintConsole("early out!\n");
+				g_game.DebugDrawSphere(pos0Best, .5f);
+				g_game.DebugDrawSphere(pos1Best, .5f);
+				*pS = sMin;
+				return false;
+			}
+		}
+
+		aryMink.Append(mink);
+
 		Vector vecPosArrow = g_vecZero;
 		SRgba rgba = SRgba(0,0,0,0);
 		{
@@ -763,8 +782,6 @@ bool FGjk(const Mat & matCubePhys, Vector vecNonuniformScale, Point posSphere, f
 				vecPosArrow = vecPosArrow / aryMink.m_c;
 			}
 		}
-
-		aryMink.Append(MinkSweptSphereBox(posSphere, sRadiusSphere, dPosSweep, matCubePhys, vecNonuniformScale, normalSupport));
 
 		float sCur;
 		Point pos0;
@@ -790,13 +807,15 @@ bool FGjk(const Mat & matCubePhys, Vector vecNonuniformScale, Point posSphere, f
 		{
 			// We've stopped improving, miss!
 
-			g_game.DebugDrawSphere(pos0,.5f);
-			g_game.DebugDrawSphere(pos1,.5f);
+			g_game.DebugDrawSphere(pos0Best, .5f);
+			g_game.DebugDrawSphere(pos1Best, .5f);
 			*pS = sCur;
 			return false;
 		}
 
 		sMin = sCur;
+		pos0Best = pos0;
+		pos1Best = pos1;
 
 		{
 			if (iDraw == s_iDrawGjkDebug)
