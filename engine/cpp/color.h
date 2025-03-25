@@ -2,6 +2,14 @@
 
 struct SRgba
 {
+	SRgba(float r, float g, float b) :
+		m_r(r),
+		m_g(g),
+		m_b(b),
+		m_a(1.0f)
+	{
+	}
+
 	SRgba(float r, float g, float b, float a) :
 		m_r(r),
 		m_g(g),

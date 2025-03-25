@@ -19,10 +19,15 @@ struct SMesh3D : SObject // mesh
 	SMesh3D(TYPEK typek = TYPEK_Mesh3D);
 	SMesh3DHandle HMesh() { return (SMesh3DHandle) m_nHandle; }
 
+	void ComputeBounds();
+
 	std::string						m_strName = "";
 
 	std::vector<SVertData3D>		m_aryVertdata = {};
 	std::vector<unsigned short>		m_aryIIndex = {};
+
+	Point							m_posBoundingSphereLocal;
+	float							m_sRadiusBoundingSphereLocal = -1.0f;
 
 	// Data used while rendering only
 	//  This could potentially be factored out and stored as a pointer or something

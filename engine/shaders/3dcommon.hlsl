@@ -9,6 +9,7 @@ cbuffer constants : register(b1)
     float4x4 matVP;
     float4x4 matV;
     float4x4 matObjectToWorld;
+    float4x4 matWorldToObject;
     float4x4 matObjectToWorldInverseTranspose;
     float4 rgba;
 };

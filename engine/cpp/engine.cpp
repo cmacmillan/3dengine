@@ -28,8 +28,8 @@
 #include <d3dcompiler.h>
 #pragma comment(lib, "d3dcompiler.lib")
 
-const int cVertsMax = 100000;
-const int cIndexMax = 100000;
+const int cVertsMax = 10000000;
+const int cIndexMax = 10000000;
 
 SGame g_game;
 
@@ -527,6 +527,8 @@ void SGame::Init(HINSTANCE hInstance)
 		m_hMeshQuad = (new SMesh3D())->HMesh();
 
 		PushQuad3D(&m_hMeshQuad->m_aryVertdata, &m_hMeshQuad->m_aryIIndex);
+
+		m_hMeshQuad->ComputeBounds();
 	}
 
 	// Load initial text shader and set up the console
@@ -614,6 +616,9 @@ void SGame::Init(HINSTANCE hInstance)
 	m_hMeshArrowHead = PMeshLoadSingle("models/arrowhead.gltf")->HMesh();
 
 	SpawnScene("models/fakelevel.gltf");
+#if TESTING_BIG_MAP
+	SpawnScene("tf2/dustbowl.gltf");
+#endif
 
 	// Init edit mode
 
@@ -831,6 +836,8 @@ void SGame::MainLoop()
 #endif
 
 		g_game.PrintConsole(StrPrintf("unique mesh count:%i\n", g_objman.m_mpTypekAryPObj[TYPEK_Mesh3D].size()));
+
+		g_game.PrintConsole(StrPrintf("cDraw:%i\n", g_cDraw3D));
 
 		///////////////////////////////
 
@@ -1092,8 +1099,9 @@ void SGame::MainLoop()
 		g_game.m_pD3ddevicecontext->Unmap(m_cbufferIndex, 0);
 		g_game.m_pD3ddevicecontext->Unmap(m_cbufferVertex3D, 0);
 
-		// Start rendering stuff
+		// Start rendering stuff =======================================================
 
+		g_cDraw3D = 0;
 		for (int i = 0; i < 2; i++)
 		{
 			// Clear bound render targets
@@ -1177,7 +1185,7 @@ void SGame::MainLoop()
 					D3D11_MAPPED_SUBRESOURCE mappedSubresource;
 					m_pD3ddevicecontext->Map(m_cbufferDrawnode3D, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
 					SDrawNodeRenderConstants * pDrawnode3Drc = (SDrawNodeRenderConstants *) (mappedSubresource.pData);
-					pDrawnode3Drc->FillOut(matModelSkybox, pCamera3D->MatWorldToClip(), pCamera3D->MatObjectToWorld().MatInverse());
+					pDrawnode3Drc->FillOut(matModelSkybox, matModelSkybox.MatInverse(), pCamera3D->MatWorldToClip(), pCamera3D->MatObjectToWorld().MatInverse());
 
 					m_pD3ddevicecontext->Unmap(m_cbufferDrawnode3D, 0);
 
@@ -1192,8 +1200,9 @@ void SGame::MainLoop()
 
 			Mat matWorldToClip = pCamera3D->MatWorldToClip();
 			Mat matWorldToCamera = pCamera3D->MatObjectToWorld().MatInverse();
+			SFrustum frustum = pCamera3D->FrustumCompute();
 
-			Draw3D(&arypDrawnode3DToRender, matWorldToClip, matWorldToCamera, i == 0);
+			Draw3D(&arypDrawnode3DToRender, matWorldToClip, matWorldToCamera, frustum, i == 0);
 
 			// Draw debug draw stuff
 
@@ -1256,13 +1265,13 @@ void SGame::MainLoop()
 						// TODO handle fOpaque properly
 						for (int ipMesh = 0; ipMesh < apMesh.m_c; ipMesh++)
 						{
-							Draw3DSingle(pMaterialWireframe, apMesh[ipMesh], *apMat[ipMesh], matWorldToClip, matWorldToCamera, dd.m_rgba);
+							Draw3DSingle(pMaterialWireframe, apMesh[ipMesh], *apMat[ipMesh], matWorldToClip, matWorldToCamera, frustum, dd.m_rgba);
 						}
 						break;
 					case DDSTYLE_Solid:
 						for (int ipMesh = 0; ipMesh < apMesh.m_c; ipMesh++)
 						{
-							Draw3DSingle((fOpaque) ? pMaterialSolidDepthWrite : pMaterialSolidNoDepthWrite, apMesh[ipMesh], * apMat[ipMesh], matWorldToClip, matWorldToCamera, dd.m_rgba);
+							Draw3DSingle((fOpaque) ? pMaterialSolidDepthWrite : pMaterialSolidNoDepthWrite, apMesh[ipMesh], * apMat[ipMesh], matWorldToClip, matWorldToCamera, frustum, dd.m_rgba);
 						}
 						break;
 
@@ -1270,12 +1279,12 @@ void SGame::MainLoop()
 						ASSERT(fOpaque);
 						for (int ipMesh = 0; ipMesh < apMesh.m_c; ipMesh++)
 						{
-							Draw3DSingle(pMaterialOutline, apMesh[ipMesh], *apMat[ipMesh], matWorldToClip, matWorldToCamera, g_rgbaBlack);
+							Draw3DSingle(pMaterialOutline, apMesh[ipMesh], *apMat[ipMesh], matWorldToClip, matWorldToCamera, frustum, g_rgbaBlack);
 						}
 
 						for (int ipMesh = 0; ipMesh < apMesh.m_c; ipMesh++)
 						{
-							Draw3DSingle(pMaterialSolidDepthWrite, apMesh[ipMesh], *apMat[ipMesh], matWorldToClip, matWorldToCamera, dd.m_rgba);
+							Draw3DSingle(pMaterialSolidDepthWrite, apMesh[ipMesh], *apMat[ipMesh], matWorldToClip, matWorldToCamera, frustum, dd.m_rgba);
 						}
 						break;
 					}

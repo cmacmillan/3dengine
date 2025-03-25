@@ -39,3 +39,5 @@ X - fix lock that occurs when retracting or extending.
 _ - Perform linear -> gamma correction as a post pass (instead of writing things out as linear), convert textures into linear when importing (if they are rgba textures)
 _ - MSAA
 _ - Add shader replacement macro, so you can pass a key-value array when constructing a shader to specify parameters
+_ - blender material importing
+_ - investigate poor render performance with tracy

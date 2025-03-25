@@ -666,6 +666,7 @@ Mat Mat::MatInverse() const
 	//  Y' because we may have reordered the rows of Y
 	//  1' because we may have combined rows of A to eliminate terms
 	//  We can then unshuffle Y' & 1' to figure out what Y is
+	//  Basically just the algorithm you learn in math class
 
 	for (int iDiag = 0; iDiag < 4; iDiag++)
 	{

@@ -2,6 +2,7 @@
 
 #include "object.h"
 #include "node3d.h"
+#include "render.h"
 
 struct SCamera3D : SNode3D // camera3D
 {
@@ -19,6 +20,8 @@ struct SCamera3D : SNode3D // camera3D
 
 	Point PosWorldFromPosNdc(Point posNdc);
 	Point PosNdcFromPosWindow(float2 posWindow, float xDepthWorld);
+
+	SFrustum FrustumCompute();
 
 	float m_radFovHorizontal = -1;
 	float m_xNearClip = -1;

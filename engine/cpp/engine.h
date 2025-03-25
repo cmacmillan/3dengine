@@ -7,6 +7,8 @@
 #define WIN32_LEAN_AND_MEAN
 #define UNICODE
 
+#define TESTING_BIG_MAP 0
+
 #include "object.h"
 #include "util.h"
 #include "slotheap.h"

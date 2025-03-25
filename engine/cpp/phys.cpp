@@ -723,10 +723,14 @@ bool FSimplex(Vector * pNormalSupport, SFixArray<SMink, 4> * paryMink, Point * p
 	}
 }
 
+#define ENABLE_DEBUG_GJK 1
+
 TWEAKABLE Point s_posMinkowskiOriginDebugDraw = Point(5.0f, 0.0f, 3.0f);
 static int s_iDrawGjkDebug = 0;
 
-bool FGjk(const Mat & matCubePhys, Vector vecNonuniformScale, Point posSphere, float sRadiusSphere, Vector dPosSweep, Vector normalSupport, float * pS)
+// TODO this should take an interface that specifies how to do this
+
+bool FGjk(const Mat & matCubePhys, Vector vecNonuniformScale, Point posSphere, float sRadiusSphere, Vector dPosSweep, Vector normalSupport, bool fDebug, float * pS)
 {
 	SFixArray<SMink, 4> aryMink;
 
@@ -734,10 +738,14 @@ bool FGjk(const Mat & matCubePhys, Vector vecNonuniformScale, Point posSphere, f
 
 	normalSupport = VecNormalizeSafe(-Vector(aryMink[0].m_posMink));
 
+#if ENABLE_DEBUG_GJK
 	SRgba aRgba[] = { g_rgbaRed, g_rgbaRed, g_rgbaOrange, g_rgbaYellow, g_rgbaPink };
 	int iDraw = 0;
-
-	g_game.PrintConsole(StrPrintf("iDraw:%i\n", s_iDrawGjkDebug));
+	if (fDebug)
+	{
+		g_game.PrintConsole(StrPrintf("iDraw:%i\n", s_iDrawGjkDebug));
+	}
+#endif
 
 	TWEAKABLE float s_sHitMin = .001f; // Any closer and we won't be able to produce a good normal, so just pretend this was a collision
 
@@ -751,9 +759,14 @@ bool FGjk(const Mat & matCubePhys, Vector vecNonuniformScale, Point posSphere, f
 		{
 			if (FIsNear(aryMink[i].m_posMink, mink.m_posMink))
 			{
-				g_game.PrintConsole("early out!\n");
-				g_game.DebugDrawSphere(pos0Best, .5f);
-				g_game.DebugDrawSphere(pos1Best, .5f);
+#if ENABLE_DEBUG_GJK
+				if (fDebug)
+				{
+					g_game.PrintConsole("early out!\n");
+					g_game.DebugDrawSphere(pos0Best, .5f);
+					g_game.DebugDrawSphere(pos1Best, .5f);
+				}
+#endif
 				*pS = sMin;
 				return false;
 			}
@@ -761,27 +774,32 @@ bool FGjk(const Mat & matCubePhys, Vector vecNonuniformScale, Point posSphere, f
 
 		aryMink.Append(mink);
 
+#if ENABLE_DEBUG_GJK
 		Vector vecPosArrow = g_vecZero;
-		SRgba rgba = SRgba(0,0,0,0);
+		SRgba rgba = SRgba(0, 0, 0, 0);
+		if (fDebug)
 		{
-			if (iDraw == s_iDrawGjkDebug)
 			{
-				rgba = aRgba[aryMink.m_c];
-				for (int i = 0; i < aryMink.m_c; i++)
+				if (iDraw == s_iDrawGjkDebug)
 				{
-					vecPosArrow += aryMink[i].m_posMink + s_posMinkowskiOriginDebugDraw;
-					g_game.DebugDrawSphere(aryMink[i].m_posMink + s_posMinkowskiOriginDebugDraw, .5f, 0.0f, rgba);
-					for (int j = 0; j < aryMink.m_c; j++)
+					rgba = aRgba[aryMink.m_c];
+					for (int i = 0; i < aryMink.m_c; i++)
 					{
-						if (i == j)
-							continue;
-						g_game.DebugDrawLine(aryMink[i].m_posMink + s_posMinkowskiOriginDebugDraw, aryMink[j].m_posMink + s_posMinkowskiOriginDebugDraw, 0.0f, rgba);
+						vecPosArrow += aryMink[i].m_posMink + s_posMinkowskiOriginDebugDraw;
+						g_game.DebugDrawSphere(aryMink[i].m_posMink + s_posMinkowskiOriginDebugDraw, .5f, 0.0f, rgba);
+						for (int j = 0; j < aryMink.m_c; j++)
+						{
+							if (i == j)
+								continue;
+							g_game.DebugDrawLine(aryMink[i].m_posMink + s_posMinkowskiOriginDebugDraw, aryMink[j].m_posMink + s_posMinkowskiOriginDebugDraw, 0.0f, rgba);
+						}
 					}
+					g_game.PrintConsole(StrPrintf("PointCount:%i\n", aryMink.m_c));
+					vecPosArrow = vecPosArrow / aryMink.m_c;
 				}
-				g_game.PrintConsole(StrPrintf("PointCount:%i\n", aryMink.m_c));
-				vecPosArrow = vecPosArrow / aryMink.m_c;
 			}
 		}
+#endif
 
 		float sCur;
 		Point pos0;
@@ -807,8 +825,13 @@ bool FGjk(const Mat & matCubePhys, Vector vecNonuniformScale, Point posSphere, f
 		{
 			// We've stopped improving, miss!
 
-			g_game.DebugDrawSphere(pos0Best, .5f);
-			g_game.DebugDrawSphere(pos1Best, .5f);
+#if ENABLE_DEBUG_GJK
+			if (fDebug)
+			{
+				g_game.DebugDrawSphere(pos0Best, .5f);
+				g_game.DebugDrawSphere(pos1Best, .5f);
+			}
+#endif
 			*pS = sCur;
 			return false;
 		}
@@ -817,6 +840,8 @@ bool FGjk(const Mat & matCubePhys, Vector vecNonuniformScale, Point posSphere, f
 		pos0Best = pos0;
 		pos1Best = pos1;
 
+#if ENABLE_DEBUG_GJK
+		if (fDebug)
 		{
 			if (iDraw == s_iDrawGjkDebug)
 			{
@@ -825,6 +850,7 @@ bool FGjk(const Mat & matCubePhys, Vector vecNonuniformScale, Point posSphere, f
 			}
 			iDraw++;
 		}
+#endif
 	}
 }
 
@@ -868,7 +894,7 @@ void TestGjk(const Mat & matCubePhys, Vector vecNonuniformScale, Point posSphere
 	}
 	
 	float s;
-	bool fHit = FGjk(matCubePhys, vecNonuniformScale, posSphere, sRadiusSphere, dPosSweep, g_vecXAxis, &s);
+	bool fHit = FGjk(matCubePhys, vecNonuniformScale, posSphere, sRadiusSphere, dPosSweep, g_vecXAxis, true, &s);
 	if (fHit)
 	{
 		g_game.PrintConsole("Hit!\n");

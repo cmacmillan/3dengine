@@ -43,3 +43,15 @@ SMesh3D::SMesh3D(TYPEK typek) : super(typek)
 {
 }
 
+void SMesh3D::ComputeBounds()
+{
+	// BB this algorithm is bad, wrap things more tightly
+
+	m_posBoundingSphereLocal = g_posZero;
+
+	for (const SVertData3D & vertdata : m_aryVertdata)
+	{
+		m_sRadiusBoundingSphereLocal = GMax(m_sRadiusBoundingSphereLocal, SLength(vertdata.m_pos));
+	}
+}
+

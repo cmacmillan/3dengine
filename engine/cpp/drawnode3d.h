@@ -6,12 +6,13 @@
 
 struct SDrawNodeRenderConstants
 {
-	void FillOut(const Mat & matObjectToWorld, const Mat & matWorldToClip, const Mat & matWorldToCamera, SRgba rgba = SRgba(1.0f, 1.0f, 1.0f, 1.0f));
+	void FillOut(const Mat & matObjectToWorld, const Mat & matWorldToClip, const Mat & matWorldToCamera, const Mat & matWorldToObject, SRgba rgba = SRgba(1.0f, 1.0f, 1.0f, 1.0f));
 
 	Mat		m_matMVP;
 	Mat		m_matVP;
 	Mat		m_matV;
 	Mat		m_matObjectToWorld;
+	Mat		m_matWorldToObject;
 	Mat		m_matObjectToWorldInverseTranspose;
 	SRgba	m_rgba;
 };

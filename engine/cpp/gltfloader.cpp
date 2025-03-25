@@ -212,7 +212,10 @@ SMesh3D * PMeshLoad(tinygltf::Model * pModel, tinygltf::Mesh * pTinymesh)
 
 	// NOTE if you were to apply 2 materials to a model, you'd probably end up with 2 primitives
 	
+#if !TESTING_BIG_MAP
 	ASSERT(pTinymesh->primitives.size() == 1); // Currently only support 1 primitive per mesh
+#endif
+
 	tinygltf::Primitive * pPrim = &pTinymesh->primitives[0];
 	ASSERT(pPrim->mode == TINYGLTF_MODE_TRIANGLES);
 
@@ -264,6 +267,8 @@ SMesh3D * PMeshLoad(tinygltf::Model * pModel, tinygltf::Mesh * pTinymesh)
 									Vector(float(vec3Normal.m_x),float(vec3Normal.m_y), float(vec3Normal.m_z)), 
 									vecUv});
 		}
+
+		pMesh->ComputeBounds();
 	}
 
 	{
