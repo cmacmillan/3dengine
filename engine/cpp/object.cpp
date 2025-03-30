@@ -20,6 +20,19 @@ SObjectManager::SObjectManager()
 	{
 		m_mpTypekAryPObj[typek] = std::vector<SObject *>();
 	}
+
+	// Compute FIsDerivedFrom accelerator
+
+	size_t cbTypekMap = TYPEK_Max * TYPEK_Max * sizeof(bool);
+	m_mpTypekMpTypekFIsSuper = (bool *)malloc(cbTypekMap);
+	for (TYPEK typek = TYPEK_Min; typek < TYPEK_Max; typek = TYPEK(typek + 1))
+	{
+		int iOffset = typek * TYPEK_Max;
+		for (TYPEK typekSuper = TYPEK_Min; typekSuper < TYPEK_Max; typekSuper = TYPEK(typekSuper + 1))
+		{
+			m_mpTypekMpTypekFIsSuper[iOffset + typekSuper] = FIsDerivedFromSlow(typek, typekSuper);
+		}
+	}
 }
 
 TYPEK TypekSuper(TYPEK typek)
@@ -122,15 +135,18 @@ SObject::~SObject()
 	g_objman.UnregisterObj(this);
 }
 
-// BB could be faster and non-recursive
-
-bool SObject::FIsDerivedFrom(TYPEK typek)
+bool FIsDerivedFromSlow(TYPEK typek, TYPEK typekSuper)
 {
-	for (TYPEK typekIter = m_typek; typekIter != TYPEK_Nil; typekIter = TypekSuper(typekIter))
+	for (TYPEK typekIter = typek; typekIter != TYPEK_Nil; typekIter = TypekSuper(typekIter))
 	{
-		if (typekIter == typek)
+		if (typekIter == typekSuper)
 			return true;
 	}
 
 	return false;
+}
+
+bool SObject::FIsDerivedFrom(TYPEK typekSuper)
+{
+	return g_objman.m_mpTypekMpTypekFIsSuper[m_typek * TYPEK_Max + typekSuper];
 }

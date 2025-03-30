@@ -51,6 +51,7 @@ enum TYPEK
 };
 
 TYPEK TypekSuper(TYPEK typek);
+bool FIsDerivedFromSlow(TYPEK typek, TYPEK typekSuper);
 
 #define C_OBJECT_MAX 100000
 
@@ -65,6 +66,7 @@ struct SObjectManager
 
 	SObject **							m_mpObjhObj = nullptr;
 	std::vector<SObject *>				m_mpTypekAryPObj[TYPEK_Max] = {};
+	bool *								m_mpTypekMpTypekFIsSuper;
 
 protected:
 	int *								m_ahFree = nullptr;

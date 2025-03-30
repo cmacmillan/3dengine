@@ -1,7 +1,5 @@
 #pragma once
 
-#define DEBUG_BUILD
-
 // Uses some starter code from https://github.com/kevinmoran/BeginnerDirect3D11
 
 #define WIN32_LEAN_AND_MEAN

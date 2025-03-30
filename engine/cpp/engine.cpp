@@ -271,7 +271,7 @@ void SGame::Init(HINSTANCE hInstance)
 		ID3D11DeviceContext * baseDeviceContext;
 		D3D_FEATURE_LEVEL featureLevels[] = { D3D_FEATURE_LEVEL_11_0 };
 		UINT creationFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
-#if defined(DEBUG_BUILD)
+#if !SHIP
 		creationFlags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
 
@@ -296,7 +296,7 @@ void SGame::Init(HINSTANCE hInstance)
 		baseDeviceContext->Release();
 	}
 
-#ifdef DEBUG_BUILD
+#if !SHIP
 	// Set up debug layer to break on D3D11 errors
 	{
 		ID3D11Debug * d3dDebug = nullptr;
