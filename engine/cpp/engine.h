@@ -6,7 +6,6 @@
 #define UNICODE
 
 #define TESTING_BIG_MAP 0
-#define TIME_MAIN_LOOP 1
 
 #include "object.h"
 #include "util.h"
@@ -25,6 +24,7 @@
 #include <windows.h>
 #include <vector>
 #include <string>
+#include <list>
 #include <d3d11_1.h>
 #include "vector.h"
 

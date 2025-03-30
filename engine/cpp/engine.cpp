@@ -691,13 +691,16 @@ void SGame::MainLoop()
 			m_dT = float(dTScaled);
 		}
 
-		MSG msg = {};
-		while (PeekMessageW(&msg, 0, 0, 0, PM_REMOVE))
 		{
-			if (msg.message == WM_QUIT)
-				isRunning = false;
-			TranslateMessage(&msg);
-			DispatchMessageW(&msg);
+			ZoneScopedN("Handling windows messages");
+			MSG msg = {};
+			while (PeekMessageW(&msg, 0, 0, 0, PM_REMOVE))
+			{
+				if (msg.message == WM_QUIT)
+					isRunning = false;
+				TranslateMessage(&msg);
+				DispatchMessageW(&msg);
+			}
 		}
 
 		if (!isRunning)
@@ -706,44 +709,48 @@ void SGame::MainLoop()
 		// Read input
 		// BB could use GetKeyboard state instead to get this all at once
 
-		for (int iVk = 0; iVk < DIM(aVkCompute); iVk++)
 		{
-			int vk = aVkCompute[iVk];
-			bool fDown = ((GetKeyState(vk) & (1 << 15)) != 0) && m_fWindowFocused;
-			if (m_mpVkFDown[vk] != fDown)
+			ZoneScopedN("Reading input");
+			for (int iVk = 0; iVk < DIM(aVkCompute); iVk++)
 			{
-				m_mpVkFDown[vk] = fDown;
-				if (fDown)
+				int vk = aVkCompute[iVk];
+				bool fDown = ((GetKeyState(vk) & (1 << 15)) != 0) && m_fWindowFocused;
+				if (m_mpVkFDown[vk] != fDown)
 				{
-					m_mpVkFJustPressed[vk] = true;
-				}
-				else
-				{
-					m_mpVkFJustReleased[vk] = true;
+					m_mpVkFDown[vk] = fDown;
+					if (fDown)
+					{
+						m_mpVkFJustPressed[vk] = true;
+					}
+					else
+					{
+						m_mpVkFJustReleased[vk] = true;
+					}
 				}
 			}
-		}
 
-		if (m_mpVkFJustPressed[VK_LBUTTON])
-		{
-			int iSystRealtimeOldest = -1;
-			double systRealtimeOldest = FLT_MAX;
-			for (int i = 0; i < DIM(m_aryClickhist.m_a); i++)
+			if (m_mpVkFJustPressed[VK_LBUTTON])
 			{
-				double systRealtime = m_aryClickhist[i].m_systRealtime;
-				if (systRealtime <= systRealtimeOldest)
+				int iSystRealtimeOldest = -1;
+				double systRealtimeOldest = FLT_MAX;
+				for (int i = 0; i < DIM(m_aryClickhist.m_a); i++)
 				{
-					iSystRealtimeOldest = i;
-					systRealtimeOldest = systRealtime;
+					double systRealtime = m_aryClickhist[i].m_systRealtime;
+					if (systRealtime <= systRealtimeOldest)
+					{
+						iSystRealtimeOldest = i;
+						systRealtimeOldest = systRealtime;
+					}
 				}
+				ASSERT(iSystRealtimeOldest != -1);
+				m_aryClickhist[iSystRealtimeOldest] = { m_systRealtime, VecCursor() };
 			}
-			ASSERT(iSystRealtimeOldest != -1);
-			m_aryClickhist[iSystRealtimeOldest] = { m_systRealtime, VecCursor() };
 		}
-
 
 		if (m_fDidWindowResize)
 		{
+			ZoneScopedN("Resize window");
+
 			m_pD3ddevicecontext->OMSetRenderTargets(0, 0, 0);
 			m_pD3dframebufferview->Release();
 			m_pD3ddepthstencilview->Release();
@@ -783,10 +790,13 @@ void SGame::MainLoop()
 
 		// Update shader hotloading
 
-		for (SObject * pObjShader : g_objman.m_mpTypekAryPObj[TYPEK_Shader])
 		{
-			SShader * pShader = static_cast<SShader *>(pObjShader);
-			pShader->UpdateHotload();
+			ZoneScopedN("Update hotloading");
+			for (SObject * pObjShader : g_objman.m_mpTypekAryPObj[TYPEK_Shader])
+			{
+				SShader * pShader = static_cast<SShader *>(pObjShader);
+				pShader->UpdateHotload();
+			}
 		}
 
 		UpdateEdits();
@@ -846,9 +856,7 @@ void SGame::MainLoop()
 
 		std::vector<SNodeHandle> aryhNode;
 		{
-#if TIME_MAIN_LOOP
-			STimingContext timectx = STimingContext("Update gather");
-#endif
+			ZoneScopedN("Update gather");
 			struct SVisitNode
 			{
 				SNode * m_pNode;
@@ -885,9 +893,7 @@ void SGame::MainLoop()
 		std::vector<SUiNode *> arypUinodeToRender;
 		std::vector<SDrawNode3D *> arypDrawnode3DToRender;
 		{
-#if TIME_MAIN_LOOP
-			STimingContext timectx = STimingContext("Update run");
-#endif
+			ZoneScopedN("Update run");
 
 			{
 				std::vector<SUiNodeHandle> aryhUinodeToRender;
@@ -1018,9 +1024,8 @@ void SGame::MainLoop()
 		// BB Do this clearing in a better way, which would probably involve looping over meshes only
 
 		{
-#if TIME_MAIN_LOOP
-			STimingContext timectx = STimingContext("Fill Vert Buffer");
-#endif
+			ZoneScopedN("Fill Vert Buffer");
+
 			for (SDrawNode3D * pDrawnode3D : arypDrawnode3DToRender)
 			{
 				SMesh3D * pMesh = pDrawnode3D->m_hMesh.PT();
@@ -1117,9 +1122,7 @@ void SGame::MainLoop()
 		// Start rendering stuff =======================================================
 
 		{
-#if TIME_MAIN_LOOP
-			STimingContext timectx = STimingContext("Render");
-#endif
+			ZoneScopedN("Render");
 
 			g_cDraw3D = 0;
 			for (int i = 0; i < 2; i++)
@@ -1377,6 +1380,8 @@ void SGame::MainLoop()
 		}
 
 		m_sScroll = 0.0f;
+
+		FrameMark;
 	}
 }
 

@@ -1,8 +1,10 @@
 #pragma once
 
-#include <unordered_map>
-
 // Also just kinda including things that everything needs to be able to include, should find a better place
+
+#if TRACY_ENABLE
+#include "Tracy.hpp"
+#endif
 
 #include "util.h"
 #include "vector.h"
