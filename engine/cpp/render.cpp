@@ -176,7 +176,6 @@ void BindGlobalsForCamera(SCamera3D * pCamera, SCamera3D * pCameraShadow)
 
 bool FInFrustum(const SFrustum & frustum, Point posSphere, float sRadius)
 {
-	return false;
 	// BB this is very slow. We should be earlying out when possible, also we can precompute any of the values we need from the frustum, since those don't change
 	//  Will probably need a seperate function from posclosestinfrustum that incorporates those ideas
 

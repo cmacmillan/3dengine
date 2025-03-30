@@ -4,6 +4,18 @@ SObjectManager g_objman;
 
 SObjectManager::SObjectManager()
 {
+	size_t cbObj = sizeof(SObject *) * C_OBJECT_MAX;
+	m_mpObjhObj = (SObject **) malloc(cbObj);
+	memset(m_mpObjhObj, 0, cbObj);
+
+	size_t cbH = sizeof(int) * C_OBJECT_MAX;
+	m_ahFree = (int *) malloc(cbH);
+	for (int i = 0; i < C_OBJECT_MAX; i++)
+	{
+		m_ahFree[i] = i;
+	}
+	m_chFree = C_OBJECT_MAX;
+
 	for (TYPEK typek = TYPEK_Min; typek < TYPEK_Max; typek = TYPEK(typek + 1))
 	{
 		m_mpTypekAryPObj[typek] = std::vector<SObject *>();
@@ -45,8 +57,10 @@ TYPEK TypekSuper(TYPEK typek)
 
 void SObjectManager::RegisterObj(SObject * pObj)
 {
-	int id = m_cId;
-	m_cId++;
+	ASSERT(m_chFree > 0);
+	m_chFree--;
+	int id = m_ahFree[m_chFree];
+
 	ASSERT(pObj->m_ols == OBJECT_LIFE_STATE_Uninitialized);
 	pObj->m_ols = OBJECT_LIFE_STATE_Registered;
 
@@ -57,7 +71,8 @@ void SObjectManager::RegisterObj(SObject * pObj)
 		typek = TypekSuper(typek);
 	}
 
-	m_mpObjhObj.emplace(id, pObj);
+	ASSERT(id < C_OBJECT_MAX);
+	m_mpObjhObj[id] = pObj;
 	pObj->m_nHandle = id;
 }
 
@@ -90,7 +105,10 @@ void SObjectManager::UnregisterObj(SObject * pObj)
 	}
 
 	pObj->m_ols = OBJECT_LIFE_STATE_Unregistered;
-	m_mpObjhObj.erase(m_mpObjhObj.find(pObj->m_nHandle));
+
+	m_ahFree[m_chFree] = pObj->m_nHandle;
+	m_chFree++;
+	m_mpObjhObj[pObj->m_nHandle] = nullptr;
 }
 
 SObject::SObject(TYPEK typek)

@@ -52,6 +52,8 @@ enum TYPEK
 
 TYPEK TypekSuper(TYPEK typek);
 
+#define C_OBJECT_MAX 100000
+
 struct SObject;
 struct SObjectManager
 {
@@ -61,10 +63,12 @@ struct SObjectManager
 
 	// TODO make per-type iterator wrapper around m_mpTypekAryPObj
 
-	std::unordered_map<int, SObject *>	m_mpObjhObj;
+	SObject **							m_mpObjhObj = nullptr;
 	std::vector<SObject *>				m_mpTypekAryPObj[TYPEK_Max] = {};
 
-	int									m_cId = 0;
+protected:
+	int *								m_ahFree = nullptr;
+	int									m_chFree = -1;
 };
 extern SObjectManager g_objman;
 
@@ -76,9 +80,9 @@ struct SHandle
 	int m_id = -1;
 	T * PT() const
 	{
-		auto kv = g_objman.m_mpObjhObj.find(m_id);
-		if (kv == g_objman.m_mpObjhObj.end()) return nullptr;
-		return (T *) kv->second;
+		if (m_id == -1)
+			return nullptr;
+		return (T *)g_objman.m_mpObjhObj[m_id];
 	}
 	T * operator->() const
 	{
