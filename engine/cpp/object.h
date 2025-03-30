@@ -104,10 +104,6 @@ struct SHandle
 	{
 		return m_id == hOther.m_id;
 	}
-	bool operator==(const void * pV) const
-	{
-		return PT() == pV;
-	}
 	bool operator==(int id) const
 	{
 		return m_id == id;

@@ -11,7 +11,11 @@
 #include <string>
 #include <stdexcept>
 
+#if NDEBUG
+#define SHIP 1
+#else
 #define SHIP 0
+#endif
 
 #define CASSERT(arg) static_assert(arg, "static assert failed!\n");
 #define DIM(a) sizeof(a)/sizeof(a[0])
