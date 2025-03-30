@@ -723,7 +723,7 @@ bool FSimplex(Vector * pNormalSupport, SFixArray<SMink, 4> * paryMink, Point * p
 	}
 }
 
-#define ENABLE_DEBUG_GJK 1
+#define ENABLE_DEBUG_GJK 0
 
 TWEAKABLE Point s_posMinkowskiOriginDebugDraw = Point(5.0f, 0.0f, 3.0f);
 static int s_iDrawGjkDebug = 0;
@@ -907,20 +907,10 @@ void TestGjk(const Mat & matCubePhys, Vector vecNonuniformScale, Point posSphere
 
 void TestGjk()
 {
-	TWEAKABLE bool s_fDebug = true;
+	TWEAKABLE bool s_fDebugGjk = ENABLE_DEBUG_GJK;
 
-	if (!s_fDebug)
+	if (!s_fDebugGjk)
 		return;
-
-#if 0
-	TWEAKABLE int s_iPhyscubeTest = 0;
-	TWEAKABLE int s_iDynsphereTest = 0;
-	auto & aryPhyscube = g_objman.m_mpTypekAryPObj[TYPEK_PhysCube];
-	auto & aryDynsphere = g_objman.m_mpTypekAryPObj[TYPEK_DynSphere];
-	SDynSphere * pDynsphere = (SDynSphere *) aryDynsphere[s_iDynsphereTest];
-	SPhysCube * pPhyscube = (SPhysCube *)aryPhyscube[s_iPhyscubeTest];
-	TestGjk(pPhyscube->m_matPhys, pPhyscube->m_vecNonuniformScale, pDynsphere->PosWorld(), pDynsphere->SRadius());
-#endif
 
 	TWEAKABLE float s_sRadius = 1.0f;
 	TWEAKABLE Point s_posSphere = Point(-1.0f, -5.0f, 5.0f);

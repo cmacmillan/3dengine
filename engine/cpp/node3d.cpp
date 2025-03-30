@@ -57,7 +57,14 @@ void SNode3D::SetVecScaleLocal(Vector vecScale)
 void SNode3D::UpdateSelfAndChildTransformCache()
 {
 	m_matObjectToWorldCache = m_transformLocal.Mat() * MatParentToWorld();
+	ASSERT(!m_matObjectToWorldCache.FHasNans());
 	m_quatObjectToWorldCache = QuatParentToWorld() * m_transformLocal.m_quat;
+
+	m_gScaleMaxCache = GComponentwiseMax(m_transformLocal.m_vecScale);
+	if (SNode3D * pNode3DParent = PNode3DParent())
+	{
+		m_gScaleMaxCache *= pNode3DParent->m_gScaleMaxCache;
+	}
 
 	SNode * pNode = m_pNodeChildFirst;
 	while (pNode != nullptr)

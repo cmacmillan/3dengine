@@ -6,7 +6,7 @@
 
 int g_cDraw3D = 0;
 
-void Draw3DSingle(const SMaterial * pMaterial, const SMesh3D * pMesh, const Mat & matModel, const Mat & matWorldToClip, const Mat & matWorldToCamera, const SFrustum & frustum, SRgba rgba)
+void Draw3DSingle(const SMaterial * pMaterial, const SMesh3D * pMesh, const Mat & matModel, const Mat & matWorldToClip, const Mat & matWorldToCamera, const SFrustum & frustum, float gMaxScale, SRgba rgba)
 {
 	ID3D11DeviceContext1 * pD3ddevicecontext = g_game.m_pD3ddevicecontext;
 	const SShader * pShader = pMaterial->m_hShader.PT();
@@ -14,8 +14,9 @@ void Draw3DSingle(const SMaterial * pMaterial, const SMesh3D * pMesh, const Mat 
 	if (pShader->m_data.m_shaderk == SHADERK_Error)
 		return;
 
-	Mat matModelInv = matModel.MatInverse();
-	if (!FInFrustum(frustum, matModelInv, pMesh->m_posBoundingSphereLocal, pMesh->m_sRadiusBoundingSphereLocal))
+	Point posBoundingSphereWorld = pMesh->m_posBoundingSphereLocal * matModel;
+	float sRadiusBoundingSphere = pMesh->m_sRadiusBoundingSphereLocal * gMaxScale;
+	if (!FInFrustum(g_game.m_frustumDebug, posBoundingSphereWorld, sRadiusBoundingSphere))
 		return;
 
 	pD3ddevicecontext->RSSetState(pShader->m_data.m_pD3drasterizerstate);
@@ -41,7 +42,7 @@ void Draw3DSingle(const SMaterial * pMaterial, const SMesh3D * pMesh, const Mat 
 	pD3ddevicecontext->Map(g_game.m_cbufferDrawnode3D, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
 	SDrawNodeRenderConstants * pDrawnode3Drc = (SDrawNodeRenderConstants *) (mappedSubresource.pData);
 
-	pDrawnode3Drc->FillOut(matModel, matModelInv, matWorldToClip, matWorldToCamera, rgba);
+	pDrawnode3Drc->FillOut(matModel, matModel.MatInverse(), matWorldToClip, matWorldToCamera, rgba);
 
 	pD3ddevicecontext->Unmap(g_game.m_cbufferDrawnode3D, 0);
 
@@ -51,7 +52,10 @@ void Draw3DSingle(const SMaterial * pMaterial, const SMesh3D * pMesh, const Mat 
 
 	UnbindTextures(pShader);
 
-	g_cDraw3D++;
+	if (!g_game.m_fDebugDrawing) // Don't count debug draws
+	{
+		g_cDraw3D++;
+	}
 }
 
 void Draw3D(std::vector<SDrawNode3D *> * parypDrawnode3DToRender, const Mat & matWorldToClip, const Mat & matWorldToCamera, const SFrustum & frustum, bool fDrawAsShadowcaster)
@@ -78,7 +82,9 @@ void Draw3D(std::vector<SDrawNode3D *> * parypDrawnode3DToRender, const Mat & ma
 
 		ASSERT(pDrawnode3D->FIsDerivedFrom(TYPEK_DrawNode3D));
 
-		Draw3DSingle(pMaterial, pDrawnode3D->m_hMesh.PT(), pDrawnode3D->MatObjectToWorld(), matWorldToClip, matWorldToCamera, frustum);
+		Draw3DSingle(pMaterial, pDrawnode3D->m_hMesh.PT(), pDrawnode3D->MatObjectToWorld(), matWorldToClip, matWorldToCamera, frustum, pDrawnode3D->GScaleMaxCache());
+
+		DoNothing(); // Here so pDrawnode3D doens't go out of scope
 	}
 }
 
@@ -168,166 +174,69 @@ void BindGlobalsForCamera(SCamera3D * pCamera, SCamera3D * pCameraShadow)
 	pD3ddevicecontext->Unmap(g_game.m_cbufferGlobals, 0);
 }
 
-float SDistFromLineSeg(const Point & posPoint, const Point & posLineSeg0, const Point & posLineSeg1, const Point & posInward, const Vector & normalOrtho, Point * pPosClosest)
+bool FInFrustum(const SFrustum & frustum, Point posSphere, float sRadius)
 {
-	// Compute normal to generate a sign
-
-	Vector normalOutward = VecNormalize(VecCross(posLineSeg1 - posLineSeg0, normalOrtho));
-	if (GDot(normalOutward, posInward - posLineSeg0) > 0.0f)
-		normalOutward = -normalOutward;
-
-	Vector dPosPoint = posPoint - posLineSeg0;
-	float sFromLine = GDot(dPosPoint, normalOutward);
-	float gSignOutward = GSign(sFromLine); // outward = positive, inward = negative
-
-	Vector dPosLineSeg = posLineSeg1 - posLineSeg0;
-	float sLineSeg = SLength(dPosLineSeg);
-	Vector normalLineSeg = dPosLineSeg / sLineSeg;
-
-	float sProjected = GDot(dPosPoint, normalLineSeg);
-
-	if (sProjected > sLineSeg)
-	{
-		*pPosClosest = posLineSeg1;
-		return SLength(posPoint - posLineSeg1) * gSignOutward;
-	}
-	else if (sProjected < 0.0f)
-	{
-		*pPosClosest = posLineSeg0;
-		return SLength(posPoint - posLineSeg0) * gSignOutward;
-	}
-	else
-	{
-		*pPosClosest = sLineSeg * normalLineSeg;
-		return sFromLine * gSignOutward;
-	}
-
+	g_game.DebugDrawSphere(posSphere, sRadius);
+	Point posClosest = PosClosestInFrustum(posSphere, frustum);
+	float sDist = SLength(posSphere - posClosest);
+	return sDist < sRadius;
 }
 
-float SPointFromPlane(const Point & posPoint, const Point & posPlane0, const Point & posPlane1, const Point & posPlane2, const Point & posPlane3, const Point & posInward, Point * pPosClosest)
+Point PosClosestInFrustum(const Point & posPoint, const SFrustum & frustum)
 {
-	// Making no assumptions about winding order, except that they don't form a bow-tie (e.g. we can walk around the perimeter by going 0->1->2->0)
-
-	Vector normalOutward = VecNormalize(VecCross(posPlane1-posPlane0, posPlane2-posPlane0));
-	Vector dPosInward = posInward - posPlane0;
-
-	if (GDot(normalOutward, dPosInward) > 0.0f)
-		normalOutward = -normalOutward;
-
-	if (GDot(posPoint - posPlane0, normalOutward) < 0.0f)
+	struct SPlane
 	{
-		// "Inside" the plane, early out
-		return -1.0f;
-	}
+		const Point * m_apPos[4];
+		const Point * m_pPosInside;
+	};
 
-	Point posInPlane = VecProjectOnTangent(posPoint - posPlane0, normalOutward) + posPlane0;
-
-	// Clip to be within polygon
-
-	float sMax = -FLT_MAX;
-	Point posClosest = g_posZero;
-
-	Point aPos[4] = { posPlane0, posPlane1, posPlane2, posPlane3 };
-
-	for (int iPos = 0; iPos < 4; iPos++)
+	SPlane aPlane[6] = 
 	{
-		Point posCur;
-		float sCur = SDistFromLineSeg(posInPlane, aPos[iPos], aPos[(iPos + 1) % 4], aPos[(iPos + 2) % 4], normalOutward, &posCur);
+		{ &frustum.m_posMin, &frustum.m_posMinXzMaxY, &frustum.m_posMinXMaxYz, &frustum.m_posMinXyMaxZ, &frustum.m_posMax },
+		{ &frustum.m_posMax, &frustum.m_posMinZMaxXy, &frustum.m_posMinYzMaxX, &frustum.m_posMinYMaxXz, &frustum.m_posMin },
+		{ &frustum.m_posMin, &frustum.m_posMinXyMaxZ, &frustum.m_posMinYMaxXz, &frustum.m_posMinYzMaxX, &frustum.m_posMax },
+		{ &frustum.m_posMax, &frustum.m_posMinXMaxYz, &frustum.m_posMinXzMaxY, &frustum.m_posMinZMaxXy, &frustum.m_posMin },
+		{ &frustum.m_posMin, &frustum.m_posMinYzMaxX, &frustum.m_posMinZMaxXy, &frustum.m_posMinXzMaxY, &frustum.m_posMax },
+		{ &frustum.m_posMax, &frustum.m_posMinYMaxXz, &frustum.m_posMinXyMaxZ, &frustum.m_posMinXMaxYz, &frustum.m_posMin }
+	};
 
-		if (sCur > sMax);
+	bool fOutside = false;
+	float sBest = FLT_MAX;
+	Point posBest = g_posZero;
+	for (int iPlane = 0; iPlane < DIM(aPlane); iPlane++)
+	{
+		const SPlane & plane = aPlane[iPlane];
+		const Point & pos0 = *plane.m_apPos[0];
+		const Point & pos1 = *plane.m_apPos[1];
+		const Point & pos2 = *plane.m_apPos[2];
+		const Point & pos3 = *plane.m_apPos[3];
+		const Point & posInward = *plane.m_pPosInside;
+
+		Point posResult = PosClosestInQuadToPoint(posPoint, pos0, pos1, pos2, pos3);
+
+		Vector normalOutward = VecNormalize(VecCross(pos1 - pos0, pos2 - pos0));
+		if (GDot(normalOutward, posInward - pos0) > 0.0f)
+			normalOutward = -normalOutward;
+
+		float gDot = GDot(normalOutward, posPoint-pos0);
+		if (gDot > 0.0f)
 		{
-			sMax = sCur;
-			posClosest = posCur;
+			fOutside = true;
+			float s = SLength(posResult - posPoint);
+			if (s < sBest)
+			{
+				sBest = s;
+				posBest = posResult;
+			}
 		}
 	}
 
-	if (sMax < 0.0f)
+	if (fOutside)
 	{
-		// Inside the polygon in 2d
-
-		*pPosClosest = posInPlane;
-
-		return GDot(posPoint - posPlane0, normalOutward);
-	}
-	else
-	{
-		// Outside the polygon in 2d
-
-		*pPosClosest = posClosest;
-
-		return SLength(posClosest);
-	}
-}
-
-bool FInFrustum(const SFrustum & frustumWorld, const Mat & matWorldToObject, Point posSphereLocal, float sRadiusLocal)
-{
-	SFrustum frustumLocal = FrustumTransform(frustumWorld, matWorldToObject);
-
-	const Point posMin			= frustumLocal.m_posMin;
-	const Point posMinYzMaxX	= frustumLocal.m_posMinYzMaxX;
-	const Point posMinXzMaxY	= frustumLocal.m_posMinXzMaxY;
-	const Point posMinXyMaxZ	= frustumLocal.m_posMinXyMaxZ;
-	const Point posMinXMaxYz	= frustumLocal.m_posMinXMaxYz;
-	const Point posMinYMaxXz	= frustumLocal.m_posMinXMaxYz;
-	const Point posMinZMaxXy	= frustumLocal.m_posMinXMaxYz;
-	const Point posMax			= frustumLocal.m_posMax;
-
-	// Winding clockwise (if looking in from outside)
-
-	// Find the smallest positive value
-
-	Point posBest;
-	float sMin = FLT_MAX;
-
-	Point posCur;
-	float sMinX = SPointFromPlane(posSphereLocal, posMin, posMinXzMaxY, posMinXMaxYz, posMinXyMaxZ, posMax, &posCur); // Min X Plane
-	if (sMinX >= 0.0f && sMinX < sMin)
-	{
-		posBest = posCur;
-		sMin = sMinX;
+		return posBest;
 	}
 
-	float sMaxX = SPointFromPlane(posSphereLocal, posMax, posMinZMaxXy, posMinYzMaxX, posMinYMaxXz, posMin, &posCur); // Max X Plane
-	if (sMaxX >= 0.0f && sMaxX < sMin)
-	{
-		posBest = posCur;
-		sMin = sMaxX;
-	}
-
-	float sMinY = SPointFromPlane(posSphereLocal, posMin, posMinXyMaxZ, posMinYMaxXz, posMinYzMaxX, posMax, &posCur); // Min Y Plane
-	if (sMinY >= 0.0f && sMinY < sMin)
-	{
-		posBest = posCur;
-		sMin = sMinY;
-	}
-
-	float sMaxY = SPointFromPlane(posSphereLocal, posMax, posMinXMaxYz, posMinXzMaxY, posMinZMaxXy, posMin, &posCur); // Max Y Plane
-	if (sMaxY >= 0.0f && sMaxY < sMin)
-	{
-		posBest = posCur;
-		sMin = sMaxY;
-	}
-	float sMinZ = SPointFromPlane(posSphereLocal, posMin, posMinYzMaxX, posMinZMaxXy, posMinXzMaxY, posMax, &posCur); // Min Z Plane
-	if (sMinZ >= 0.0f && sMinZ < sMin)
-	{
-		posBest = posCur;
-		sMin = sMinZ;
-	}
-
-	float sMaxZ = SPointFromPlane(posSphereLocal, posMax, posMinYMaxXz, posMinXyMaxZ, posMinXMaxYz, posMin, &posCur); // Max Z Plane
-	if (sMaxZ >= 0.0f && sMaxZ < sMin)
-	{
-		posBest = posCur;
-		sMin = sMaxZ;
-	}
-
-	if (sMin == FLT_MAX)
-		return true;
-
-	// TODO incorporate posSphereLocal!!!!
-
-	return true;
-	//return sMin < sRadiusLocal;
+	return posPoint;
 }
 
 SFrustum FrustumTransform(const SFrustum & frustum, const Mat & mat)
@@ -336,7 +245,26 @@ SFrustum FrustumTransform(const SFrustum & frustum, const Mat & mat)
 	frustumResult.m_posMin			= frustum.m_posMin * mat;
 	frustumResult.m_posMinYzMaxX	= frustum.m_posMinYzMaxX * mat;
 	frustumResult.m_posMinXzMaxY	= frustum.m_posMinXzMaxY * mat;
-	frustumResult.m_posMinXyMaxZ	= frustum.m_posMinXyMaxZ * mat;
-	frustumResult.m_posMax			= frustum.m_posMax * mat;
+	frustumResult.m_posMinXyMaxZ = frustum.m_posMinXyMaxZ * mat;
+	frustumResult.m_posMinXMaxYz = frustum.m_posMinXMaxYz * mat;
+	frustumResult.m_posMinYMaxXz = frustum.m_posMinYMaxXz * mat;
+	frustumResult.m_posMinZMaxXy = frustum.m_posMinZMaxXy * mat;
+	frustumResult.m_posMax = frustum.m_posMax * mat;
 	return frustumResult;
+}
+
+void SFrustum::DebugDraw(SRgba rgba)
+{
+	g_game.DebugDrawLine(m_posMin, m_posMinYzMaxX, 0.0f, rgba);
+	g_game.DebugDrawLine(m_posMin, m_posMinXzMaxY, 0.0f, rgba);
+	g_game.DebugDrawLine(m_posMin, m_posMinXyMaxZ, 0.0f, rgba);
+	g_game.DebugDrawLine(m_posMax, m_posMinXMaxYz, 0.0f, rgba);
+	g_game.DebugDrawLine(m_posMax, m_posMinYMaxXz, 0.0f, rgba);
+	g_game.DebugDrawLine(m_posMax, m_posMinZMaxXy, 0.0f, rgba);
+	g_game.DebugDrawLine(m_posMinYzMaxX, m_posMinZMaxXy, 0.0f, rgba);
+	g_game.DebugDrawLine(m_posMinYzMaxX, m_posMinYMaxXz, 0.0f, rgba);
+	g_game.DebugDrawLine(m_posMinXzMaxY, m_posMinXMaxYz, 0.0f, rgba);
+	g_game.DebugDrawLine(m_posMinXzMaxY, m_posMinZMaxXy, 0.0f, rgba);
+	g_game.DebugDrawLine(m_posMinXyMaxZ, m_posMinXMaxYz, 0.0f, rgba);
+	g_game.DebugDrawLine(m_posMinXyMaxZ, m_posMinYMaxXz, 0.0f, rgba);
 }

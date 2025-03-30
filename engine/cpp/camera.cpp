@@ -76,14 +76,11 @@ SFrustum SCamera3D::FrustumCompute()
 	{
 		DoNothing();
 	}
+
+	// NOTE these coordinates are somewhat weird since it's a mapping of NDC to world space
+	//  E.g. inverse z becomes x
+
 	SFrustum frustum;
-#if 0
-	frustum.m_posMin = PosWorldFromPosNdc(Point(-1.0f, -1.0f, 1.0f));
-	frustum.m_posMinYzMaxX = PosWorldFromPosNdc(Point(1.0f, -1.0f, 1.0f));
-	frustum.m_posMinXzMaxY = PosWorldFromPosNdc(Point(-1.0f, 1.0f, 1.0f));
-	frustum.m_posMinXyMaxZ = PosWorldFromPosNdc(Point(-1.0f, -1.0f, 0.0f));
-	frustum.m_posMax = PosWorldFromPosNdc(Point(1.0f, 1.0f, 0.0f));
-#else
 	frustum.m_posMin = PosWorldFromPosNdc(Point(1.0f, -1.0f, 1.0f));
 	frustum.m_posMinYzMaxX = PosWorldFromPosNdc(Point(1.0f, -1.0f, 0.0f));
 	frustum.m_posMinXzMaxY = PosWorldFromPosNdc(Point(-1.0f, -1.0f, 1.0f));
@@ -92,14 +89,5 @@ SFrustum SCamera3D::FrustumCompute()
 	frustum.m_posMinYMaxXz = PosWorldFromPosNdc(Point(1.0f, 1.0f, 0.0f));
 	frustum.m_posMinZMaxXy = PosWorldFromPosNdc(Point(-1.0f, -1.0f, 0.0f));
 	frustum.m_posMax = PosWorldFromPosNdc(Point(-1.0f, 1.0f, 0.0f));
-	g_game.DebugDrawSphere(frustum.m_posMin, 0.1f, 0.0f, g_rgbaBlack);
-	g_game.DebugDrawSphere(frustum.m_posMinYzMaxX, 100.0f, 0.0f, g_rgbaRed);
-	g_game.DebugDrawSphere(frustum.m_posMinXzMaxY, 0.1f, 0.0f, g_rgbaGreen);
-	g_game.DebugDrawSphere(frustum.m_posMinXyMaxZ, 0.1f, 0.0f, g_rgbaBlue);
-	g_game.DebugDrawSphere(frustum.m_posMinXMaxYz, 0.1f, 0.0f, SRgba(0.0f, 1.0f, 1.0f));
-	g_game.DebugDrawSphere(frustum.m_posMinYMaxXz, 100.0f, 0.0f, SRgba(1.0f, 0.0f, 1.0f));
-	g_game.DebugDrawSphere(frustum.m_posMinZMaxXy, 100.0f, 0.0f, SRgba(1.0f, 1.0f, 0.0f));
-	g_game.DebugDrawSphere(frustum.m_posMax, 100.0f, 0.0f, g_rgbaWhite);
-#endif
 	return frustum;
 }

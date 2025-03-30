@@ -42,7 +42,7 @@ struct float4
 					m_z(z), 
 					m_w(w) 
 					{}
-	bool		FHasNans();
+	bool		FHasNans() const;
 
 	float4		operator/(float g) const;
 	float4		operator*(float g) const;
@@ -139,7 +139,9 @@ bool FIsNear(const Point & pos0, const Point & pos1);
 
 Vector VecComponentwiseMultiply(const Vector & vec1, const Vector & vec2);
 Vector VecComponentwiseDivide(const Vector & vec1, const Vector & vec2);
+float GComponentwiseMin(const Vector & vec);
 Vector VecComponentwiseMin(const Vector & vec1, const Vector & vec2);
+float GComponentwiseMax(const Vector & vec);
 Vector VecComponentwiseMax(const Vector & vec1, const Vector & vec2);
 Point PosComponentwiseMultiply(const Point & pos1, const Point & pos2);
 Point PosComponentwiseDivide(const Point & pos1, const Point & pos2);
@@ -156,6 +158,8 @@ Vector VecNormalize(const Vector & vec);
 void ClosestPointsOnTwoLines(Point pos0, Vector normal0, Point pos1, Vector normal1, Point * pPos0, Point * pPos1);
 void ClosestPointsOnLineAndLineSegment(Point pos, Vector normal, Point posSegment0, Point posSegment1, Point * pPosLine, Point * pPosSegment);
 Point PosClosestOnLineToPoint(Point pos, Point posLine, Vector normalLine);
+Point PosClosestOnLineSegmentToPoint(Point pos, Point posLineSeg0, Point posLineSeg1);
+Point PosClosestInQuadToPoint(Point pos, Point posPlane0, Point posPlane1, Point posPlane2, Point posPlane3);
 
 // Row major, so vectors are horizontal
 //  so multiplication goes left to right, like at work
@@ -183,7 +187,7 @@ struct Mat
 	Vector VecY() { return m_aVec[1]; }
 	Vector VecZ() { return m_aVec[2]; }
 	Point Pos() { return m_aVec[3]; }
-	bool FHasNans();
+	bool FHasNans() const;
 	float4 m_aVec[4];
 	Mat operator*(const Mat & mat) const;
 	Mat operator*(float g) const;
@@ -255,6 +259,8 @@ Quat QuatFromMatRot(const Mat & matRot);
 
 Mat MatPerspective(float radFovHorizontal, float rAspectWidthOverHeight, float dXNearClip, float dXFarClip);
 Mat MatOrthographic(float gScale, float rAspectWidthOverHeight, float xNearClip, float xFarClip);
+
+float GScaleMaxFromMat(const Mat & mat); // For dealing with nonuniformly scaling bounding spheres. NOTE NOT VALID FOR MATRICIES WHICH HAVE BEEN MULTIPLIED TOGETHER
 
 struct Transform // tag = transform
 {

@@ -806,8 +806,7 @@ void SGame::MainLoop()
 
 
 
-		////////// GAMEPLAY CODE (JANK)
-	
+		////////// PUT JANKY TEST GAMEPLAY CODE HERE ////////// 
 
 		TestGjk();
 
@@ -839,7 +838,7 @@ void SGame::MainLoop()
 
 		g_game.PrintConsole(StrPrintf("cDraw:%i\n", g_cDraw3D));
 
-		///////////////////////////////
+		///////////////////////////////////////////////////////
 
 		// Run update functions on all nodes
 
@@ -1217,9 +1216,11 @@ void SGame::MainLoop()
 				SMesh3D * pMeshArrowBody = m_hMeshArrowBody.PT();
 				SMesh3D * pMeshArrowHead = m_hMeshArrowHead.PT();
 
+				m_fDebugDrawing = true;
+
 				for (SDebugDraw & dd : m_lDdToDraw)
 				{
-					dd.m_gSorted = SLength(Point(dd.m_mat.m_aVec[3]) - pCamera3D->PosWorld());
+					dd.m_gSorted = SLength(dd.m_mat.Pos() - pCamera3D->PosWorld());
 				}
 				m_lDdToDraw.sort(FCompareDebugDraw);
 
@@ -1265,13 +1266,13 @@ void SGame::MainLoop()
 						// TODO handle fOpaque properly
 						for (int ipMesh = 0; ipMesh < apMesh.m_c; ipMesh++)
 						{
-							Draw3DSingle(pMaterialWireframe, apMesh[ipMesh], *apMat[ipMesh], matWorldToClip, matWorldToCamera, frustum, dd.m_rgba);
+							Draw3DSingle(pMaterialWireframe, apMesh[ipMesh], *apMat[ipMesh], matWorldToClip, matWorldToCamera, frustum, GScaleMaxFromMat(*apMat[ipMesh]), dd.m_rgba);
 						}
 						break;
 					case DDSTYLE_Solid:
 						for (int ipMesh = 0; ipMesh < apMesh.m_c; ipMesh++)
 						{
-							Draw3DSingle((fOpaque) ? pMaterialSolidDepthWrite : pMaterialSolidNoDepthWrite, apMesh[ipMesh], * apMat[ipMesh], matWorldToClip, matWorldToCamera, frustum, dd.m_rgba);
+							Draw3DSingle((fOpaque) ? pMaterialSolidDepthWrite : pMaterialSolidNoDepthWrite, apMesh[ipMesh], * apMat[ipMesh], matWorldToClip, matWorldToCamera, frustum, GScaleMaxFromMat(*apMat[ipMesh]), dd.m_rgba);
 						}
 						break;
 
@@ -1279,16 +1280,18 @@ void SGame::MainLoop()
 						ASSERT(fOpaque);
 						for (int ipMesh = 0; ipMesh < apMesh.m_c; ipMesh++)
 						{
-							Draw3DSingle(pMaterialOutline, apMesh[ipMesh], *apMat[ipMesh], matWorldToClip, matWorldToCamera, frustum, g_rgbaBlack);
+							Draw3DSingle(pMaterialOutline, apMesh[ipMesh], *apMat[ipMesh], matWorldToClip, matWorldToCamera, frustum, GScaleMaxFromMat(*apMat[ipMesh]), g_rgbaBlack);
 						}
 
 						for (int ipMesh = 0; ipMesh < apMesh.m_c; ipMesh++)
 						{
-							Draw3DSingle(pMaterialSolidDepthWrite, apMesh[ipMesh], *apMat[ipMesh], matWorldToClip, matWorldToCamera, frustum, dd.m_rgba);
+							Draw3DSingle(pMaterialSolidDepthWrite, apMesh[ipMesh], *apMat[ipMesh], matWorldToClip, matWorldToCamera, frustum, GScaleMaxFromMat(*apMat[ipMesh]), dd.m_rgba);
 						}
 						break;
 					}
 				}
+
+				m_fDebugDrawing = false;
 			}
 
 			// Draw ui nodes
@@ -1362,6 +1365,12 @@ void SGame::PrintConsole(const std::string & str, float dTRealtime)
 
 void SGame::DebugDrawSphere(Point posSphere, float sRadius, float dTRealtime, SRgba rgba, float gSort, DDSTYLE ddstyle)
 {
+	ASSERT(!posSphere.m_vec.FHasNans() && !isnan(sRadius));
+	ASSERT(!m_fDebugDrawing);
+
+	if (sRadius == 0.0f)
+		return;
+
 	// NOTE sphere model is radius 1
 
 	m_lDdToDraw.push_back({ DDK_Sphere, MatScale(sRadius * g_vecOne) * MatTranslate(posSphere), g_matIdentity, rgba, g_game.m_systRealtime + dTRealtime, gSort, ddstyle });
@@ -1369,6 +1378,11 @@ void SGame::DebugDrawSphere(Point posSphere, float sRadius, float dTRealtime, SR
 
 void SGame::DebugDrawCube(const Mat & mat, float dTRealtime, SRgba rgba, float gSort, DDSTYLE ddstyle)
 {
+	ASSERT(!mat.FHasNans());
+	ASSERT(!m_fDebugDrawing);
+
+	// TODO skip pushing this draw if mat contains a zero length scale
+
 	// NOTE cube model is -1 to 1
 
 	m_lDdToDraw.push_back({ DDK_Cube, mat, g_matIdentity, rgba, g_game.m_systRealtime + dTRealtime, gSort, ddstyle});
@@ -1376,20 +1390,32 @@ void SGame::DebugDrawCube(const Mat & mat, float dTRealtime, SRgba rgba, float g
 
 void SGame::DebugDrawLine(Point pos0, Point pos1, float dTRealtime, SRgba rgba, float gSort, DDSTYLE ddstyle)
 {
-	ASSERT(!FIsNear(pos0, pos1));
+	ASSERT(!pos0.m_vec.FHasNans() && !pos1.m_vec.FHasNans());
+	ASSERT(!m_fDebugDrawing);
+
+	if (FIsNear(pos0, pos1))
+		return;
+
 	DebugDrawLine(pos0, pos1 - pos0, dTRealtime, rgba, gSort, ddstyle);
 }
 
 void SGame::DebugDrawLine(Point pos, Vector dPos, float dTRealtime, SRgba rgba, float gSort, DDSTYLE ddstyle)
 {
+	ASSERT(!pos.m_vec.FHasNans() && !dPos.m_vec.FHasNans());
+	ASSERT(!m_fDebugDrawing);
+
 	TWEAKABLE float s_sRadiusLine = .01f;
 	float sdPos = SLength(dPos);
+	if (sdPos == 0.0f)
+		return;
+
 	Vector normal = dPos / sdPos;
 
 	Mat matLocalToWorldBody = MatRotate(QuatFromTo(g_vecZAxis, normal)) * MatTranslate(pos + sdPos * .5f * normal);
 
 	Mat matBody = MatScale(Vector(s_sRadiusLine, s_sRadiusLine, sdPos)) * matLocalToWorldBody;
 
+	ASSERT(!matBody.FHasNans());
 	// BB Jankily reusing arrow body for line drawing
 
 	m_lDdToDraw.push_back({ DDK_Line, matBody, g_matIdentity, rgba, g_game.m_systRealtime + dTRealtime, gSort, ddstyle });
@@ -1397,14 +1423,23 @@ void SGame::DebugDrawLine(Point pos, Vector dPos, float dTRealtime, SRgba rgba, 
 
 void SGame::DebugDrawArrow(Point pos0, Point pos1, float sRadius, float dTRealtime, SRgba rgba, float gSort, DDSTYLE ddstyle)
 {
+	ASSERT(!pos0.m_vec.FHasNans() && !pos1.m_vec.FHasNans());
+	ASSERT(!m_fDebugDrawing);
+
 	DebugDrawArrow(pos0, pos1 - pos0, sRadius, dTRealtime, rgba, gSort, ddstyle);
 }
 
 void SGame::DebugDrawArrow(Point pos, Vector dPos, float sRadius, float dTRealtime, SRgba rgba, float gSort, DDSTYLE ddstyle)
 {
+	ASSERT(!pos.m_vec.FHasNans() && !dPos.m_vec.FHasNans());
+	ASSERT(!m_fDebugDrawing);
+
 	// Arrow head and body are 0 to 1 in z, and -1 to 1 in x and  y
 
 	float sdPos = SLength(dPos);
+	if (sdPos == 0.0f)
+		return;
+
 	Vector normal = dPos / sdPos;
 
 	TWEAKABLE float s_gScaleHead = 6.0f;

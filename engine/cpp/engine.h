@@ -226,6 +226,7 @@ struct SGame // game
 	SMaterialHandle m_hMaterialDebugDrawSolidDepthWrite = -1;
 	SMaterialHandle m_hMaterialDebugDrawOutline = -1;
 
+	bool m_fDebugDrawing = false;
 	std::list<SDebugDraw> m_lDdToDraw = {};
 
 #if DEBUG_RAYCAST

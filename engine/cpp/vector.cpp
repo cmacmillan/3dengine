@@ -52,7 +52,7 @@ float SLength(float2 vec)
 
 // float4
 
-bool float4::FHasNans()
+bool float4::FHasNans() const
 {
 	return isnan(m_x) || isnan(m_y) || isnan(m_z) || isnan(m_w);
 }
@@ -269,6 +269,16 @@ Vector VecComponentwiseMin(const Vector & vec1, const Vector & vec2)
 				GMin(vec1.X(), vec2.X()),
 				GMin(vec1.Y(), vec2.Y()),
 				GMin(vec1.Z(), vec2.Z()));
+}
+
+float GComponentwiseMin(const Vector & vec)
+{
+	return GMin(GMin(vec.X(), vec.Y()), vec.Z());
+}
+
+float GComponentwiseMax(const Vector & vec)
+{
+	return GMax(GMax(vec.X(), vec.Y()), vec.Z());
 }
 
 Vector VecComponentwiseMax(const Vector & vec1, const Vector & vec2)
@@ -608,7 +618,6 @@ void ClosestPointsOnLineAndLineSegment(Point pos, Vector normal, Point posSegmen
 		*pPosLine = PosClosestOnLineToPoint(posSegment0, pos, normal);
 		return;
 	}
-
 	Vector normalSegment = dPosSegment / sSegment;
 
 	Point posLine0;
@@ -627,6 +636,71 @@ void ClosestPointsOnLineAndLineSegment(Point pos, Vector normal, Point posSegmen
 Point PosClosestOnLineToPoint(Point pos, Point posLine, Vector normalLine)
 {
 	return VecProjectOnNormal(pos - posLine, normalLine) + posLine;
+}
+
+Point PosClosestOnLineSegmentToPoint(Point pos, Point posLineSeg0, Point posLineSeg1)
+{
+	Vector dPosSegment = posLineSeg1 - posLineSeg0;
+	float sSegment = SLength(dPosSegment);
+	if (FIsNear(0.0f, sSegment))
+	{
+		return posLineSeg0;
+	}
+	Vector normalSegment = dPosSegment / sSegment;
+
+	Point posOnLine = PosClosestOnLineToPoint(pos, posLineSeg0, normalSegment);
+
+	// Clamp to range
+
+	float s = GDot(posOnLine-posLineSeg0, normalSegment);
+	s = GClamp(s,0.0f,sSegment);
+	return posLineSeg0 + s * normalSegment;
+}
+
+Point PosClosestInQuadToPoint(Point pos, Point posPlane0, Point posPlane1, Point posPlane2, Point posPlane3)
+{
+	// BB not ensuring there's no bow-tie or that the polygon is convex, this will return junk in those conditions
+
+	TWEAKABLE float s_gEpsilon = .0001f;
+	ASSERT(SLength(posPlane1 - posPlane0) > s_gEpsilon && SLength(posPlane1 - posPlane2) > s_gEpsilon && SLength(posPlane2 - posPlane3) > s_gEpsilon && SLength(posPlane0 - posPlane3) > s_gEpsilon);
+
+	Vector normal = VecNormalize(VecCross(posPlane2 - posPlane0, posPlane1 - posPlane0));
+
+	ASSERT(GAbs(GDot(VecNormalize(posPlane3 - posPlane0), normal)) < s_gEpsilon);
+
+	bool fOutside = false;
+	float sBest = FLT_MAX;
+	Point posBest = g_posZero;
+
+	Point * apPos[4] = { &posPlane0, &posPlane1, &posPlane2,&posPlane3 };
+	for (int ipPos = 0; ipPos < 4; ipPos++)
+	{
+		const Point & posFrom = *apPos[ipPos];
+		const Point & posTo = *apPos[(ipPos + 1) % 4];
+		Point posOnSeg = PosClosestOnLineSegmentToPoint(pos, posFrom, posTo);
+		Vector dPos = pos - posOnSeg;
+
+		const Point & posIn = *apPos[(ipPos + 2) % 4];
+		Vector dPosIn = VecProjectOnTangent(posIn - posFrom, VecNormalize(posTo - posFrom));
+		float gDot = GDot(dPosIn, dPos);
+		if (gDot < 0.0f)
+		{
+			fOutside = true;
+			float s = SLength(dPos);
+			if (s < sBest)
+			{
+				sBest = s;
+				posBest = posOnSeg;
+			}
+		}
+	}
+
+	if (fOutside)
+	{
+		return posBest;
+	}
+
+	return VecProjectOnTangent(pos - posPlane0, normal) + posPlane0;
 }
 
 float Vector::SLength() const
@@ -803,7 +877,7 @@ bool FIsNear(const Transform & transform1, const Transform & transform2)
 			FIsNear(transform1.m_vecScale, transform2.m_vecScale);
 }
 
-bool Mat::FHasNans()
+bool Mat::FHasNans() const
 {
 	return m_aVec[0].FHasNans() || m_aVec[1].FHasNans() || m_aVec[2].FHasNans() || m_aVec[3].FHasNans();
 }
@@ -909,7 +983,7 @@ Quat QuatFromTo(const Vector & vecFrom, const Vector & vecTo)
 		Vector vecCrossRotateForward = VecCross(vecFrom, vecTo);
 		float s = vecCrossRotateForward.SLength();
 		vecCrossRotateForward = vecCrossRotateForward / s;
-		float rad = RadAsin(s);
+		float rad = RadAsin(GClamp(s,-1.0f,1.0f));
 		if (gDot < 0)
 		{
 			rad = PI - rad;
@@ -1228,4 +1302,12 @@ void AuditVectors()
 
 	ASSERT(FIsNear(VecRotate(g_vecZAxis, QuatAxisAngle(g_vecXAxis, -PI / 2.0f)), g_vecYAxis));
 	ASSERT(FIsNear(VecRotate(g_vecXAxis, QuatAxisAngle(g_vecZAxis, PI / 2.0f)), g_vecYAxis));
+}
+
+float GScaleMaxFromMat(const Mat & mat)
+{
+	float gScaleMax = SLength(Vector(mat.m_aVec[0].m_x, mat.m_aVec[0].m_y, mat.m_aVec[0].m_z));
+	gScaleMax = GMax(gScaleMax,SLength(Vector(mat.m_aVec[1].m_x, mat.m_aVec[1].m_y, mat.m_aVec[1].m_z)));
+	gScaleMax = GMax(gScaleMax,SLength(Vector(mat.m_aVec[2].m_x, mat.m_aVec[2].m_y, mat.m_aVec[2].m_z)));
+	return gScaleMax;
 }

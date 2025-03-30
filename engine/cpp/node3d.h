@@ -38,6 +38,8 @@ struct SNode3D : SNode // node3D
 
 	virtual void UpdateSelfAndChildTransformCache();
 
+	float GScaleMaxCache() const { return m_gScaleMaxCache; }
+
 protected:
 	Quat QuatWorldToParent();
 	Quat QuatParentToWorld();
@@ -48,4 +50,5 @@ protected:
 
 	Mat			m_matObjectToWorldCache = g_matIdentity;
 	Quat		m_quatObjectToWorldCache = g_quatIdentity;
+	float		m_gScaleMaxCache; // For dealing with estimating the scale of a nonuniformly scaled bounding sphere
 };
