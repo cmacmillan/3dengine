@@ -117,6 +117,9 @@
     <ClCompile Include="cpp\color.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="tracy\public\TracyClient.cpp">
+      <Filter>External</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cpp\engine.h">
