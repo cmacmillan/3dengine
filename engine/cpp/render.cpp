@@ -16,7 +16,7 @@ void Draw3DSingle(const SMaterial * pMaterial, const SMesh3D * pMesh, const Mat 
 
 	Point posBoundingSphereWorld = pMesh->m_posBoundingSphereLocal * matModel;
 	float sRadiusBoundingSphere = pMesh->m_sRadiusBoundingSphereLocal * gMaxScale;
-	if (!FInFrustum(g_game.m_frustumDebug, posBoundingSphereWorld, sRadiusBoundingSphere))
+	if (!FInFrustum(frustum, posBoundingSphereWorld, sRadiusBoundingSphere))
 		return;
 
 	pD3ddevicecontext->RSSetState(pShader->m_data.m_pD3drasterizerstate);
@@ -176,10 +176,13 @@ void BindGlobalsForCamera(SCamera3D * pCamera, SCamera3D * pCameraShadow)
 
 bool FInFrustum(const SFrustum & frustum, Point posSphere, float sRadius)
 {
-	g_game.DebugDrawSphere(posSphere, sRadius);
+	return false;
+	// BB this is very slow. We should be earlying out when possible, also we can precompute any of the values we need from the frustum, since those don't change
+	//  Will probably need a seperate function from posclosestinfrustum that incorporates those ideas
+
 	Point posClosest = PosClosestInFrustum(posSphere, frustum);
-	float sDist = SLength(posSphere - posClosest);
-	return sDist < sRadius;
+	float sSqrDist = SLengthSqr(posSphere - posClosest);
+	return sSqrDist < sRadius * sRadius;
 }
 
 Point PosClosestInFrustum(const Point & posPoint, const SFrustum & frustum)

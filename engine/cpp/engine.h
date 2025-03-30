@@ -7,7 +7,8 @@
 #define WIN32_LEAN_AND_MEAN
 #define UNICODE
 
-#define TESTING_BIG_MAP 0
+#define TESTING_BIG_MAP 1
+#define TIME_MAIN_LOOP 1
 
 #include "object.h"
 #include "util.h"

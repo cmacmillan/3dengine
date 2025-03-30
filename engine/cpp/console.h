@@ -19,6 +19,7 @@ struct SConsole : SUiNode // console
 	{
 		std::string m_str = {};
 		double		m_systRealtimeExpire = 0.0;
+		int			m_cFrame = -1; // Draw for c frames instead of waiting for expiration
 	};
 
 	STextHandle m_hTextConsole = -1;

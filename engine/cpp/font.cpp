@@ -77,7 +77,7 @@ SFont::SFont(const char * pChzBitmapfontFile, TYPEK typek) : super(typek)
 	VERIFY(FTryReadFile(pChzBitmapfontFile, &file));
 
 	SBinaryStream bs(file.m_pB);
-	ASSERT(bs.CharRead() == 'B' && bs.CharRead() == 'M' && bs.CharRead() == 'F' && bs.CharRead() == 3);
+	VERIFY(bs.CharRead() == 'B' && bs.CharRead() == 'M' && bs.CharRead() == 'F' && bs.CharRead() == 3);
 
 	SFontBlockHeader fontbhInfo = SFontBlockHeader(&bs);
 	m_fontib = SFontInfoBlock(&bs);

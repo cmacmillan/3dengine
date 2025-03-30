@@ -661,7 +661,7 @@ Point PosClosestInQuadToPoint(Point pos, Point posPlane0, Point posPlane1, Point
 {
 	// BB not ensuring there's no bow-tie or that the polygon is convex, this will return junk in those conditions
 
-	TWEAKABLE float s_gEpsilon = .0001f;
+	TWEAKABLE float s_gEpsilon = .01f;
 	ASSERT(SLength(posPlane1 - posPlane0) > s_gEpsilon && SLength(posPlane1 - posPlane2) > s_gEpsilon && SLength(posPlane2 - posPlane3) > s_gEpsilon && SLength(posPlane0 - posPlane3) > s_gEpsilon);
 
 	Vector normal = VecNormalize(VecCross(posPlane2 - posPlane0, posPlane1 - posPlane0));

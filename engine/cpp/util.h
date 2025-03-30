@@ -13,7 +13,6 @@
 
 #define SHIP 0
 
-#define VERIFY(arg) if (!(arg)) { ASSERT(false); }
 #define CASSERT(arg) static_assert(arg, "static assert failed!\n");
 #define DIM(a) sizeof(a)/sizeof(a[0])
 #define PI 3.141592653589793f
@@ -24,15 +23,21 @@
 #define SYST_INVALID -FLT_MAX
 
 #if SHIP
-#define TWEAKABLE const
+#define TWEAKABLE static const
 #else
 #define TWEAKABLE static
 #endif
 
 #if SHIP
-#define ASSERT(X)
+#define ASSERT(X) 
 #else
 #define ASSERT(X) assert(X)
+#endif
+
+#if SHIP
+#define VERIFY(arg) arg
+#else
+#define VERIFY(arg) if (!(arg)) { ASSERT(false); }
 #endif
 
 void DoNothing();

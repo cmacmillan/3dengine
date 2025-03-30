@@ -907,6 +907,7 @@ void TestGjk(const Mat & matCubePhys, Vector vecNonuniformScale, Point posSphere
 
 void TestGjk()
 {
+#if !SHIP
 	TWEAKABLE bool s_fDebugGjk = ENABLE_DEBUG_GJK;
 
 	if (!s_fDebugGjk)
@@ -924,13 +925,5 @@ void TestGjk()
 	s_posSphere2 = g_game.PosImgui(s_posSphere2, { IMGUI(), 1});
 
 	TestGjk(MatRotate(QuatAxisAngle(VecNormalize(s_vecRotateBox), s_radRotatebox)) * MatTranslate(s_posBox), s_vecScaleBox, s_posSphere, s_posSphere2, s_sRadius);
+#endif
 }
-
-
-
-
-
-
-
-
-

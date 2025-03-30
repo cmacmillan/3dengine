@@ -4,7 +4,7 @@
 
 SFlyCam::SFlyCam(SNode * pNodeParent, const std::string & strName, TYPEK typek) : super(pNodeParent, strName, typek)
 {
-	m_hCamera3D = (new SCamera3D(this, "FlyCamCamera", RadFromDeg(90.0f), 0.1f, 700.0f))->HCamera3D();
+	m_hCamera3D = (new SCamera3D(this, "FlyCamCamera", RadFromDeg(90.0f), 1.0f, 700.0f))->HCamera3D();
 }
 
 void SFlyCam::Update()

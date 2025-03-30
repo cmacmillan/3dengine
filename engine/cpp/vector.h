@@ -260,7 +260,7 @@ Quat QuatFromMatRot(const Mat & matRot);
 Mat MatPerspective(float radFovHorizontal, float rAspectWidthOverHeight, float dXNearClip, float dXFarClip);
 Mat MatOrthographic(float gScale, float rAspectWidthOverHeight, float xNearClip, float xFarClip);
 
-float GScaleMaxFromMat(const Mat & mat); // For dealing with nonuniformly scaling bounding spheres. NOTE NOT VALID FOR MATRICIES WHICH HAVE BEEN MULTIPLIED TOGETHER
+float GScaleMaxFromMat(const Mat & mat); // For dealing with nonuniformly scaling bounding spheres. Is this valid for transform matricies that have been combined together?
 
 struct Transform // tag = transform
 {

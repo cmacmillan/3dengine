@@ -766,7 +766,7 @@ void SGame::MainLoop()
 			depthBufferDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
 			depthBufferDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
 
-			ID3D11Texture2D* depthBuffer;
+			ID3D11Texture2D * depthBuffer;
 			m_pD3ddevice->CreateTexture2D(&depthBufferDesc, nullptr, &depthBuffer);
 
 			m_pD3ddevice->CreateDepthStencilView(depthBuffer, nullptr, &m_pD3ddepthstencilview);
@@ -811,8 +811,8 @@ void SGame::MainLoop()
 		TestGjk();
 
 		m_hCamera3DShadow->SetPosWorld(m_hSun->PosWorld());
-		m_hCamera3DShadow->SetQuatWorld(QuatLookAt(-m_hSun->VecZWorld(),m_hSun->VecYWorld()));
-	
+		m_hCamera3DShadow->SetQuatWorld(QuatLookAt(-m_hSun->VecZWorld(), m_hSun->VecYWorld()));
+
 #if DEBUG_RAYCAST
 		{
 			if (m_mpVkFDown[VK_RBUTTON])
@@ -844,35 +844,40 @@ void SGame::MainLoop()
 
 		// NOTE objects spawned by update will not update or render until the next frame
 
-		struct SVisitNode
-		{
-			SNode * m_pNode;
-			bool m_fVisited;
-		};
-
 		std::vector<SNodeHandle> aryhNode;
-		std::vector<SVisitNode> aryhNodeStack;
-		aryhNodeStack.push_back({ m_hNodeRoot.PT(), false});
-		while (aryhNodeStack.size() > 0)
 		{
-			SVisitNode visitnode = aryhNodeStack[aryhNodeStack.size() - 1];
-			aryhNodeStack.pop_back();
-
-			if (visitnode.m_fVisited)
+#if TIME_MAIN_LOOP
+			STimingContext timectx = STimingContext("Update gather");
+#endif
+			struct SVisitNode
 			{
-				if (visitnode.m_pNode->m_pNodeSiblingNext != nullptr)
+				SNode * m_pNode;
+				bool m_fVisited;
+			};
+
+			std::vector<SVisitNode> aryhNodeStack;
+			aryhNodeStack.push_back({ m_hNodeRoot.PT(), false });
+			while (aryhNodeStack.size() > 0)
+			{
+				SVisitNode visitnode = aryhNodeStack[aryhNodeStack.size() - 1];
+				aryhNodeStack.pop_back();
+
+				if (visitnode.m_fVisited)
 				{
-					aryhNodeStack.push_back({ visitnode.m_pNode->m_pNodeSiblingNext, false });
+					if (visitnode.m_pNode->m_pNodeSiblingNext != nullptr)
+					{
+						aryhNodeStack.push_back({ visitnode.m_pNode->m_pNodeSiblingNext, false });
+					}
 				}
-			}
-			else
-			{
-				aryhNode.push_back(visitnode.m_pNode->HNode());
-
-				aryhNodeStack.push_back({ visitnode.m_pNode, true});
-				if (visitnode.m_pNode->m_pNodeChildFirst != nullptr)
+				else
 				{
-					aryhNodeStack.push_back({ visitnode.m_pNode->m_pNodeChildFirst, false });
+					aryhNode.push_back(visitnode.m_pNode->HNode());
+
+					aryhNodeStack.push_back({ visitnode.m_pNode, true });
+					if (visitnode.m_pNode->m_pNodeChildFirst != nullptr)
+					{
+						aryhNodeStack.push_back({ visitnode.m_pNode->m_pNodeChildFirst, false });
+					}
 				}
 			}
 		}
@@ -880,49 +885,55 @@ void SGame::MainLoop()
 		std::vector<SUiNode *> arypUinodeToRender;
 		std::vector<SDrawNode3D *> arypDrawnode3DToRender;
 		{
-			std::vector<SUiNodeHandle> aryhUinodeToRender;
-			std::vector<SDrawNode3DHandle> aryhDrawnode3DToRender;
+#if TIME_MAIN_LOOP
+			STimingContext timectx = STimingContext("Update run");
+#endif
 
-			// BB I think eventually we'd want render all draw nodes once per camera
-
-			for (SNodeHandle hNode : aryhNode)
 			{
-				if (hNode == -1)
-					continue;
+				std::vector<SUiNodeHandle> aryhUinodeToRender;
+				std::vector<SDrawNode3DHandle> aryhDrawnode3DToRender;
 
-				SNode * pNode = hNode.PT();
-				pNode->Update();
+				// BB I think eventually we'd want render all draw nodes once per camera
 
-				if (pNode->FIsDerivedFrom(TYPEK_UiNode))
+				for (SNodeHandle hNode : aryhNode)
 				{
-					aryhUinodeToRender.push_back(SUiNodeHandle(hNode.m_id));
-				}
-				else if (pNode->FIsDerivedFrom(TYPEK_DrawNode3D))
-				{
-					SDrawNode3D * pDrawnode = static_cast<SDrawNode3D *>(pNode);
-					if (pDrawnode->m_hMaterial != -1 && pDrawnode->m_hMesh != -1)
+					if (hNode == -1)
+						continue;
+
+					SNode * pNode = hNode.PT();
+					pNode->Update();
+
+					if (pNode->FIsDerivedFrom(TYPEK_UiNode))
 					{
-						aryhDrawnode3DToRender.push_back(SDrawNode3DHandle(hNode.m_id));
+						aryhUinodeToRender.push_back(SUiNodeHandle(hNode.m_id));
+					}
+					else if (pNode->FIsDerivedFrom(TYPEK_DrawNode3D))
+					{
+						SDrawNode3D * pDrawnode = static_cast<SDrawNode3D *>(pNode);
+						if (pDrawnode->m_hMaterial != -1 && pDrawnode->m_hMesh != -1)
+						{
+							aryhDrawnode3DToRender.push_back(SDrawNode3DHandle(hNode.m_id));
+						}
 					}
 				}
-			}
 
-			// Cache out the pointers so we don't have to look them up since they can't be destroyed while rendering
-			//  i.e. we're done updating
+				// Cache out the pointers so we don't have to look them up since they can't be destroyed while rendering
+				//  i.e. we're done updating
 
-			for (SUiNodeHandle & hUinode : aryhUinodeToRender)
-			{
-				if (SUiNode * pUinode = hUinode.PT())
+				for (SUiNodeHandle & hUinode : aryhUinodeToRender)
 				{
-					arypUinodeToRender.push_back(pUinode);
+					if (SUiNode * pUinode = hUinode.PT())
+					{
+						arypUinodeToRender.push_back(pUinode);
+					}
 				}
-			}
 
-			for (SDrawNode3DHandle & hDrawnode : aryhDrawnode3DToRender)
-			{
-				if (SDrawNode3D * pDrawnode = hDrawnode.PT())
+				for (SDrawNode3DHandle & hDrawnode : aryhDrawnode3DToRender)
 				{
-					arypDrawnode3DToRender.push_back(pDrawnode);
+					if (SDrawNode3D * pDrawnode = hDrawnode.PT())
+					{
+						arypDrawnode3DToRender.push_back(pDrawnode);
+					}
 				}
 			}
 		}
@@ -1006,307 +1017,317 @@ void SGame::MainLoop()
 		// Reset all mesh flags 
 		// BB Do this clearing in a better way, which would probably involve looping over meshes only
 
-		for (SDrawNode3D * pDrawnode3D : arypDrawnode3DToRender)
 		{
-			SMesh3D * pMesh = pDrawnode3D->m_hMesh.PT();
-			pMesh->m_iIndexdata = -1;
-			pMesh->m_iVertdata = -1;
+#if TIME_MAIN_LOOP
+			STimingContext timectx = STimingContext("Fill Vert Buffer");
+#endif
+			for (SDrawNode3D * pDrawnode3D : arypDrawnode3DToRender)
+			{
+				SMesh3D * pMesh = pDrawnode3D->m_hMesh.PT();
+				pMesh->m_iIndexdata = -1;
+				pMesh->m_iVertdata = -1;
+			}
+
+			// BB this is terrible, remember to add down below too
+
+			m_hMeshSphere->m_iIndexdata = -1;
+			m_hMeshSphere->m_iVertdata = -1;
+
+			m_hMeshCube->m_iIndexdata = -1;
+			m_hMeshCube->m_iVertdata = -1;
+
+			m_hMeshArrowBody->m_iIndexdata = -1;
+			m_hMeshArrowBody->m_iVertdata = -1;
+
+			m_hMeshArrowHead->m_iIndexdata = -1;
+			m_hMeshArrowHead->m_iVertdata = -1;
+
+			m_hMeshQuad->m_iIndexdata = -1;
+			m_hMeshQuad->m_iVertdata = -1;
+
+			for (SUiNode * pUinode : arypUinodeToRender)
+			{
+				SMesh3D * pMesh = pUinode->m_hMesh.PT();
+
+				// Don't draw ui nodes that don't have meshes
+
+				if (!pMesh)
+					continue;
+
+				pMesh->m_iIndexdata = -1;
+				pMesh->m_iVertdata = -1;
+			}
+
+			int iBIndex = 0;
+			int iBVert3D = 0;
+
+			D3D11_MAPPED_SUBRESOURCE mappedSubresourceIndex;
+			g_game.m_pD3ddevicecontext->Map(m_cbufferIndex, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresourceIndex);
+
+			D3D11_MAPPED_SUBRESOURCE mappedSubresourceVerts3D;
+			g_game.m_pD3ddevicecontext->Map(m_cbufferVertex3D, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresourceVerts3D);
+
+			for (SDrawNode3D * pDrawnode3D : arypDrawnode3DToRender)
+			{
+				SMesh3D * pMesh = pDrawnode3D->m_hMesh.PT();
+				EnsureMeshIn3dCbuffer(pMesh, &iBIndex, &iBVert3D, &mappedSubresourceVerts3D, &mappedSubresourceIndex);
+			}
+
+			// Ensures meshes for debug drawing
+
+			EnsureMeshIn3dCbuffer(m_hMeshSphere.PT(), &iBIndex, &iBVert3D, &mappedSubresourceVerts3D, &mappedSubresourceIndex);
+			EnsureMeshIn3dCbuffer(m_hMeshCube.PT(), &iBIndex, &iBVert3D, &mappedSubresourceVerts3D, &mappedSubresourceIndex);
+			EnsureMeshIn3dCbuffer(m_hMeshArrowBody.PT(), &iBIndex, &iBVert3D, &mappedSubresourceVerts3D, &mappedSubresourceIndex);
+			EnsureMeshIn3dCbuffer(m_hMeshArrowHead.PT(), &iBIndex, &iBVert3D, &mappedSubresourceVerts3D, &mappedSubresourceIndex);
+			EnsureMeshIn3dCbuffer(m_hMeshQuad.PT(), &iBIndex, &iBVert3D, &mappedSubresourceVerts3D, &mappedSubresourceIndex);
+
+			for (SUiNode * pUinode : arypUinodeToRender)
+			{
+				SMesh3D * pMesh = pUinode->m_hMesh.PT();
+
+				// Again skip uinodes that don't have meshes
+
+				if (!pMesh)
+					continue;
+
+				if (pMesh->m_iVertdata != -1)
+					continue;
+
+				pMesh->m_cVerts = pMesh->m_aryVertdata.size();
+				pMesh->m_iVertdata = iBVert3D / sizeof(SVertData3D);
+				pMesh->m_cIndicies = pMesh->m_aryIIndex.size();
+				pMesh->m_iIndexdata = iBIndex / sizeof(unsigned short);
+
+				unsigned int cBVert = sizeof(SVertData3D) * pMesh->m_aryVertdata.size();
+				memcpy((char *) mappedSubresourceVerts3D.pData + iBVert3D, pMesh->m_aryVertdata.data(), cBVert);
+				iBVert3D += cBVert;
+
+				unsigned int cBIndex = sizeof(unsigned short) * pMesh->m_aryIIndex.size();
+				memcpy((char *) mappedSubresourceIndex.pData + iBIndex, pMesh->m_aryIIndex.data(), cBIndex);
+				iBIndex += cBIndex;
+			}
+
+			ASSERT(iBIndex < cIndexMax * sizeof(unsigned short));
+			ASSERT(iBVert3D < cVertsMax * sizeof(SVertData3D));
+
+			g_game.m_pD3ddevicecontext->Unmap(m_cbufferIndex, 0);
+			g_game.m_pD3ddevicecontext->Unmap(m_cbufferVertex3D, 0);
 		}
-
-		// BB this is terrible, remember to add down below too
-
-		m_hMeshSphere->m_iIndexdata = -1;
-		m_hMeshSphere->m_iVertdata = -1;
-
-		m_hMeshCube->m_iIndexdata = -1;
-		m_hMeshCube->m_iVertdata = -1;
-
-		m_hMeshArrowBody->m_iIndexdata = -1;
-		m_hMeshArrowBody->m_iVertdata = -1;
-
-		m_hMeshArrowHead->m_iIndexdata = -1;
-		m_hMeshArrowHead->m_iVertdata = -1;
-
-		m_hMeshQuad->m_iIndexdata = -1;
-		m_hMeshQuad->m_iVertdata = -1;
-
-		for (SUiNode * pUinode : arypUinodeToRender)
-		{
-			SMesh3D * pMesh = pUinode->m_hMesh.PT();
-
-			// Don't draw ui nodes that don't have meshes
-
-			if (!pMesh)
-				continue;
-
-			pMesh->m_iIndexdata = -1;
-			pMesh->m_iVertdata = -1;
-		}
-
-		int iBIndex = 0;
-		int iBVert3D = 0;
-
-		D3D11_MAPPED_SUBRESOURCE mappedSubresourceIndex;
-		g_game.m_pD3ddevicecontext->Map(m_cbufferIndex, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresourceIndex);
-
-		D3D11_MAPPED_SUBRESOURCE mappedSubresourceVerts3D;
-		g_game.m_pD3ddevicecontext->Map(m_cbufferVertex3D, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresourceVerts3D);
-
-		for (SDrawNode3D * pDrawnode3D : arypDrawnode3DToRender)
-		{
-			SMesh3D * pMesh = pDrawnode3D->m_hMesh.PT();
-			EnsureMeshIn3dCbuffer(pMesh, &iBIndex, &iBVert3D, &mappedSubresourceVerts3D, &mappedSubresourceIndex);
-		}
-
-		// Ensures meshes for debug drawing
-
-		EnsureMeshIn3dCbuffer(m_hMeshSphere.PT(), &iBIndex, &iBVert3D, &mappedSubresourceVerts3D, &mappedSubresourceIndex);
-		EnsureMeshIn3dCbuffer(m_hMeshCube.PT(), &iBIndex, &iBVert3D, &mappedSubresourceVerts3D, &mappedSubresourceIndex);
-		EnsureMeshIn3dCbuffer(m_hMeshArrowBody.PT(), &iBIndex, &iBVert3D, &mappedSubresourceVerts3D, &mappedSubresourceIndex);
-		EnsureMeshIn3dCbuffer(m_hMeshArrowHead.PT(), &iBIndex, &iBVert3D, &mappedSubresourceVerts3D, &mappedSubresourceIndex);
-		EnsureMeshIn3dCbuffer(m_hMeshQuad.PT(), &iBIndex, &iBVert3D, &mappedSubresourceVerts3D, &mappedSubresourceIndex);
-
-		for (SUiNode * pUinode : arypUinodeToRender)
-		{
-			SMesh3D * pMesh = pUinode->m_hMesh.PT();
-
-			// Again skip uinodes that don't have meshes
-
-			if (!pMesh)
-				continue;
-
-			if (pMesh->m_iVertdata != -1)
-				continue;
-
-			pMesh->m_cVerts = pMesh->m_aryVertdata.size();
-			pMesh->m_iVertdata = iBVert3D / sizeof(SVertData3D);
-			pMesh->m_cIndicies = pMesh->m_aryIIndex.size();
-			pMesh->m_iIndexdata = iBIndex / sizeof(unsigned short);
-
-			unsigned int cBVert = sizeof(SVertData3D) * pMesh->m_aryVertdata.size();
-			memcpy((char *) mappedSubresourceVerts3D.pData + iBVert3D, pMesh->m_aryVertdata.data(), cBVert);
-			iBVert3D += cBVert;
-
-			unsigned int cBIndex = sizeof(unsigned short) * pMesh->m_aryIIndex.size();
-			memcpy((char *) mappedSubresourceIndex.pData + iBIndex, pMesh->m_aryIIndex.data(), cBIndex);
-			iBIndex += cBIndex;
-		}
-
-		ASSERT(iBIndex < cIndexMax * sizeof(unsigned short));
-		ASSERT(iBVert3D < cVertsMax * sizeof(SVertData3D));
-
-		g_game.m_pD3ddevicecontext->Unmap(m_cbufferIndex, 0);
-		g_game.m_pD3ddevicecontext->Unmap(m_cbufferVertex3D, 0);
 
 		// Start rendering stuff =======================================================
 
-		g_cDraw3D = 0;
-		for (int i = 0; i < 2; i++)
 		{
-			// Clear bound render targets
+#if TIME_MAIN_LOOP
+			STimingContext timectx = STimingContext("Render");
+#endif
 
-			m_pD3ddevicecontext->OMSetRenderTargets(0, nullptr, nullptr);
-
-			// Set viewport 
-
-			D3D11_VIEWPORT viewport;
-			if (i==0)
-				viewport = { 0.0f, 0.0f, nShadowRes, nShadowRes, 0.0f, 1.0f };
-			else
-				viewport = { 0.0f, 0.0f, vecWinSize.m_x, vecWinSize.m_y, 0.0f, 1.0f };
-			m_pD3ddevicecontext->RSSetViewports(1, &viewport);
-
-			SCamera3D * pCamera3D = (i == 0 ? m_hCamera3DShadow : m_hCamera3DMain).PT();
-
-			ID3D11RenderTargetView * pD3drtview = (i == 0 ? m_pD3dframebufferviewShadow : m_pD3dframebufferview);
-			ID3D11DepthStencilView * pD3ddepthstencilview = (i == 0 ? m_pD3ddepthstencilviewShadow : m_pD3ddepthstencilview);
-
-			FLOAT backgroundColor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
-			m_pD3ddevicecontext->ClearRenderTargetView(pD3drtview, backgroundColor);
-
-			//m_pD3ddevicecontext->OMSetRenderTargets(1, &pD3drtview, nullptr);
-
-			// Clear depth to 0 since 0=far 1=near in our clip space
-
-			m_pD3ddevicecontext->ClearDepthStencilView(pD3ddepthstencilview, D3D11_CLEAR_DEPTH, 0.0f, 0);
-
-			BindGlobalsForCamera(pCamera3D, m_hCamera3DShadow.PT());
-
-			// Set render target
-
-			m_pD3ddevicecontext->OMSetRenderTargets(1, &pD3drtview, pD3ddepthstencilview);
-
-			// Draw skybox
-
-			if (i==1)
+			g_cDraw3D = 0;
+			for (int i = 0; i < 2; i++)
 			{
-				// TODO consider grouping together into some sort of fullscreen pass system
+				// Clear bound render targets
 
-				const SMaterial & material = *(m_hMaterialSkybox.PT());
-				const SShader & shader = *(m_hShaderSkybox.PT());
-				if (shader.m_data.m_shaderk != SHADERK_Error)
+				m_pD3ddevicecontext->OMSetRenderTargets(0, nullptr, nullptr);
+
+				// Set viewport 
+
+				D3D11_VIEWPORT viewport;
+				if (i == 0)
+					viewport = { 0.0f, 0.0f, nShadowRes, nShadowRes, 0.0f, 1.0f };
+				else
+					viewport = { 0.0f, 0.0f, vecWinSize.m_x, vecWinSize.m_y, 0.0f, 1.0f };
+				m_pD3ddevicecontext->RSSetViewports(1, &viewport);
+
+				SCamera3D * pCamera3D = (i == 0 ? m_hCamera3DShadow : m_hCamera3DMain).PT();
+
+				ID3D11RenderTargetView * pD3drtview = (i == 0 ? m_pD3dframebufferviewShadow : m_pD3dframebufferview);
+				ID3D11DepthStencilView * pD3ddepthstencilview = (i == 0 ? m_pD3ddepthstencilviewShadow : m_pD3ddepthstencilview);
+
+				FLOAT backgroundColor[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+				m_pD3ddevicecontext->ClearRenderTargetView(pD3drtview, backgroundColor);
+
+				//m_pD3ddevicecontext->OMSetRenderTargets(1, &pD3drtview, nullptr);
+
+				// Clear depth to 0 since 0=far 1=near in our clip space
+
+				m_pD3ddevicecontext->ClearDepthStencilView(pD3ddepthstencilview, D3D11_CLEAR_DEPTH, 0.0f, 0);
+
+				BindGlobalsForCamera(pCamera3D, m_hCamera3DShadow.PT());
+
+				// Set render target
+
+				m_pD3ddevicecontext->OMSetRenderTargets(1, &pD3drtview, pD3ddepthstencilview);
+
+				// Draw skybox
+
+				if (i == 1)
 				{
-					ASSERT(shader.m_data.m_shaderk == SHADERK_Skybox);
+					// TODO consider grouping together into some sort of fullscreen pass system
 
-					Mat matModelSkybox;
+					const SMaterial & material = *(m_hMaterialSkybox.PT());
+					const SShader & shader = *(m_hShaderSkybox.PT());
+					if (shader.m_data.m_shaderk != SHADERK_Error)
 					{
-						float x = Lerp(pCamera3D->m_xNearClip, pCamera3D->m_xFarClip, 0.1f);
-						Mat matTranslate = MatTranslate(x * pCamera3D->MatObjectToWorld().VecX() + pCamera3D->MatObjectToWorld().Pos());
-						Quat quat = QuatLookAt(-pCamera3D->VecXWorld(), pCamera3D->VecZWorld());
-						Mat matRot = MatRotate(quat);
-						float w = x * GTan(pCamera3D->m_radFovHorizontal * 0.5f);
-						float h = w * vecWinSize.m_y / vecWinSize.m_x;
-						Mat matScale = MatScale(Vector(1.0f, w, h));
-						matModelSkybox = matScale * matRot * matTranslate;
-					}
+						ASSERT(shader.m_data.m_shaderk == SHADERK_Skybox);
 
-					m_pD3ddevicecontext->RSSetState(shader.m_data.m_pD3drasterizerstate);
-					m_pD3ddevicecontext->OMSetDepthStencilState(shader.m_data.m_pD3ddepthstencilstate, 0);
-
-					const SMesh3D & mesh = *(m_hMeshQuad.PT());
-
-					m_pD3ddevicecontext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-					m_pD3ddevicecontext->IASetInputLayout(shader.m_data.m_pD3dinputlayout);
-
-					m_pD3ddevicecontext->VSSetShader(shader.m_data.m_pD3dvertexshader, nullptr, 0);
-					m_pD3ddevicecontext->PSSetShader(shader.m_data.m_pD3dfragshader, nullptr, 0);
-
-					ID3D11Buffer * aD3dbuffer[] = { m_cbufferGlobals, m_cbufferDrawnode3D };
-					m_pD3ddevicecontext->VSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
-					m_pD3ddevicecontext->PSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
-
-					unsigned int cbVert = sizeof(SVertData3D);
-					unsigned int s_cbMeshOffset = 0;
-
-					m_pD3ddevicecontext->IASetVertexBuffers(0, 1, &m_cbufferVertex3D, &cbVert, &s_cbMeshOffset);	// BB don't constantly do this
-					m_pD3ddevicecontext->IASetIndexBuffer(m_cbufferIndex, DXGI_FORMAT_R16_UINT, 0);					//  ...
-
-					D3D11_MAPPED_SUBRESOURCE mappedSubresource;
-					m_pD3ddevicecontext->Map(m_cbufferDrawnode3D, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
-					SDrawNodeRenderConstants * pDrawnode3Drc = (SDrawNodeRenderConstants *) (mappedSubresource.pData);
-					pDrawnode3Drc->FillOut(matModelSkybox, matModelSkybox.MatInverse(), pCamera3D->MatWorldToClip(), pCamera3D->MatObjectToWorld().MatInverse());
-
-					m_pD3ddevicecontext->Unmap(m_cbufferDrawnode3D, 0);
-
-					BindMaterialTextures(&material, &shader);
-
-					ASSERT(mesh.m_iIndexdata != -1 && mesh.m_iVertdata != -1);
-					m_pD3ddevicecontext->DrawIndexed(mesh.m_cIndicies, mesh.m_iIndexdata, mesh.m_iVertdata);
-				}
-			}
-
-			// Draw 3d nodes
-
-			Mat matWorldToClip = pCamera3D->MatWorldToClip();
-			Mat matWorldToCamera = pCamera3D->MatObjectToWorld().MatInverse();
-			SFrustum frustum = pCamera3D->FrustumCompute();
-
-			Draw3D(&arypDrawnode3DToRender, matWorldToClip, matWorldToCamera, frustum, i == 0);
-
-			// Draw debug draw stuff
-
-			if (i == 1)
-			{
-				SMaterial * pMaterialWireframe = m_hMaterialDebugDrawWireframe.PT();
-				SMaterial * pMaterialSolidNoDepthWrite = m_hMaterialDebugDrawSolidNoDepthWrite.PT();
-				SMaterial * pMaterialSolidDepthWrite = m_hMaterialDebugDrawSolidNoDepthWrite.PT();
-				SMaterial * pMaterialOutline = m_hMaterialDebugDrawOutline.PT();
-				SMesh3D * pMeshSphere = m_hMeshSphere.PT();
-				SMesh3D * pMeshCube = m_hMeshCube.PT();
-				SMesh3D * pMeshArrowBody = m_hMeshArrowBody.PT();
-				SMesh3D * pMeshArrowHead = m_hMeshArrowHead.PT();
-
-				m_fDebugDrawing = true;
-
-				for (SDebugDraw & dd : m_lDdToDraw)
-				{
-					dd.m_gSorted = SLength(dd.m_mat.Pos() - pCamera3D->PosWorld());
-				}
-				m_lDdToDraw.sort(FCompareDebugDraw);
-
-				for (const SDebugDraw & dd : m_lDdToDraw)
-				{
-					SFixArray<SMesh3D *, 2> apMesh;
-					SFixArray<const Mat *, 2> apMat;
-					switch (dd.m_ddk)
-					{
-					case DDK_Cube:
-						apMesh.Append(pMeshCube);
-						apMat.Append(&dd.m_mat);
-						break;
-
-					case DDK_Sphere:
-						apMesh.Append(pMeshSphere);
-						apMat.Append(&dd.m_mat);
-						break;
-
-					case DDK_Arrow:
-						apMesh.Append(pMeshArrowHead);
-						apMesh.Append(pMeshArrowBody);
-						apMat.Append(&dd.m_mat);
-						apMat.Append(&dd.m_mat2);
-						break;
-
-					case DDK_Line:
-						apMesh.Append(pMeshArrowBody);
-						apMat.Append(&dd.m_mat);
-						break;
-
-					default:
-						ASSERT(false);
-						break;
-					}
-
-					// TODO could draw all opaque stuff first
-					bool fOpaque = dd.m_rgba.m_a == 1.0f;
-
-					switch (dd.m_ddstyle)
-					{
-					case DDSTYLE_Wireframe:
-						// TODO handle fOpaque properly
-						for (int ipMesh = 0; ipMesh < apMesh.m_c; ipMesh++)
+						Mat matModelSkybox;
 						{
-							Draw3DSingle(pMaterialWireframe, apMesh[ipMesh], *apMat[ipMesh], matWorldToClip, matWorldToCamera, frustum, GScaleMaxFromMat(*apMat[ipMesh]), dd.m_rgba);
-						}
-						break;
-					case DDSTYLE_Solid:
-						for (int ipMesh = 0; ipMesh < apMesh.m_c; ipMesh++)
-						{
-							Draw3DSingle((fOpaque) ? pMaterialSolidDepthWrite : pMaterialSolidNoDepthWrite, apMesh[ipMesh], * apMat[ipMesh], matWorldToClip, matWorldToCamera, frustum, GScaleMaxFromMat(*apMat[ipMesh]), dd.m_rgba);
-						}
-						break;
-
-					case DDSTYLE_Outline:
-						ASSERT(fOpaque);
-						for (int ipMesh = 0; ipMesh < apMesh.m_c; ipMesh++)
-						{
-							Draw3DSingle(pMaterialOutline, apMesh[ipMesh], *apMat[ipMesh], matWorldToClip, matWorldToCamera, frustum, GScaleMaxFromMat(*apMat[ipMesh]), g_rgbaBlack);
+							float x = Lerp(pCamera3D->m_xNearClip, pCamera3D->m_xFarClip, 0.1f);
+							Mat matTranslate = MatTranslate(x * pCamera3D->MatObjectToWorld().VecX() + pCamera3D->MatObjectToWorld().Pos());
+							Quat quat = QuatLookAt(-pCamera3D->VecXWorld(), pCamera3D->VecZWorld());
+							Mat matRot = MatRotate(quat);
+							float w = x * GTan(pCamera3D->m_radFovHorizontal * 0.5f);
+							float h = w * vecWinSize.m_y / vecWinSize.m_x;
+							Mat matScale = MatScale(Vector(1.0f, w, h));
+							matModelSkybox = matScale * matRot * matTranslate;
 						}
 
-						for (int ipMesh = 0; ipMesh < apMesh.m_c; ipMesh++)
-						{
-							Draw3DSingle(pMaterialSolidDepthWrite, apMesh[ipMesh], *apMat[ipMesh], matWorldToClip, matWorldToCamera, frustum, GScaleMaxFromMat(*apMat[ipMesh]), dd.m_rgba);
-						}
-						break;
+						m_pD3ddevicecontext->RSSetState(shader.m_data.m_pD3drasterizerstate);
+						m_pD3ddevicecontext->OMSetDepthStencilState(shader.m_data.m_pD3ddepthstencilstate, 0);
+
+						const SMesh3D & mesh = *(m_hMeshQuad.PT());
+
+						m_pD3ddevicecontext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+						m_pD3ddevicecontext->IASetInputLayout(shader.m_data.m_pD3dinputlayout);
+
+						m_pD3ddevicecontext->VSSetShader(shader.m_data.m_pD3dvertexshader, nullptr, 0);
+						m_pD3ddevicecontext->PSSetShader(shader.m_data.m_pD3dfragshader, nullptr, 0);
+
+						ID3D11Buffer * aD3dbuffer[] = { m_cbufferGlobals, m_cbufferDrawnode3D };
+						m_pD3ddevicecontext->VSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
+						m_pD3ddevicecontext->PSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
+
+						unsigned int cbVert = sizeof(SVertData3D);
+						unsigned int s_cbMeshOffset = 0;
+
+						m_pD3ddevicecontext->IASetVertexBuffers(0, 1, &m_cbufferVertex3D, &cbVert, &s_cbMeshOffset);	// BB don't constantly do this
+						m_pD3ddevicecontext->IASetIndexBuffer(m_cbufferIndex, DXGI_FORMAT_R16_UINT, 0);					//  ...
+
+						D3D11_MAPPED_SUBRESOURCE mappedSubresource;
+						m_pD3ddevicecontext->Map(m_cbufferDrawnode3D, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
+						SDrawNodeRenderConstants * pDrawnode3Drc = (SDrawNodeRenderConstants *) (mappedSubresource.pData);
+						pDrawnode3Drc->FillOut(matModelSkybox, matModelSkybox.MatInverse(), pCamera3D->MatWorldToClip(), pCamera3D->MatObjectToWorld().MatInverse());
+
+						m_pD3ddevicecontext->Unmap(m_cbufferDrawnode3D, 0);
+
+						BindMaterialTextures(&material, &shader);
+
+						ASSERT(mesh.m_iIndexdata != -1 && mesh.m_iVertdata != -1);
+						m_pD3ddevicecontext->DrawIndexed(mesh.m_cIndicies, mesh.m_iIndexdata, mesh.m_iVertdata);
 					}
 				}
 
-				m_fDebugDrawing = false;
-			}
+				// Draw 3d nodes
 
-			// Draw ui nodes
+				Mat matWorldToClip = pCamera3D->MatWorldToClip();
+				Mat matWorldToCamera = pCamera3D->MatObjectToWorld().MatInverse();
+				SFrustum frustum = pCamera3D->FrustumCompute();
 
-			if (i == 1)
-			{
-				for (SUiNode * pUinode : arypUinodeToRender)
+				Draw3D(&arypDrawnode3DToRender, matWorldToClip, matWorldToCamera, frustum, i == 0);
+
+				// Draw debug draw stuff
+
+				if (i == 1)
 				{
-					if (pUinode->m_hMaterial == nullptr)
-						continue;
+					SMaterial * pMaterialWireframe = m_hMaterialDebugDrawWireframe.PT();
+					SMaterial * pMaterialSolidNoDepthWrite = m_hMaterialDebugDrawSolidNoDepthWrite.PT();
+					SMaterial * pMaterialSolidDepthWrite = m_hMaterialDebugDrawSolidNoDepthWrite.PT();
+					SMaterial * pMaterialOutline = m_hMaterialDebugDrawOutline.PT();
+					SMesh3D * pMeshSphere = m_hMeshSphere.PT();
+					SMesh3D * pMeshCube = m_hMeshCube.PT();
+					SMesh3D * pMeshArrowBody = m_hMeshArrowBody.PT();
+					SMesh3D * pMeshArrowHead = m_hMeshArrowHead.PT();
 
-					const SMaterial & material = *(pUinode->m_hMaterial);
-					const SShader & shader = *(material.m_hShader);
-					if (shader.m_data.m_shaderk == SHADERK_Error)
-						continue;
+					m_fDebugDrawing = true;
+
+					for (SDebugDraw & dd : m_lDdToDraw)
+					{
+						dd.m_gSorted = SLength(dd.m_mat.Pos() - pCamera3D->PosWorld());
+					}
+					m_lDdToDraw.sort(FCompareDebugDraw);
+
+					for (const SDebugDraw & dd : m_lDdToDraw)
+					{
+						SFixArray<SMesh3D *, 2> apMesh;
+						SFixArray<const Mat *, 2> apMat;
+						switch (dd.m_ddk)
+						{
+						case DDK_Cube:
+							apMesh.Append(pMeshCube);
+							apMat.Append(&dd.m_mat);
+							break;
+
+						case DDK_Sphere:
+							apMesh.Append(pMeshSphere);
+							apMat.Append(&dd.m_mat);
+							break;
+
+						case DDK_Arrow:
+							apMesh.Append(pMeshArrowHead);
+							apMesh.Append(pMeshArrowBody);
+							apMat.Append(&dd.m_mat);
+							apMat.Append(&dd.m_mat2);
+							break;
+
+						case DDK_Line:
+							apMesh.Append(pMeshArrowBody);
+							apMat.Append(&dd.m_mat);
+							break;
+
+						default:
+							ASSERT(false);
+							break;
+						}
+
+						// TODO could draw all opaque stuff first
+						bool fOpaque = dd.m_rgba.m_a == 1.0f;
+
+						switch (dd.m_ddstyle)
+						{
+						case DDSTYLE_Wireframe:
+							// TODO handle fOpaque properly
+							for (int ipMesh = 0; ipMesh < apMesh.m_c; ipMesh++)
+							{
+								Draw3DSingle(pMaterialWireframe, apMesh[ipMesh], *apMat[ipMesh], matWorldToClip, matWorldToCamera, frustum, GScaleMaxFromMat(*apMat[ipMesh]), dd.m_rgba);
+							}
+							break;
+						case DDSTYLE_Solid:
+							for (int ipMesh = 0; ipMesh < apMesh.m_c; ipMesh++)
+							{
+								Draw3DSingle((fOpaque) ? pMaterialSolidDepthWrite : pMaterialSolidNoDepthWrite, apMesh[ipMesh], *apMat[ipMesh], matWorldToClip, matWorldToCamera, frustum, GScaleMaxFromMat(*apMat[ipMesh]), dd.m_rgba);
+							}
+							break;
+
+						case DDSTYLE_Outline:
+							ASSERT(fOpaque);
+							for (int ipMesh = 0; ipMesh < apMesh.m_c; ipMesh++)
+							{
+								Draw3DSingle(pMaterialOutline, apMesh[ipMesh], *apMat[ipMesh], matWorldToClip, matWorldToCamera, frustum, GScaleMaxFromMat(*apMat[ipMesh]), g_rgbaBlack);
+							}
+
+							for (int ipMesh = 0; ipMesh < apMesh.m_c; ipMesh++)
+							{
+								Draw3DSingle(pMaterialSolidDepthWrite, apMesh[ipMesh], *apMat[ipMesh], matWorldToClip, matWorldToCamera, frustum, GScaleMaxFromMat(*apMat[ipMesh]), dd.m_rgba);
+							}
+							break;
+						}
+					}
+
+					m_fDebugDrawing = false;
+				}
+
+				// Draw ui nodes
+
+				if (i == 1)
+				{
+					for (SUiNode * pUinode : arypUinodeToRender)
+					{
+						if (pUinode->m_hMaterial == nullptr)
+							continue;
+
+						const SMaterial & material = *(pUinode->m_hMaterial);
+						const SShader & shader = *(material.m_hShader);
+						if (shader.m_data.m_shaderk == SHADERK_Error)
+							continue;
 
 						ASSERT(shader.m_data.m_shaderk == SHADERK_Ui);
 
@@ -1342,11 +1363,12 @@ void SGame::MainLoop()
 						BindMaterialTextures(&material, &shader);
 
 						m_pD3ddevicecontext->DrawIndexed(mesh.m_cIndicies, mesh.m_iIndexdata, mesh.m_iVertdata);
+					}
 				}
 			}
-		}
 
-		m_pD3dswapchain->Present(1, 0);
+			m_pD3dswapchain->Present(1, 0);
+		}
 
 		for (int i = 0; i < DIM(m_mpVkFJustPressed); i++)
 		{
