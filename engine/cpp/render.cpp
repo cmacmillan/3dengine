@@ -19,42 +19,46 @@ void Draw3DSingle(const SMaterial * pMaterial, const SMesh3D * pMesh, const Mat 
 	if (!FInFrustum(frustum, posBoundingSphereWorld, sRadiusBoundingSphere))
 		return;
 
-	pD3ddevicecontext->RSSetState(pShader->m_data.m_pD3drasterizerstate);
-	pD3ddevicecontext->OMSetDepthStencilState(pShader->m_data.m_pD3ddepthstencilstate, 0);
-
-	pD3ddevicecontext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	pD3ddevicecontext->IASetInputLayout(pShader->m_data.m_pD3dinputlayout);
-
-	pD3ddevicecontext->VSSetShader(pShader->m_data.m_pD3dvertexshader, nullptr, 0);
-	pD3ddevicecontext->PSSetShader(pShader->m_data.m_pD3dfragshader, nullptr, 0);
-
-	ID3D11Buffer * aD3dbuffer[] = { g_game.m_cbufferGlobals, g_game.m_cbufferDrawnode3D};
-	pD3ddevicecontext->VSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
-	pD3ddevicecontext->PSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
-
-	unsigned int cbVert = sizeof(SVertData3D);
-	unsigned int s_cbMeshOffset = 0;
-
-	pD3ddevicecontext->IASetVertexBuffers(0, 1, &g_game.m_cbufferVertex3D, &cbVert, &s_cbMeshOffset);	// BB don't constantly do this
-	pD3ddevicecontext->IASetIndexBuffer(g_game.m_cbufferIndex, DXGI_FORMAT_R16_UINT, 0);					//  ...
-
-	D3D11_MAPPED_SUBRESOURCE mappedSubresource;
-	pD3ddevicecontext->Map(g_game.m_cbufferDrawnode3D, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
-	SDrawNodeRenderConstants * pDrawnode3Drc = (SDrawNodeRenderConstants *) (mappedSubresource.pData);
-
-	pDrawnode3Drc->FillOut(matModel, matModel.MatInverse(), matWorldToClip, matWorldToCamera, rgba);
-
-	pD3ddevicecontext->Unmap(g_game.m_cbufferDrawnode3D, 0);
-
-	BindMaterialTextures(pMaterial, pShader);
-
-	pD3ddevicecontext->DrawIndexed(pMesh->m_cIndicies, pMesh->m_iIndexdata, pMesh->m_iVertdata);
-
-	UnbindTextures(pShader);
-
-	if (!g_game.m_fDebugDrawing) // Don't count debug draws
 	{
-		g_cDraw3D++;
+		ZoneScopedN("Draw3DSingle");
+
+		pD3ddevicecontext->RSSetState(pShader->m_data.m_pD3drasterizerstate);
+		pD3ddevicecontext->OMSetDepthStencilState(pShader->m_data.m_pD3ddepthstencilstate, 0);
+
+		pD3ddevicecontext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		pD3ddevicecontext->IASetInputLayout(pShader->m_data.m_pD3dinputlayout);
+
+		pD3ddevicecontext->VSSetShader(pShader->m_data.m_pD3dvertexshader, nullptr, 0);
+		pD3ddevicecontext->PSSetShader(pShader->m_data.m_pD3dfragshader, nullptr, 0);
+
+		ID3D11Buffer * aD3dbuffer[] = { g_game.m_cbufferGlobals, g_game.m_cbufferDrawnode3D };
+		pD3ddevicecontext->VSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
+		pD3ddevicecontext->PSSetConstantBuffers(0, DIM(aD3dbuffer), aD3dbuffer);
+
+		unsigned int cbVert = sizeof(SVertData3D);
+		unsigned int s_cbMeshOffset = 0;
+
+		pD3ddevicecontext->IASetVertexBuffers(0, 1, &g_game.m_cbufferVertex3D, &cbVert, &s_cbMeshOffset);	// BB don't constantly do this
+		pD3ddevicecontext->IASetIndexBuffer(g_game.m_cbufferIndex, DXGI_FORMAT_R16_UINT, 0);					//  ...
+
+		D3D11_MAPPED_SUBRESOURCE mappedSubresource;
+		pD3ddevicecontext->Map(g_game.m_cbufferDrawnode3D, 0, D3D11_MAP_WRITE_DISCARD, 0, &mappedSubresource);
+		SDrawNodeRenderConstants * pDrawnode3Drc = (SDrawNodeRenderConstants *) (mappedSubresource.pData);
+
+		pDrawnode3Drc->FillOut(matModel, matModel.MatInverse(), matWorldToClip, matWorldToCamera, rgba);
+
+		pD3ddevicecontext->Unmap(g_game.m_cbufferDrawnode3D, 0);
+
+		BindMaterialTextures(pMaterial, pShader);
+
+		pD3ddevicecontext->DrawIndexed(pMesh->m_cIndicies, pMesh->m_iIndexdata, pMesh->m_iVertdata);
+
+		UnbindTextures(pShader);
+
+		if (!g_game.m_fDebugDrawing) // Don't count debug draws
+		{
+			g_cDraw3D++;
+		}
 	}
 }
 

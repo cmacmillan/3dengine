@@ -49,11 +49,15 @@ Point SCamera3D::PosWorldFromPosNdc(Point posNdc)
 
 	Mat matClipToCamera = MatClipToCamera();
 
-	float xCam = GMapRange(1.0f, 0.0f, m_xNearClip, m_xFarClip, posNdc.m_vec.m_z);
+	float w;
+	if (m_fOrthographic)
+		w = (m_xFarClip-m_xNearClip)/m_xFarClip;
+	else
+		w = GMapRange(1.0f, 0.0f, m_xNearClip, m_xFarClip, posNdc.m_vec.m_z);
 
-	// Multiplying by xCam since that's what ends up in the w component
+	// Multiplying by what ends up in the w component
 
-	float4 posResult = (posNdc.m_vec * xCam) * matClipToCamera;
+	float4 posResult = (posNdc.m_vec * w) * matClipToCamera;
 
 	// NOTE W isn't 1.0 here, I think this is because this isn't really a reversible operation
 
@@ -71,12 +75,6 @@ Point SCamera3D::PosNdcFromPosWindow(float2 posWindow, float xDepthWorld)
 
 SFrustum SCamera3D::FrustumCompute()
 {
-	// BB PosWorldFromPosNdc not working for orthographic cameras?
-	if (!m_fOrthographic)
-	{
-		DoNothing();
-	}
-
 	// NOTE these coordinates are somewhat weird since it's a mapping of NDC to world space
 	//  E.g. inverse z becomes x
 

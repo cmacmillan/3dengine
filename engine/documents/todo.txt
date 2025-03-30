@@ -1,4 +1,4 @@
-_ - Frustum culling
+X - Frustum culling
 _ - Batch by shader and material
 X - Fix camera ztilt bug where it keeps pointing up
 X - Shadow mapping
@@ -40,6 +40,6 @@ _ - Perform linear -> gamma correction as a post pass (instead of writing things
 _ - MSAA
 X - Add shader replacement macro, so you can pass a key-value array when constructing a shader to specify parameters
 _ - blender material importing
-_ - investigate poor render performance with tracy
-_ - Frustum generation code not working with orthographic camera
+X - investigate poor render performance with tracy
+X - Frustum generation code not working with orthographic camera
 _ - Fix or disable all compiler warnings. Default to fixing, only ignoring ones I really don't care about (e.g. double->float, size_t->int)
