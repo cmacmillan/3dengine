@@ -533,14 +533,18 @@ void SGame::Init(HINSTANCE hInstance)
 
 	// Load initial text shader and set up the console
 
-	SShaderHandle hShaderText = (new SShader("shaders\\text2d.hlsl"))->HShader();
+#define USE_OUTLINED_FONT 1
 
-	// Font 
-
-	m_hFont = (new SFont("fonts\\candara.fnt"))->HFont();
-
+#if USE_OUTLINED_FONT
+	SShaderHandle hShaderText = (new SShader("shaders/text2doutlined.hlsl"))->HShader();
+	m_hFont = (new SFont("fonts/candara_outlined/candara_outlined.fnt"))->HFont();
 	m_hMaterialText = (new SMaterial(hShaderText))->HMaterial();
-	//m_hMaterialText->m_hTexture = m_hFont->m_aryhTexture[0];
+#else
+	SShaderHandle hShaderText = (new SShader("shaders/text2d.hlsl"))->HShader();
+	m_hFont = (new SFont("fonts/candara/candara.fnt"))->HFont();
+	m_hMaterialText = (new SMaterial(hShaderText))->HMaterial();
+#endif
+
 	m_hMaterialText->m_aryNamedtexture.push_back({ m_hFont->m_aryhTexture[0], "fontTexture" });
 
 	// Console
@@ -549,7 +553,7 @@ void SGame::Init(HINSTANCE hInstance)
 
 	// Load other shaders
 
-	SShaderHandle hShader3DNDotL = (new SShader("shaders\\litndotl.hlsl"))->HShader();
+	SShaderHandle hShader3DNDotL = (new SShader("shaders/litndotl.hlsl"))->HShader();
 
 	// Fps counter
 
@@ -1231,6 +1235,8 @@ void SGame::MainLoop()
 
 				if (i == 1)
 				{
+					ZoneScopedN("Debug drawing");
+
 					SMaterial * pMaterialWireframe = m_hMaterialDebugDrawWireframe.PT();
 					SMaterial * pMaterialSolidNoDepthWrite = m_hMaterialDebugDrawSolidNoDepthWrite.PT();
 					SMaterial * pMaterialSolidDepthWrite = m_hMaterialDebugDrawSolidNoDepthWrite.PT();

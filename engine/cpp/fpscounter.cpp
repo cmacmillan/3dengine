@@ -11,20 +11,11 @@ SFpsCounter::SFpsCounter(SNode * pNodeParent, const std::string & str) : super(p
 	m_hText->m_gSort = 10.0f;
 	m_hText->m_pos = float2(0.0f, 0.0f);
 	m_hText->m_color = { 0.0f, 0.0f, 0.0f, 1.0f };
-
-	m_hTextFps = (new SText(g_game.m_hFont, this, "FpsTextAlt"))->HText();
-	m_hTextFps->m_hMaterial = g_game.m_hMaterialText;
-	m_hTextFps->SetText("FPS: ___");
-	m_hTextFps->m_vecScale = float2(0.3f, 0.3f);
-	m_hTextFps->m_gSort = 10.0f;
-	m_hTextFps->m_pos = float2(0.0f, 0.0f);
-	m_hTextFps->m_color = { 0.0f, 0.0f, 0.0f, 1.0f };
 }
 
 SFpsCounter::~SFpsCounter()
 {
 	delete m_hText.PT();
-	delete m_hTextFps.PT();
 }
 
 void SFpsCounter::Update()
@@ -54,11 +45,9 @@ void SFpsCounter::Update()
 
 	// TODO fps counter should be a node 2d these things are parented to
 
-	m_hText->SetText(StrPrintf("avg: %.2fms \nworst: %.2fms\n", 1000 * gdTAvg, 1000 * dTWorst));
-	m_hTextFps->SetText(StrPrintf("(%.0ffps)", GRound(gFps, 0)));
+	m_hText->SetText(StrPrintf("avg: %.2fms (%.0ffps)\nworst: %.2fms\n", 1000 * gdTAvg, GRound(gFps, 0), 1000 * dTWorst));
 
 	// BB why do we have to scale vecwinsize by 2?
 
 	m_hText->m_pos = float2(20.0f, 2.0f * vecWinSize.m_y - 20.0f);
-	m_hTextFps->m_pos = float2(350.0f, 2.0f * vecWinSize.m_y - 20.0f);
 }

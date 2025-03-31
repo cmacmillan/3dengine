@@ -723,7 +723,7 @@ bool FSimplex(Vector * pNormalSupport, SFixArray<SMink, 4> * paryMink, Point * p
 	}
 }
 
-#define ENABLE_DEBUG_GJK 0
+#define ENABLE_DEBUG_GJK 1
 
 TWEAKABLE Point s_posMinkowskiOriginDebugDraw = Point(5.0f, 0.0f, 3.0f);
 static int s_iDrawGjkDebug = 0;

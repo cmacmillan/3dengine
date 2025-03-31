@@ -43,3 +43,5 @@ _ - blender material importing
 X - investigate poor render performance with tracy
 X - Frustum generation code not working with orthographic camera
 _ - Fix or disable all compiler warnings. Default to fixing, only ignoring ones I really don't care about (e.g. double->float, size_t->int)
+_ - Outlined text. Probably just a new sdf fond that I export extra bold
+_ - Optimize "Fill Vertex Buffer". Probably when meshes load and unload they should request to be added to/removed from the vertex buffer

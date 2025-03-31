@@ -82,6 +82,7 @@ struct SHandle
 	int m_id = -1;
 	T * PT() const
 	{
+		ZoneScoped;
 		if (m_id == -1)
 			return nullptr;
 		return (T *)g_objman.m_mpObjhObj[m_id];

@@ -19,5 +19,11 @@ float4 ps_main(VS_Output input) : SV_Target
 {
     float4 rgbaAvg = rgbaAvgSample(input);
 
-    return float4(input.color.rgb, input.color.a * rgbaAvg.r);
+    float4 rgbaOutline = float4(0.0, 0.0, 0.0, 1.);
+    float4 rgbaText = float4(0.9, 0.9, 0.9, 1.);
+    float outline = rgbaAvg.a;
+    float glyph = rgbaAvg.r;
+    float opacity = outline;
+    float3 rgb = (outline * rgbaOutline.rgb) * (1.0f - glyph) + glyph * rgbaText.rgb;
+    return float4(rgb, opacity);
 }

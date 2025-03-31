@@ -14,7 +14,6 @@ struct SFpsCounter : SNode // fps
 	void Update() override;
 
 	STextHandle		m_hText;
-	STextHandle		m_hTextFps;
 
 	float			m_adTRealtime[4*120];
 	int				m_idT = 0;

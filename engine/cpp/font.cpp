@@ -87,11 +87,15 @@ SFont::SFont(const char * pChzBitmapfontFile, TYPEK typek) : super(typek)
 	SFontBlockHeader fontbhCommon = SFontBlockHeader(&bs);
 	m_fontcb = SFontCommonBlock(&bs);
 
+	char aChDir[256];
+	char aChFile[256];
+	_splitpath(pChzBitmapfontFile, nullptr, aChDir, aChFile, nullptr);
+
 	SFontBlockHeader fontbhNames = SFontBlockHeader(&bs);
 	for (int i = 0; i < m_fontcb.m_nPages; i++)
 	{
 		const char * pChzFile = bs.PChzRead();
-		m_aryhTexture.push_back((new STexture(StrPrintf("fonts\\%s", pChzFile).c_str(), false, false))->HTexture());
+		m_aryhTexture.push_back((new STexture(StrPrintf("%s\\%s", aChDir, pChzFile).c_str(), false, false))->HTexture());
 	}
 
 	SFontBlockHeader fontbhChars = SFontBlockHeader(&bs);

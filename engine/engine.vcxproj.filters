@@ -262,6 +262,12 @@
     <FxCompile Include="shaders\debugdrawsolid.hlsl">
       <Filter>shaders</Filter>
     </FxCompile>
+    <FxCompile Include="shaders\text2doutlined.hlsl">
+      <Filter>shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\text2dcommon.hlsl">
+      <Filter>shader headers</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="documents\todo.txt">
