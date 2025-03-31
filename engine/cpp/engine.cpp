@@ -533,7 +533,7 @@ void SGame::Init(HINSTANCE hInstance)
 
 	// Load initial text shader and set up the console
 
-#define USE_OUTLINED_FONT 1
+#define USE_OUTLINED_FONT 0
 
 #if USE_OUTLINED_FONT
 	SShaderHandle hShaderText = (new SShader("shaders/text2doutlined.hlsl"))->HShader();

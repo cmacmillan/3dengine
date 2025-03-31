@@ -303,93 +303,12 @@ void SDynSphere::Update()
 
 // Eventually we're gonna compute a time of impact for each box, any times of impact that are within some epsilon should be considered to have happened at the same time
 
-Point PosSupportSweptIcosphere(Point posSphere, float sRadius, Vector dPosSweep, Vector normalSupport)
-{
-	Point aPosIcosphere[12] = { 
-		Point(0, 0, 1), 
-		Point(-0.7236f,-0.52572f,0.447215f),
-		Point(0.276385,-0.85064,0.447215),
-		Point(0.894425,0,0.447215),
-		Point(0.276385,0.85064,0.447215),
-		Point(-0.7236,0.52572,0.447215),
-		Point(0.7236,0.52572,-0.447215),
-		Point(0.7236,-0.52572,-0.447215),
-		Point(-0.276385,-0.85064,-0.447215),
-		Point(-0.894425,0,-0.447215),
-		Point(-0.276385,0.85064,-0.447215),
-		Point(0,0,-1)
-	};
-
-	float gDotBest = -FLT_MAX;
-	Point posBest = g_posZero;
-	for (int i = 0; i < 2; i++)
-	{
-		for (int iPos = 0; iPos < DIM(aPosIcosphere); iPos++)
-		{
-			Point pos = Vector(aPosIcosphere[iPos]) * sRadius + posSphere;
-			if (i == 1)
-			{
-				pos += dPosSweep;
-			}
-			float gDot = GDot(pos, normalSupport);
-			if (gDot > gDotBest)
-			{
-				gDotBest = gDot;
-				posBest = pos;
-			}
-		}
-	}
-
-	return posBest;
-}
-
-Point PosSupportSweptSphere(Point posSphere, float sRadius, Vector dPosSweep, Vector normalSupport)
-{
-	float gDot = GDot(normalSupport, dPosSweep);
-	Point posTest = (gDot > 0.0f) ? posSphere + dPosSweep : posSphere;
-	return posTest + sRadius * normalSupport;
-}
-
-Point PosSupportBox(const Mat & matPhys, Vector vecNonuniformScale, Vector normalSupport)
-{
-	// BB constructing vectors here
-
-	// NOTE that the length of these vectors is whatever the uniform scale is
-
-	Vector vecX = matPhys.m_aVec[0];
-	Vector vecY = matPhys.m_aVec[1];
-	Vector vecZ = matPhys.m_aVec[2];
-
-	float gDotX = GDot(vecX, normalSupport);
-	float gDotY = GDot(vecY, normalSupport);
-	float gDotZ = GDot(vecZ, normalSupport);
-
-	// Assuming box ranges from -1 to 1
-
-	Point pos = matPhys.m_aVec[3];
-	pos += (gDotX > 0.0f) ? vecX * vecNonuniformScale.X() : -vecX * vecNonuniformScale.X();
-	pos += (gDotY > 0.0f) ? vecY * vecNonuniformScale.Y() : -vecY * vecNonuniformScale.Y();
-	pos += (gDotZ > 0.0f) ? vecZ * vecNonuniformScale.Z() : -vecZ * vecNonuniformScale.Z();
-
-	return pos;
-}
-
 struct SMink
 {
 	Point m_posMink;
 	Point m_posSrcA;
 	Point m_posSrcB;
 };
-
-SMink MinkSweptSphereBox(Point posSphere, float sRadius, Vector dPosSweep, const Mat & matPhys, Vector vecNonuniformScale, Vector normalSupport)
-{
-	SMink mink; 
-	//mink.m_posSrcA = PosSupportSweptIcosphere(posSphere, sRadius, dPosSweep, normalSupport);
-	mink.m_posSrcA = PosSupportSweptSphere(posSphere, sRadius, dPosSweep, normalSupport);
-	mink.m_posSrcB = PosSupportBox(matPhys, vecNonuniformScale, -normalSupport);
-	mink.m_posMink = mink.m_posSrcA - mink.m_posSrcB;
-	return mink;
-}
 
 bool FHandleTriangle(SMink mink0, SMink mink1, SMink mink2, Vector * pNormalOutward, Vector * pNormalSupport, SFixArray<SMink, 4> * paryMink, Point * pPos0, Point * pPos1)
 {
@@ -728,13 +647,98 @@ bool FSimplex(Vector * pNormalSupport, SFixArray<SMink, 4> * paryMink, Point * p
 TWEAKABLE Point s_posMinkowskiOriginDebugDraw = Point(5.0f, 0.0f, 3.0f);
 static int s_iDrawGjkDebug = 0;
 
-// TODO this should take an interface that specifies how to do this
+// TODO need to figure out how this distance extrusion is gonna work
 
-bool FGjk(const Mat & matCubePhys, Vector vecNonuniformScale, Point posSphere, float sRadiusSphere, Vector dPosSweep, Vector normalSupport, bool fDebug, float * pS)
+TWEAKABLE float s_sHitMin = .001f; // Any closer and we won't be able to produce a good normal, so just pretend this was a collision
+
+Vector VecSweepBase(const Vector & dPosSweep, const Vector & normalSupport)
+{
+	float gDot = GDot(normalSupport, dPosSweep);
+	return (gDot > 0.0f) ? dPosSweep : g_vecZero;
+}
+
+SMink MinkCompute(IGjk * pGjkSweep, IGjk * pGjkStatic, Vector dPosSweep, Vector normalSupport)
+{
+	Point posSrcA = pGjkSweep->PosSupport(normalSupport) + VecSweepBase(dPosSweep, normalSupport);
+	Point posSrcB = pGjkStatic->PosSupport(-normalSupport);
+	Point posMink = posSrcA - posSrcB;
+	return { posMink, posSrcA, posSrcB };
+}
+
+GJKRES GjkresSweep(IGjk * pGjkSweeper, IGjk * pGjkStatic, Point * pPosSweeperEnd, Point * pPosClosestOnSweeper, Point * pPosClosestOnStatic)
+{
+	return GJKRES_Panic;
+}
+
+Point SGjkIcosphere::PosSupport(const Vector & normalSupport)
+{
+	Point aPosIcosphere[12] = { 
+		Point(0, 0, 1), 
+		Point(-0.7236f,-0.52572f,0.447215f),
+		Point(0.276385,-0.85064,0.447215),
+		Point(0.894425,0,0.447215),
+		Point(0.276385,0.85064,0.447215),
+		Point(-0.7236,0.52572,0.447215),
+		Point(0.7236,0.52572,-0.447215),
+		Point(0.7236,-0.52572,-0.447215),
+		Point(-0.276385,-0.85064,-0.447215),
+		Point(-0.894425,0,-0.447215),
+		Point(-0.276385,0.85064,-0.447215),
+		Point(0,0,-1)
+	};
+
+	float gDotBest = -FLT_MAX;
+	Point posBest = g_posZero;
+	{
+		for (int iPos = 0; iPos < DIM(aPosIcosphere); iPos++)
+		{
+			Point pos = Vector(aPosIcosphere[iPos]) * m_sRadius + m_pos;
+			float gDot = GDot(pos, normalSupport);
+			if (gDot > gDotBest)
+			{
+				gDotBest = gDot;
+				posBest = pos;
+			}
+		}
+	}
+
+	return posBest;
+}
+
+Point SGjkSphere::PosSupport(const Vector & normalSupport)
+{
+	return m_sRadius * normalSupport;
+}
+
+Point SGjkBox::PosSupport(const Vector & normalSupport)
+{
+	// BB constructing vectors here
+
+	// NOTE that the length of these vectors is whatever the uniform scale is
+
+	Vector vecX = m_matPhys.m_aVec[0];
+	Vector vecY = m_matPhys.m_aVec[1];
+	Vector vecZ = m_matPhys.m_aVec[2];
+
+	float gDotX = GDot(vecX, normalSupport);
+	float gDotY = GDot(vecY, normalSupport);
+	float gDotZ = GDot(vecZ, normalSupport);
+
+	// Assuming box ranges from -1 to 1
+
+	Point pos = m_matPhys.m_aVec[3];
+	pos += (gDotX > 0.0f) ? vecX * m_vecNonuniformScale.X() : -vecX * m_vecNonuniformScale.X();
+	pos += (gDotY > 0.0f) ? vecY * m_vecNonuniformScale.Y() : -vecY * m_vecNonuniformScale.Y();
+	pos += (gDotZ > 0.0f) ? vecZ * m_vecNonuniformScale.Z() : -vecZ * m_vecNonuniformScale.Z();
+
+	return pos;
+}
+
+bool FGjk(IGjk * pGjkSweep, IGjk * pGjkStatic, Vector dPosSweep, Vector normalSupport, bool fDebug, float * pS)
 {
 	SFixArray<SMink, 4> aryMink;
 
-	aryMink.Append(MinkSweptSphereBox(posSphere, sRadiusSphere, dPosSweep, matCubePhys, vecNonuniformScale, normalSupport));
+	aryMink.Append(MinkCompute(pGjkSweep, pGjkStatic, dPosSweep, normalSupport));
 
 	normalSupport = VecNormalizeSafe(-Vector(aryMink[0].m_posMink));
 
@@ -747,14 +751,12 @@ bool FGjk(const Mat & matCubePhys, Vector vecNonuniformScale, Point posSphere, f
 	}
 #endif
 
-	TWEAKABLE float s_sHitMin = .001f; // Any closer and we won't be able to produce a good normal, so just pretend this was a collision
-
 	float sMin = FLT_MAX;
 	Point pos0Best;
 	Point pos1Best;
 	for (;;)
 	{
-		SMink mink = MinkSweptSphereBox(posSphere, sRadiusSphere, dPosSweep, matCubePhys, vecNonuniformScale, normalSupport);
+		SMink mink = MinkCompute(pGjkSweep, pGjkStatic, dPosSweep, normalSupport);
 		for (int i = 0; i < aryMink.m_c; i++)
 		{
 			if (FIsNear(aryMink[i].m_posMink, mink.m_posMink))
@@ -865,6 +867,8 @@ void TestGjk(const Mat & matCubePhys, Vector vecNonuniformScale, Point posSphere
 		s_iDrawGjkDebug--;
 	}
 
+	SGjkBox gjkbox = SGjkBox(matCubePhys, vecNonuniformScale);
+	SGjkIcosphere gjkico = SGjkIcosphere(posSphere, sRadiusSphere);
 	Vector dPosSweep = posSphere2 - posSphere;
 
 	{
@@ -887,14 +891,13 @@ void TestGjk(const Mat & matCubePhys, Vector vecNonuniformScale, Point posSphere
 			{
 				float radJ = PI * j / float(s_cJ - 1.0f) - PI / 2.0f;
 				Vector normal = VecCylind(TAU * i / float(s_cI), GCos(radJ), GSin(radJ));
-				g_game.DebugDrawSphere(s_posMinkowskiOriginDebugDraw + MinkSweptSphereBox(posSphere, sRadiusSphere, dPosSweep, matCubePhys, vecNonuniformScale, normal).m_posMink, 0.5f, 0.0f, SRgba(0.0f, 0.0f, 1.0f, 0.3f));
-				//DoGjk(matCubePhys, vecNonuniformScale, posSphere, sRadiusSphere, dPosSweep, normal); // TODO soak test
+				g_game.DebugDrawSphere(s_posMinkowskiOriginDebugDraw + MinkCompute(&gjkico, &gjkbox, dPosSweep, normal).m_posMink, 0.5f, 0.0f, SRgba(0.0f, 0.0f, 1.0f, 0.3f));
 			}
 		}
 	}
-	
+
 	float s;
-	bool fHit = FGjk(matCubePhys, vecNonuniformScale, posSphere, sRadiusSphere, dPosSweep, g_vecXAxis, true, &s);
+	bool fHit = FGjk(&gjkico, &gjkbox, dPosSweep, g_vecXAxis, true, &s);
 	if (fHit)
 	{
 		g_game.PrintConsole("Hit!\n");

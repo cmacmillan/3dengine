@@ -45,4 +45,57 @@ struct SDynSphere : SNode3D // dynsphere
 	float m_dTPrev;
 };
 
+struct IGjk
+{
+	virtual Point PosSupport(const Vector & normalSupport) = 0;
+};
+
+enum GJKRES
+{
+	GJKRES_NoHit = 0,
+	GJKRES_Hit = 1,
+	GJKRES_Panic = 2,
+};
+
+GJKRES GjkresSweep(IGjk * pGjkSweeper, IGjk * pGjkStatic, Point * pPosSweeperEnd, Point * pPosClosestOnSweeper, Point * pPosClosestOnStatic);
+
+struct SGjkIcosphere : IGjk
+{
+					SGjkIcosphere(const Point & pos, float sRadius) :
+						m_pos(pos),
+						m_sRadius(sRadius)
+					{ }
+
+	Point PosSupport(const Vector & normalSupport) override;
+
+	Point m_pos;
+	float m_sRadius;
+};
+
+struct SGjkSphere : IGjk
+{
+					SGjkSphere(const Point & pos, float sRadius) :
+						m_pos(pos),
+						m_sRadius(sRadius)
+					{ }
+
+	Point PosSupport(const Vector & normalSupport) override;
+
+	Point m_pos;
+	float m_sRadius;
+};
+
+struct SGjkBox : IGjk
+{
+					SGjkBox(const Mat & matPhys, const Vector & vecNonuniformScale) :
+						m_matPhys(matPhys),
+						m_vecNonuniformScale(vecNonuniformScale)
+					{ }
+
+	Point PosSupport(const Vector & normalSupport) override;
+
+	Mat m_matPhys;
+	Vector m_vecNonuniformScale;
+};
+
 void TestGjk(); 

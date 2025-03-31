@@ -51,7 +51,7 @@ invG=0
 invB=0
 
 # outline
-outlineThickness=15
+outlineThickness=10
 
 # selected chars
 chars=0-0,13,32-126
