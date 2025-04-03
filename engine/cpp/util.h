@@ -22,6 +22,20 @@
 #define PI 3.141592653589793f
 #define TAU 6.28318530718f
 
+typedef signed long long s64;
+typedef unsigned long long u64;
+typedef signed long s32;
+typedef unsigned long u32;
+typedef signed short s16;
+typedef unsigned short u16;
+
+CASSERT(sizeof(s64) == 8);
+CASSERT(sizeof(u64) == 8);
+CASSERT(sizeof(s32) == 4);
+CASSERT(sizeof(u32) == 4);
+CASSERT(sizeof(s16) == 2);
+CASSERT(sizeof(u16) == 2);
+
 // Syst invalid is a large negative value
 
 #define SYST_INVALID -FLT_MAX

@@ -6,7 +6,7 @@ _ - shadow cascades
 _ - hdri, tonemapping, bloom
 X - phys wireframe view
 _ - cook torrance lighting
-_ - baked lighting
+_ - baked lighting (probably best to use gpu, & set up nsight to debug. Perhaps also expose debug buffers the gpu can put data into to put into the debug draw queue)
 _ - asset compiler
 _ - instancing, static combining meshes (remember we want to frustum cull so that should be a large consideration if we statically combine. Probably just instance for now)
 _ - build up draw calls in a seperate thread
@@ -45,3 +45,5 @@ X - Frustum generation code not working with orthographic camera
 _ - Fix or disable all compiler warnings. Default to fixing, only ignoring ones I really don't care about (e.g. double->float, size_t->int)
 _ - Outlined text. Probably just a new sdf fond that I export extra bold
 _ - Optimize "Fill Vertex Buffer". Probably when meshes load and unload they should request to be added to/removed from the vertex buffer
+_ - When moving shadow cameras, move them in pixel increments from their perspective to prevent shadow creeping
+_ - Add generation id to handles

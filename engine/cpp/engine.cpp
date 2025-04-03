@@ -175,6 +175,8 @@ float2 SGame::VecWinTopLeft()
 
 void SGame::Init(HINSTANCE hInstance)
 {
+	ZoneScoped;
+
 	STimingContext timectx = STimingContext("Init", 15.0f);
 
 	m_hNodeRoot = (new SNode(nullptr, "RootNode"))->HNode();

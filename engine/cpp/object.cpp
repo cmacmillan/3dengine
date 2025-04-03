@@ -8,8 +8,8 @@ SObjectManager::SObjectManager()
 	m_mpObjhObj = (SObject **) malloc(cbObj);
 	memset(m_mpObjhObj, 0, cbObj);
 
-	size_t cbH = sizeof(int) * C_OBJECT_MAX;
-	m_ahFree = (int *) malloc(cbH);
+	size_t cbH = sizeof(s64) * C_OBJECT_MAX;
+	m_ahFree = (s64 *) malloc(cbH);
 	for (int i = 0; i < C_OBJECT_MAX; i++)
 	{
 		m_ahFree[i] = i;
@@ -72,7 +72,7 @@ void SObjectManager::RegisterObj(SObject * pObj)
 {
 	ASSERT(m_chFree > 0);
 	m_chFree--;
-	int id = m_ahFree[m_chFree];
+	s64 id = m_ahFree[m_chFree];
 
 	ASSERT(pObj->m_ols == OBJECT_LIFE_STATE_Uninitialized);
 	pObj->m_ols = OBJECT_LIFE_STATE_Registered;

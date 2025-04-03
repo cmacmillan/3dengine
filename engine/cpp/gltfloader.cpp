@@ -15,8 +15,6 @@
 #define JSON_NOEXCEPTION
 #include "external/tiny_gltf.h"
 
-#define BUFFER_OFFSET(i) ((char *)NULL + (i))
-
 // NOTE I think the thing we want to cache is the models. Read it into the data structure once, then we can query it whenever to spawn something in.
 //  Large data like meshes should be cached as well, but for all the minutea we can probably get away with doing it this way
 //  Names can even just be pointers into the model
@@ -25,11 +23,32 @@ SMesh3D * PMeshLoad(tinygltf::Model * pModel, tinygltf::Mesh * pTinymesh);
 
 bool FTryLoadModel(const char * pChzPath, tinygltf::Model * pModel)
 {
+	ZoneScoped;
+
+	char aChExtension[256];
+	_splitpath(pChzPath, nullptr, nullptr, nullptr, aChExtension);
+
+	std::string strPathFull = StrPrintf("%s\\%s", g_game.m_strAssetPath.c_str(), pChzPath);
+
 	tinygltf::TinyGLTF loader;
 	std::string strErr;
 	std::string strWarn;
 
-	bool fSuccess = loader.LoadASCIIFromFile(pModel, &strErr, &strWarn, StrPrintf("%s\\%s", g_game.m_strAssetPath.c_str(), pChzPath).c_str());
+	// NOTE .glb vs. gltf + .bin + textures doesn't seem to produce much of a perf difference
+
+	bool fSuccess;
+	if (strcmp(aChExtension, ".glb") == 0)
+	{
+		fSuccess = loader.LoadBinaryFromFile(pModel, &strErr, &strWarn, strPathFull);
+	}
+	else if (strcmp(aChExtension, ".gltf") == 0)
+	{
+		fSuccess = loader.LoadASCIIFromFile(pModel, &strErr, &strWarn, strPathFull);
+	}
+	else
+	{
+		return false;
+	}
 
 	if (!strWarn.empty())
 		g_game.PrintConsole(StrPrintf("%s\n",strWarn).c_str());
@@ -55,17 +74,12 @@ bool FTryGetValueFromKey(std::map<std::string, tinygltf::Value> * pMpStrValue, c
 
 void SpawnNode(tinygltf::Model * pModel, int iNode, SNode * pNodeParent)
 {
+	ZoneScoped;
+
 	tinygltf::Node * pNode = &pModel->nodes[iNode];
 
 	SNode3D * pNode3d = nullptr;
 	std::map<std::string, tinygltf::Value> * pMpStrValue = &pNode->extras.object_value_;
-
-#if 1
-	if (strcmp(pNode->name.c_str(), "SimpleBox") == 0)
-	{
-		DoNothing();
-	}
-#endif
 
 	if (pNode->extras.IsObject())
 	{
@@ -190,6 +204,8 @@ void SpawnNode(tinygltf::Model * pModel, int iNode, SNode * pNodeParent)
 
 void SpawnScene(const char * pChzPath)
 {
+	ZoneScoped;
+
 	tinygltf::Model model;
 	VERIFY(FTryLoadModel(pChzPath, &model));
 
@@ -208,6 +224,8 @@ void SpawnScene(const char * pChzPath)
 
 SMesh3D * PMeshLoad(tinygltf::Model * pModel, tinygltf::Mesh * pTinymesh)
 {
+	ZoneScoped;
+
 	SMesh3D * pMesh = new SMesh3D();
 
 	// NOTE if you were to apply 2 materials to a model, you'd probably end up with 2 primitives

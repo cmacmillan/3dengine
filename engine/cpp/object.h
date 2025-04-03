@@ -69,28 +69,36 @@ struct SObjectManager
 	bool *								m_mpTypekMpTypekFIsSuper;
 
 protected:
-	int *								m_ahFree = nullptr;
-	int									m_chFree = -1;
+	s64 *								m_ahFree = nullptr;
+	s64									m_chFree = -1;
 };
 extern SObjectManager g_objman;
+
+//                           1 2 3 4 5 6 7 8
+//#define HANDLE_GEN_ID_MASK 0x0000000000000000
 
 template <typename T>
 struct SHandle
 {
 	SHandle() : m_id(-1) {}
-	SHandle(int id) : m_id(id) {}
-	int m_id = -1;
+	SHandle(s64 id) : m_id(id) {}
+
 	T * PT() const
 	{
 		ZoneScoped;
+
+		// Extract 
+
 		if (m_id == -1)
 			return nullptr;
 		return (T *)g_objman.m_mpObjhObj[m_id];
 	}
+
 	T * operator->() const
 	{
 		return PT();
 	}
+
 	T & operator*() const
 	{
 		T * pT = PT();
@@ -101,14 +109,18 @@ struct SHandle
 		}
 		return *pT;
 	}
+
 	bool operator==(const SHandle<T> & hOther) const
 	{
 		return m_id == hOther.m_id;
 	}
-	bool operator==(int id) const
+
+	bool operator==(s64 id) const
 	{
 		return m_id == id;
 	}
+
+	s64 m_id = -1;
 };
 
 template <typename T>
@@ -118,7 +130,7 @@ bool operator==(const void * pV, const SHandle<T> & hOther)
 }
 
 template <typename T>
-bool operator==(const int id, const SHandle<T> & hOther)
+bool operator==(const s64 id, const SHandle<T> & hOther)
 {
 	return id == hOther.m_id;
 }
@@ -130,7 +142,7 @@ struct SObject  // obj
 	bool FIsDerivedFrom(TYPEK typek);
 	TYPEK m_typek = TYPEK_Nil;
 	OBJECT_LIFE_STATE m_ols = OBJECT_LIFE_STATE_Uninitialized;
-	int m_nHandle = -1;
+	s64 m_nHandle = -1;
 };
 
 struct SMesh3D;

@@ -98,7 +98,7 @@ float GPow(float gBase, float gExponent)
 
 int NPow(int nBase, int nExponent)
 {
-	return pow(nBase, nExponent);
+	return int(pow(nBase, nExponent));
 }
 
 int CSolveQuadratic(float a, float b, float c, float * aG)
