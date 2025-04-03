@@ -20,7 +20,7 @@ struct SDrawNodeRenderConstants
 struct SDrawNode3D : SNode3D // drawnode3D
 {
 	typedef SNode3D super;
-	SDrawNode3DHandle HDrawnode3D() { return (SDrawNode3DHandle) m_nHandle; }
+	SDrawNode3DHandle HDrawnode3D() { return (SDrawNode3DHandle) m_h; }
 
 	SDrawNode3D(SNode * pNodeParent, const std::string & strName, TYPEK typek = TYPEK_DrawNode3D);
 

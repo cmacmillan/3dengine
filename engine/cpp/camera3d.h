@@ -7,7 +7,7 @@
 struct SCamera3D : SNode3D // camera3D
 {
 	typedef SNode3D super;
-	SCamera3DHandle HCamera3D() { return (SCamera3DHandle) m_nHandle; }
+	SCamera3DHandle HCamera3D() { return (SCamera3DHandle) m_h; }
 
 	SCamera3D(SNode * pNodeParent, const std::string & strName, float radFovHorizontal, float xNearClip, float xFarClip, TYPEK typek = TYPEK_Camera3D);
 

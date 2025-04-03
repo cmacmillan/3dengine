@@ -4,15 +4,16 @@ SObjectManager g_objman;
 
 SObjectManager::SObjectManager()
 {
-	size_t cbObj = sizeof(SObject *) * C_OBJECT_MAX;
-	m_mpObjhObj = (SObject **) malloc(cbObj);
-	memset(m_mpObjhObj, 0, cbObj);
+	size_t cbObj = sizeof(SObjectSlot) * C_OBJECT_MAX;
+	m_aObjslot = (SObjectSlot *) malloc(cbObj);
 
-	size_t cbH = sizeof(s64) * C_OBJECT_MAX;
-	m_ahFree = (s64 *) malloc(cbH);
-	for (int i = 0; i < C_OBJECT_MAX; i++)
+	size_t cbH = sizeof(u32) * C_OBJECT_MAX;
+	m_aiObjslotFree = (u32 *) malloc(cbH);
+	for (u32 iObjslot = 0; iObjslot < C_OBJECT_MAX; iObjslot++)
 	{
-		m_ahFree[i] = i;
+		m_aiObjslotFree[iObjslot] = iObjslot;
+		m_aObjslot[iObjslot].m_h = HFromIObjslotAndNGeneration(iObjslot, 0);
+		m_aObjslot[iObjslot].m_pObj = nullptr;
 	}
 	m_chFree = C_OBJECT_MAX;
 
@@ -68,11 +69,29 @@ TYPEK TypekSuper(TYPEK typek)
 	}
 }
 
+u32 NGenerationFromHandle(u64 h) {
+	//            1 2 3 4 5 6 7 8
+	return (h & 0xFFFFFFFF00000000) >> 32;
+}
+
+u32 IObjslotFromHandle(u64 h)
+{
+	//           1 2 3 4 5 6 7 8
+	return h & 0x00000000FFFFFFFF;
+}
+
+u64 HFromIObjslotAndNGeneration(u32 iObjslot, u32 nGeneration)
+{
+	return (u64(nGeneration) << 32) | iObjslot;
+}
+
 void SObjectManager::RegisterObj(SObject * pObj)
 {
 	ASSERT(m_chFree > 0);
 	m_chFree--;
-	s64 id = m_ahFree[m_chFree];
+	u32 iObjslot = m_aiObjslotFree[m_chFree];
+	ASSERT(iObjslot < C_OBJECT_MAX);
+	SObjectSlot * pObjslot = &m_aObjslot[iObjslot];
 
 	ASSERT(pObj->m_ols == OBJECT_LIFE_STATE_Uninitialized);
 	pObj->m_ols = OBJECT_LIFE_STATE_Registered;
@@ -84,9 +103,8 @@ void SObjectManager::RegisterObj(SObject * pObj)
 		typek = TypekSuper(typek);
 	}
 
-	ASSERT(id < C_OBJECT_MAX);
-	m_mpObjhObj[id] = pObj;
-	pObj->m_nHandle = id;
+	pObjslot->m_pObj = pObj;
+	pObj->m_h = pObjslot->m_h;
 }
 
 void SObjectManager::UnregisterObj(SObject * pObj)
@@ -119,9 +137,16 @@ void SObjectManager::UnregisterObj(SObject * pObj)
 
 	pObj->m_ols = OBJECT_LIFE_STATE_Unregistered;
 
-	m_ahFree[m_chFree] = pObj->m_nHandle;
+	u32 iObjslot = IObjslotFromHandle(pObj->m_h);
+	u32 nGeneration = NGenerationFromHandle(pObj->m_h);
+
+	SObjectSlot * pObjslot = &m_aObjslot[iObjslot];
+
+	m_aiObjslotFree[m_chFree] = iObjslot;
 	m_chFree++;
-	m_mpObjhObj[pObj->m_nHandle] = nullptr;
+	
+	pObjslot->m_h = HFromIObjslotAndNGeneration(iObjslot, nGeneration + 1);
+	pObjslot->m_pObj = nullptr;
 }
 
 SObject::SObject(TYPEK typek)

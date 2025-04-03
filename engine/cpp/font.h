@@ -76,7 +76,7 @@ struct SFont : SObject
 {
 	typedef SObject super;
 	SFont(const char * pChzBitmapfontFile, TYPEK typek = TYPEK_Font);
-	SHandle<SFont> HFont() { return (SHandle<SFont>) m_nHandle; }
+	SHandle<SFont> HFont() { return (SHandle<SFont>) m_h; }
 
 	SFontInfoBlock m_fontib;
 	std::string m_strFontName;

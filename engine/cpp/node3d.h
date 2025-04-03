@@ -6,7 +6,7 @@
 struct SNode3D : SNode // node3D
 {
 	typedef SNode super;
-	SNode3DHandle HNode3D() { return (SNode3DHandle) m_nHandle; }
+	SNode3DHandle HNode3D() { return (SNode3DHandle) m_h; }
 
 	SNode3D(SNode * pNodeParent, const std::string & strName, TYPEK typek = TYPEK_Node3D);
 

@@ -13,7 +13,7 @@ struct SMaterial : SObject // material
 {
 	typedef SObject super;
 	SMaterial(SShaderHandle hShader, const char * pChzName = "", TYPEK typek = TYPEK_Material);
-	SMaterialHandle HMaterial() { return (SMaterialHandle) m_nHandle; }
+	SMaterialHandle HMaterial() { return (SMaterialHandle) m_h; }
 
 	std::vector<SNamedTexture> m_aryNamedtexture = {};
 	std::string m_strName = "";

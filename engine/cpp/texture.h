@@ -9,7 +9,7 @@ struct STexture : SObject // texture
 	STexture(const char * pChzFilename, bool fIsNormal, bool fGenerateMips, TYPEK typek = TYPEK_Texture);
 	STexture(TYPEK typek = TYPEK_Texture);
 
-	SHandle<STexture> HTexture() { return (SHandle<STexture>) m_nHandle; }
+	SHandle<STexture> HTexture() { return (SHandle<STexture>) m_h; }
 
 	ID3D11Texture2D * m_pD3dtexture = nullptr;
 	ID3D11ShaderResourceView * m_pD3dsrview = nullptr;

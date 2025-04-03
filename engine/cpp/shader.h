@@ -49,7 +49,7 @@ struct SShader : SObject // shader
 	~SShader();
 
 	static bool FTryLoadFromFile(SFile * pFile, SKv<std::string, std::string> * aKvReplacement, int cKvReplacement, SShaderData * pData, std::string * pStrError);
-	SShaderHandle HShader() { return (SShaderHandle) m_nHandle; }
+	SShaderHandle HShader() { return (SShaderHandle) m_h; }
 	int CNamedslot() const { return m_data.m_mpISlotStrName.size(); }
 	void UpdateHotload();
 	void ReleaseResources();

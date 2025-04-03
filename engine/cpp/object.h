@@ -50,12 +50,27 @@ enum TYPEK
 	// NOTE When adding new elements to this, make sure to add them to TypekSuper too!!!
 };
 
+struct SObject;
+
+struct SObjectSlot
+{
+	// Only storing the genid wouldn't be any smaller due to alignment, 
+	//  and I suspect checking equality against an idential value will be nice and fast
+	//  whereas if this was just the genid we'd have to bit shift
+
+	u64	m_h;
+	SObject * m_pObj;
+};
+
 TYPEK TypekSuper(TYPEK typek);
 bool FIsDerivedFromSlow(TYPEK typek, TYPEK typekSuper);
 
+u32 NGenerationFromHandle(u64 h);
+u32 IObjslotFromHandle(u64 h);
+u64 HFromIObjslotAndNGeneration(u32 iObjslot, u32 nGeneration);
+
 #define C_OBJECT_MAX 100000
 
-struct SObject;
 struct SObjectManager
 {
 			SObjectManager();
@@ -64,13 +79,13 @@ struct SObjectManager
 
 	// TODO make per-type iterator wrapper around m_mpTypekAryPObj
 
-	SObject **							m_mpObjhObj = nullptr;
+	SObjectSlot *						m_aObjslot = nullptr;
 	std::vector<SObject *>				m_mpTypekAryPObj[TYPEK_Max] = {};
 	bool *								m_mpTypekMpTypekFIsSuper;
 
 protected:
-	s64 *								m_ahFree = nullptr;
-	s64									m_chFree = -1;
+	u32 *								m_aiObjslotFree = nullptr;
+	int									m_chFree = -1;
 };
 extern SObjectManager g_objman;
 
@@ -80,18 +95,22 @@ extern SObjectManager g_objman;
 template <typename T>
 struct SHandle
 {
-	SHandle() : m_id(-1) {}
-	SHandle(s64 id) : m_id(id) {}
+	SHandle() : m_h(-1) {}
+	SHandle(u64 h) : m_h(h) {}
 
 	T * PT() const
 	{
 		ZoneScoped;
 
-		// Extract 
-
-		if (m_id == -1)
+		if (m_h == -1)
 			return nullptr;
-		return (T *)g_objman.m_mpObjhObj[m_id];
+
+		SObjectSlot * pObjslot = &g_objman.m_aObjslot[IObjslotFromHandle(m_h)];
+
+		if (pObjslot->m_h != m_h) // Compare gen ids, don't waste time bit shifting
+			return nullptr;
+
+		return (T*)pObjslot->m_pObj;
 	}
 
 	T * operator->() const
@@ -112,15 +131,15 @@ struct SHandle
 
 	bool operator==(const SHandle<T> & hOther) const
 	{
-		return m_id == hOther.m_id;
+		return m_h == hOther.m_h;
 	}
 
-	bool operator==(s64 id) const
+	bool operator==(u64 h) const
 	{
-		return m_id == id;
+		return m_h == h;
 	}
 
-	s64 m_id = -1;
+	u64 m_h = -1;
 };
 
 template <typename T>
@@ -130,9 +149,9 @@ bool operator==(const void * pV, const SHandle<T> & hOther)
 }
 
 template <typename T>
-bool operator==(const s64 id, const SHandle<T> & hOther)
+bool operator==(const u64 h, const SHandle<T> & hOther)
 {
-	return id == hOther.m_id;
+	return h == hOther.m_h;
 }
 
 struct SObject  // obj
@@ -142,7 +161,7 @@ struct SObject  // obj
 	bool FIsDerivedFrom(TYPEK typek);
 	TYPEK m_typek = TYPEK_Nil;
 	OBJECT_LIFE_STATE m_ols = OBJECT_LIFE_STATE_Uninitialized;
-	s64 m_nHandle = -1;
+	u64 m_h = -1;
 };
 
 struct SMesh3D;

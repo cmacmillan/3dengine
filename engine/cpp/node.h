@@ -5,7 +5,7 @@
 struct SNode : SObject // node
 {
 	typedef SObject super;
-	SNodeHandle HNode() { return (SNodeHandle) m_nHandle; }
+	SNodeHandle HNode() { return (SNodeHandle) m_h; }
 
 	SNode(SNode * pNodeParent, const std::string & strName, TYPEK typek = TYPEK_Node);
 	~SNode();

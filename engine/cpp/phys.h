@@ -6,7 +6,7 @@
 struct SPhysCube : SNode3D // physcube
 {
 	typedef SNode3D super;
-	SPhysCubeHandle HPhyscube() { return (SPhysCubeHandle) m_nHandle; }
+	SPhysCubeHandle HPhyscube() { return (SPhysCubeHandle) m_h; }
 
 	SPhysCube(SNode * pNodeParent, const std::string & strName, TYPEK typek = TYPEK_PhysCube);
 	void UpdateSelfAndChildTransformCache() override;
@@ -31,7 +31,7 @@ bool FRaycast(Point posOrigin, Vector normalDirection, Point * pPosIntersection)
 struct SDynSphere : SNode3D // dynsphere 
 {
 	typedef SNode3D super;
-	SDynSphereHandle HPhyscube() { return (SDynSphereHandle) m_nHandle; }
+	SDynSphereHandle HPhyscube() { return (SDynSphereHandle) m_h; }
 
 	SDynSphere(SNode * pNodeParent, const std::string & strName, TYPEK typek = TYPEK_DynSphere);
 

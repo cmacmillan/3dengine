@@ -7,5 +7,5 @@ struct SSun : SNode3D
 {
 	typedef SNode3D super;
 	SSun(SNode * pNodeParent, const std::string & strName, TYPEK typek = TYPEK_Sun);
-	SSunHandle HSun() { return (SSunHandle) m_nHandle; }
+	SSunHandle HSun() { return (SSunHandle) m_h; }
 };

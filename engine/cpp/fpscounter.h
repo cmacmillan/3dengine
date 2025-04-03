@@ -9,7 +9,7 @@ struct SFpsCounter : SNode // fps
 	typedef SNode super;
 	SFpsCounter(SNode * pNodeParent, const std::string & str);
 	~SFpsCounter();
-	SHandle<SFpsCounter> HFps() { return (SHandle<SFpsCounter>) m_nHandle; }
+	SHandle<SFpsCounter> HFps() { return (SHandle<SFpsCounter>) m_h; }
 
 	void Update() override;
 

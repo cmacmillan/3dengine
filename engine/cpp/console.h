@@ -7,7 +7,7 @@
 struct SConsole : SUiNode // console
 {
 	typedef SUiNode super;
-	SConsoleHandle	HConsole() { return (SConsoleHandle) m_nHandle; }
+	SConsoleHandle	HConsole() { return (SConsoleHandle) m_h; }
 
 					SConsole(SNode * pNodeParent, const std::string & strName, TYPEK typek = TYPEK_Console);
 

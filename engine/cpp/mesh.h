@@ -17,7 +17,7 @@ struct SMesh3D : SObject // mesh
 {
 	typedef SObject super;
 	SMesh3D(TYPEK typek = TYPEK_Mesh3D);
-	SMesh3DHandle HMesh() { return (SMesh3DHandle) m_nHandle; }
+	SMesh3DHandle HMesh() { return (SMesh3DHandle) m_h; }
 
 	void ComputeBounds();
 

@@ -9,7 +9,7 @@ struct SFlyCam : SNode3D
 {
 	typedef SNode3D super;
 	SFlyCam(SNode * pNodeParent, const std::string & strName, TYPEK typek = TYPEK_FlyCam);
-	SFlycamHandle HFlycam() { return (SFlycamHandle) m_nHandle; }
+	SFlycamHandle HFlycam() { return (SFlycamHandle) m_h; }
 
 	void Update() override;
 

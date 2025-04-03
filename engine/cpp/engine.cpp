@@ -917,14 +917,14 @@ void SGame::MainLoop()
 
 					if (pNode->FIsDerivedFrom(TYPEK_UiNode))
 					{
-						aryhUinodeToRender.push_back(SUiNodeHandle(hNode.m_id));
+						aryhUinodeToRender.push_back(SUiNodeHandle(hNode.m_h));
 					}
 					else if (pNode->FIsDerivedFrom(TYPEK_DrawNode3D))
 					{
 						SDrawNode3D * pDrawnode = static_cast<SDrawNode3D *>(pNode);
 						if (pDrawnode->m_hMaterial != -1 && pDrawnode->m_hMesh != -1)
 						{
-							aryhDrawnode3DToRender.push_back(SDrawNode3DHandle(hNode.m_id));
+							aryhDrawnode3DToRender.push_back(SDrawNode3DHandle(hNode.m_h));
 						}
 					}
 				}

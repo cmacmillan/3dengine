@@ -6,7 +6,7 @@
 struct SText : SUiNode // text
 {
 	typedef SUiNode super;
-	STextHandle HText() { return (STextHandle) m_nHandle; }
+	STextHandle HText() { return (STextHandle) m_h; }
 
 	SText(SFontHandle hFont, SNode * pNodeParent, const std::string & str, TYPEK typek = TYPEK_Text);
 	~SText();

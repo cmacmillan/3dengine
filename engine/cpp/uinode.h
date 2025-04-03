@@ -14,7 +14,7 @@ struct SUiNodeRenderConstants
 struct SUiNode : SNode // uinode
 {
 	typedef SNode super;
-	SUiNodeHandle HUinode() { return (SUiNodeHandle) m_nHandle; }
+	SUiNodeHandle HUinode() { return (SUiNodeHandle) m_h; }
 
 	SUiNode(SNode * pNodeParent, const std::string & strName, TYPEK typek = TYPEK_UiNode);
 	void GetRenderConstants(SUiNodeRenderConstants * pUinoderc);
